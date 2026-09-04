@@ -1,0 +1,113 @@
+{ "skeleton": { "images": "D:/akash/slicing new/EXPECTED INTERFACES/EXPECTED INTERFACES/plan away trip/" },
+"PhotoshopToSpine": { "scale": 1, "padding": 1, "trim": true },
+"bones": [
+	{ "name": "root" }
+],
+"slots": [
+	{ "name": "back button", "bone": "root", "attachment": "back button" },
+	{ "name": "low bar map info", "bone": "root", "attachment": "low bar map info" },
+	{ "name": "location blue icon2", "bone": "root", "attachment": "location blue icon2" },
+	{ "name": "old town border blue", "bone": "root", "attachment": "old town border blue" },
+	{ "name": "old town border", "bone": "root", "attachment": "old town border" },
+	{ "name": "old town center", "bone": "root", "attachment": "old town center" },
+	{ "name": "north end border red", "bone": "root", "attachment": "north end border red" },
+	{ "name": "north end border blue", "bone": "root", "attachment": "north end border blue" },
+	{ "name": "north end", "bone": "root", "attachment": "north end" },
+	{ "name": "location icon blue1", "bone": "root", "attachment": "location icon blue1" },
+	{ "name": "location icon blue", "bone": "root", "attachment": "location icon blue" },
+	{ "name": "east docks", "bone": "root", "attachment": "east docks" },
+	{ "name": "location icon red", "bone": "root", "attachment": "location icon red" },
+	{ "name": "river side border blue1", "bone": "root", "attachment": "river side border blue1" },
+	{ "name": "river side border red1", "bone": "root", "attachment": "river side border red1" },
+	{ "name": "river side center", "bone": "root", "attachment": "river side center" },
+	{ "name": "button icon", "bone": "root", "attachment": "button icon" },
+	{ "name": "shiled", "bone": "root", "attachment": "shiled" },
+	{ "name": "fist icon", "bone": "root", "attachment": "fist icon" },
+	{ "name": "money icon", "bone": "root", "attachment": "money icon" },
+	{ "name": "button icon1", "bone": "root", "attachment": "button icon1" },
+	{ "name": "shiled1", "bone": "root", "attachment": "shiled1" },
+	{ "name": "fist icon1", "bone": "root", "attachment": "fist icon1" },
+	{ "name": "money icon1", "bone": "root", "attachment": "money icon1" },
+	{ "name": "start trip", "bone": "root", "attachment": "start trip" }
+],
+"skins": {
+	"default": {
+		"back button": {
+			"back button": { "x": 84.5, "y": -80, "width": 61, "height": 48 }
+		},
+		"low bar map info": {
+			"low bar map info": { "x": 473.5, "y": -1285, "width": 879, "height": 416 }
+		},
+		"location blue icon2": {
+			"location blue icon2": { "x": 408, "y": -625, "width": 66, "height": 88 }
+		},
+		"old town border blue": {
+			"old town border blue": { "x": 720.5, "y": -885.5, "width": 237, "height": 309 }
+		},
+		"old town border": {
+			"old town border": { "x": 720.5, "y": -885.5, "width": 237, "height": 309 }
+		},
+		"old town center": {
+			"old town center": { "x": 720.5, "y": -885.5, "width": 227, "height": 299 }
+		},
+		"north end border red": {
+			"north end border red": { "x": 720.5, "y": -478.5, "width": 237, "height": 313 }
+		},
+		"north end border blue": {
+			"north end border blue": { "x": 720.5, "y": -478.5, "width": 237, "height": 313 }
+		},
+		"north end": {
+			"north end": { "x": 720.5, "y": -479, "width": 227, "height": 304 }
+		},
+		"location icon blue1": {
+			"location icon blue1": { "x": 589.5, "y": -293, "width": 65, "height": 88 }
+		},
+		"location icon blue": {
+			"location icon blue": { "x": 688.5, "y": -702, "width": 65, "height": 88 }
+		},
+		"east docks": {
+			"east docks": { "x": 245.5, "y": -444.5, "width": 263, "height": 313 }
+		},
+		"location icon red": {
+			"location icon red": { "x": 261.5, "y": -259.5, "width": 65, "height": 85 }
+		},
+		"river side border blue1": {
+			"river side border blue1": { "x": 269, "y": -814.5, "width": 226, "height": 315 }
+		},
+		"river side border red1": {
+			"river side border red1": { "x": 269, "y": -814.5, "width": 226, "height": 315 }
+		},
+		"river side center": {
+			"river side center": { "x": 268.5, "y": -814, "width": 217, "height": 306 }
+		},
+		"button icon": {
+			"button icon": { "x": 792, "y": -1354, "width": 58, "height": 56 }
+		},
+		"shiled": {
+			"shiled": { "x": 577, "y": -1352.5, "width": 60, "height": 65 }
+		},
+		"fist icon": {
+			"fist icon": { "x": 372, "y": -1351.5, "width": 64, "height": 67 }
+		},
+		"money icon": {
+			"money icon": { "x": 168.5, "y": -1351.5, "width": 79, "height": 47 }
+		},
+		"button icon1": {
+			"button icon1": { "x": 198, "y": -935.5, "width": 32, "height": 31 }
+		},
+		"shiled1": {
+			"shiled1": { "x": 198, "y": -901, "width": 26, "height": 28 }
+		},
+		"fist icon1": {
+			"fist icon1": { "x": 198, "y": -862.5, "width": 32, "height": 33 }
+		},
+		"money icon1": {
+			"money icon1": { "x": 197.5, "y": -829, "width": 39, "height": 24 }
+		},
+		"start trip": {
+			"start trip": { "x": 472, "y": -1568, "width": 520, "height": 110 }
+		}
+	}
+},
+"animations": { "animation": {} }
+}

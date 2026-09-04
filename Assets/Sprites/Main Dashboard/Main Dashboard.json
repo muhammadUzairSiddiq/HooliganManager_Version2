@@ -1,0 +1,81 @@
+{ "skeleton": { "images": "D:/akash/slicing new/EXPECTED INTERFACES/EXPECTED INTERFACES/main dashboard/" },
+"PhotoshopToSpine": { "scale": 1, "padding": 1, "trim": true },
+"bones": [
+	{ "name": "root" }
+],
+"slots": [
+	{ "name": "Layer 0", "bone": "root", "attachment": "Layer 0" },
+	{ "name": "top bar", "bone": "root", "attachment": "top bar" },
+	{ "name": "police heat", "bone": "root", "attachment": "police heat" },
+	{ "name": "greya bar heat", "bone": "root", "attachment": "greya bar heat" },
+	{ "name": "red bar heat", "bone": "root", "attachment": "red bar heat" },
+	{ "name": "star bar", "bone": "root", "attachment": "star bar" },
+	{ "name": "people top bar", "bone": "root", "attachment": "people top bar" },
+	{ "name": "money bar", "bone": "root", "attachment": "money bar" },
+	{ "name": "red bar", "bone": "root", "attachment": "red bar" },
+	{ "name": "people icon", "bone": "root", "attachment": "people icon" },
+	{ "name": "grey bar", "bone": "root", "attachment": "grey bar" },
+	{ "name": "grey bar copy", "bone": "root", "attachment": "grey bar copy" },
+	{ "name": "grey bar copy 2", "bone": "root", "attachment": "grey bar copy 2" },
+	{ "name": "bus logo", "bone": "root", "attachment": "bus logo" },
+	{ "name": "shiled logo", "bone": "root", "attachment": "shiled logo" },
+	{ "name": "trophy logo", "bone": "root", "attachment": "trophy logo" },
+	{ "name": "end match  button", "bone": "root", "attachment": "end match  button" }
+],
+"skins": {
+	"default": {
+		"Layer 0": {
+			"Layer 0": { "x": 470.5, "y": -836, "width": 943, "height": 1674 }
+		},
+		"top bar": {
+			"top bar": { "x": 445, "y": -724.5, "width": 766, "height": 1099 }
+		},
+		"police heat": {
+			"police heat": { "x": 757.5, "y": -57.5, "width": 347, "height": 71 }
+		},
+		"greya bar heat": {
+			"greya bar heat": { "x": 678.5, "y": -74, "width": 23, "height": 20 }
+		},
+		"red bar heat": {
+			"red bar heat": { "x": 658, "y": -74, "width": 22, "height": 20 }
+		},
+		"star bar": {
+			"star bar": { "x": 512, "y": -57, "width": 112, "height": 56 }
+		},
+		"people top bar": {
+			"people top bar": { "x": 348, "y": -58.5, "width": 170, "height": 55 }
+		},
+		"money bar": {
+			"money bar": { "x": 129.5, "y": -57, "width": 209, "height": 56 }
+		},
+		"red bar": {
+			"red bar": { "x": 267, "y": -780, "width": 390, "height": 154 }
+		},
+		"people icon": {
+			"people icon": { "x": 143, "y": -778, "width": 76, "height": 60 }
+		},
+		"grey bar": {
+			"grey bar": { "x": 267, "y": -950.5, "width": 390, "height": 155 }
+		},
+		"grey bar copy": {
+			"grey bar copy": { "x": 676, "y": -949.5, "width": 390, "height": 155 }
+		},
+		"grey bar copy 2": {
+			"grey bar copy 2": { "x": 678, "y": -780.5, "width": 390, "height": 155 }
+		},
+		"bus logo": {
+			"bus logo": { "x": 551, "y": -780.5, "width": 70, "height": 65 }
+		},
+		"shiled logo": {
+			"shiled logo": { "x": 551, "y": -948.5, "width": 56, "height": 69 }
+		},
+		"trophy logo": {
+			"trophy logo": { "x": 143, "y": -948.5, "width": 66, "height": 67 }
+		},
+		"end match  button": {
+			"end match  button": { "x": 473, "y": -1430, "width": 800, "height": 176 }
+		}
+	}
+},
+"animations": { "animation": {} }
+}

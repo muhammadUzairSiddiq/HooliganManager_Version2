@@ -1,0 +1,88 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &6297899896072496177
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 5805951488780242082, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_Name
+      value: Pedestrain Variant
+      objectReference: {fileID: 0}
+    - target: {fileID: 6301365659962144321, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6618376870659741208, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.25247
+      objectReference: {fileID: 0}
+    - target: {fileID: 6618376870659741208, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6618376870659741208, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -1.49569
+      objectReference: {fileID: 0}
+    - target: {fileID: 6618376870659741208, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6618376870659741208, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6618376870659741208, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6618376870659741208, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6618376870659741208, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6618376870659741208, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6618376870659741208, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 8994113424146867284, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 8768580662566905255, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5805951488780242082, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4851165198869503186}
+  m_SourcePrefab: {fileID: 100100000, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+--- !u!1 &573154007048743059 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5805951488780242082, guid: ab899df51c5b74892bf75adba42df966, type: 3}
+  m_PrefabInstance: {fileID: 6297899896072496177}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4851165198869503186
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 573154007048743059}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e01559d185051488a9cd093d0aad5b59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PedestrianController
+  walkSpeed: 1
+  minWaitTime: 2
+  maxWaitTime: 7

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: dae6743c9e7446349856deeeb02b965a
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 226420
+  packageName: Simple Mini Map
+  packageVersion: 1.0.0
+  assetPath: Assets/UnitySimpleMiniMap/Demo/uiDot1.prefab
+  uploadId: 637144

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb9b047cdcb4c43d4b5ef5f7577eb10e, type: 3}
+  m_Name: PoliceDataRegistry
+  m_EditorClassIdentifier: Assembly-CSharp::PoliceDataRegistry
+  officerTypes: {fileID: 11400000, guid: f713f8de50b364ec9b21271394674ffb, type: 2}
+  baseSquadSize: 2
+  extraOfficersPerTier: 1
+  baseStrengthValue: 1
+  strengthPerHeatTier: 1
+  hpMultiplier: 1
+  crestSprite: {fileID: -2012104100, guid: d51e6d73b3a2348d08b12561a1d7773e, type: 3}

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: bf4ab659a5cbcea4ba59ef46b4975cf2
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 226420
+  packageName: Simple Mini Map
+  packageVersion: 1.0.0
+  assetPath: Assets/UnitySimpleMiniMap/Demo/mansion1_bottom.prefab
+  uploadId: 637144

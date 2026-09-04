@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 9827a03c420e3594b831d7d9d1c22716
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 226420
+  packageName: Simple Mini Map
+  packageVersion: 1.0.0
+  assetPath: Assets/UnitySimpleMiniMap/Demo/MiniMap.prefab
+  uploadId: 637144

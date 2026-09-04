@@ -1,0 +1,53 @@
+{ "skeleton": { "images": "D:/akash/slicing new/EXPECTED INTERFACES/EXPECTED INTERFACES/police raid gameplay/" },
+"PhotoshopToSpine": { "scale": 1, "padding": 1, "trim": true },
+"bones": [
+	{ "name": "root" }
+],
+"slots": [
+	{ "name": "Layer 0", "bone": "root", "attachment": "Layer 0" },
+	{ "name": "heat bar", "bone": "root", "attachment": "heat bar" },
+	{ "name": "grey", "bone": "root", "attachment": "grey" },
+	{ "name": "red bar", "bone": "root", "attachment": "red bar" },
+	{ "name": "profile 3", "bone": "root", "attachment": "profile 3" },
+	{ "name": "profile 2", "bone": "root", "attachment": "profile 2" },
+	{ "name": "profile", "bone": "root", "attachment": "profile" },
+	{ "name": "move", "bone": "root", "attachment": "move" },
+	{ "name": "retreat", "bone": "root", "attachment": "retreat" },
+	{ "name": "fight button", "bone": "root", "attachment": "fight button" }
+],
+"skins": {
+	"default": {
+		"Layer 0": {
+			"Layer 0": { "x": 470.5, "y": -836, "width": 943, "height": 1674 }
+		},
+		"heat bar": {
+			"heat bar": { "x": 767.5, "y": -63.5, "width": 349, "height": 61 }
+		},
+		"grey": {
+			"grey": { "x": 733, "y": -64, "width": 20, "height": 30 }
+		},
+		"red bar": {
+			"red bar": { "x": 714, "y": -64, "width": 18, "height": 30 }
+		},
+		"profile 3": {
+			"profile 3": { "x": 415, "y": -1461, "width": 138, "height": 230 }
+		},
+		"profile 2": {
+			"profile 2": { "x": 268, "y": -1461.5, "width": 138, "height": 229 }
+		},
+		"profile": {
+			"profile": { "x": 120.5, "y": -1461.5, "width": 137, "height": 231 }
+		},
+		"move": {
+			"move": { "x": 619.5, "y": -1543.5, "width": 173, "height": 121 }
+		},
+		"retreat": {
+			"retreat": { "x": 803, "y": -1543, "width": 170, "height": 120 }
+		},
+		"fight button": {
+			"fight button": { "x": 710, "y": -1412, "width": 356, "height": 110 }
+		}
+	}
+},
+"animations": { "animation": {} }
+}

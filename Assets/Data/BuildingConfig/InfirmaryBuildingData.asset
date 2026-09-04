@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d639bce4f53d4102b2ab15464e18337, type: 3}
+  m_Name: InfirmaryBuildingData
+  m_EditorClassIdentifier: Assembly-CSharp::MapBuildingData
+  buildingName: Infirmary
+  buildingDescription: Restores health to nearby gang members.
+  buildingIcon: {fileID: 0}
+  buildingColor: {r: 0.2, g: 0.8, b: 0.4, a: 1}
+  interactionRadius: 13
+  enemyAutoUse: 1
+  enemyAutoUseInterval: 5
+  actions:
+  - actionLabel: HEAL UP
+    actionIcon: {fileID: 0}
+    actionType: 0
+    healAmount: 30
+    healToFull: 0
+    boostType: 0
+    boostAmount: 0
+    boostDuration: 0
+    heatReduction: 0
+    costMoney: 8
+    recruitName: 
+    cooldownSeconds: 15

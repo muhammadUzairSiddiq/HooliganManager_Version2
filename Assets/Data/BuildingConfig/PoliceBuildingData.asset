@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d639bce4f53d4102b2ab15464e18337, type: 3}
+  m_Name: PoliceBuildingData
+  m_EditorClassIdentifier: Assembly-CSharp::MapBuildingData
+  buildingName: POLICE STATION
+  buildingDescription: Bribe the officers to reduce police heat.
+  buildingIcon: {fileID: 0}
+  buildingColor: {r: 0, g: 0.1333121, b: 1, a: 1}
+  interactionRadius: 25
+  enemyAutoUse: 0
+  enemyAutoUseInterval: 5
+  actions:
+  - actionLabel: BRIBE OFFICERS
+    actionIcon: {fileID: 0}
+    actionType: 2
+    healAmount: 0
+    healToFull: 0
+    boostType: 0
+    boostAmount: 0
+    boostDuration: 0
+    heatReduction: 3
+    costMoney: 500
+    recruitName: New Recruit
+    cooldownSeconds: 30

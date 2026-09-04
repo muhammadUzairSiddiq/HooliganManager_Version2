@@ -1,0 +1,33 @@
+{ "skeleton": { "images": "D:/akash/slicing new/EXPECTED INTERFACES/EXPECTED INTERFACES/menu/" },
+"PhotoshopToSpine": { "scale": 1, "padding": 1, "trim": true },
+"bones": [
+	{ "name": "root" }
+],
+"slots": [
+	{ "name": "Layer 0", "bone": "root", "attachment": "Layer 0" },
+	{ "name": "exit", "bone": "root", "attachment": "exit" },
+	{ "name": "settings", "bone": "root", "attachment": "settings" },
+	{ "name": "continue", "bone": "root", "attachment": "continue" },
+	{ "name": "New game", "bone": "root", "attachment": "New game" }
+],
+"skins": {
+	"default": {
+		"Layer 0": {
+			"Layer 0": { "x": 470.5, "y": -836, "width": 943, "height": 1674 }
+		},
+		"exit": {
+			"exit": { "x": 468.5, "y": -1405, "width": 569, "height": 122 }
+		},
+		"settings": {
+			"settings": { "x": 468.5, "y": -1261.5, "width": 571, "height": 123 }
+		},
+		"continue": {
+			"continue": { "x": 468.5, "y": -1117, "width": 569, "height": 124 }
+		},
+		"New game": {
+			"New game": { "x": 468.5, "y": -971.5, "width": 571, "height": 125 }
+		}
+	}
+},
+"animations": { "animation": {} }
+}

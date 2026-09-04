@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62f88b296cd9f41a98d114380f7f0be6, type: 3}
+  m_Name: ClubRegistry
+  m_EditorClassIdentifier: Assembly-CSharp::ClubRegistry
+  clubs:
+  - clubName: North City FC
+    clubShortName: NCFC
+    primaryColor: '#D71920'
+    secondaryColor: '#FFFFFF'
+    firmName: North City Crew
+    rivalClubName: East Town FC
+    fans: 1
+    strength: 25
+    reputation: 10
+    policeHeat: 0
+    ranking: 5
+    money: 5000
+    crestSprite: {fileID: 21300000, guid: feb6fcbee47b2e148af56be029bd9793, type: 3}
+    bannerSprite: {fileID: 21300000, guid: 755f1b76a7596fa43b09395599cedc1d, type: 3}
+  - clubName: East Town FC
+    clubShortName: ETFC
+    primaryColor: '#1A3E8C'
+    secondaryColor: '#FFFFFF'
+    firmName: East Town Boys
+    rivalClubName: North City FC
+    fans: 1
+    strength: 27
+    reputation: 15
+    policeHeat: 0
+    ranking: 4
+    money: 5500
+    crestSprite: {fileID: 21300000, guid: 054f57efa66969c46a3f303c89e039ac, type: 3}
+    bannerSprite: {fileID: 21300000, guid: fd7974adb35f50a448bf3695ca1167da, type: 3}
+  - clubName: South United
+    clubShortName: SUFC
+    primaryColor: '#2E8B3A'
+    secondaryColor: '#FFFFFF'
+    firmName: Green Street Mob
+    rivalClubName: West End FC
+    fans: 1
+    strength: 25
+    reputation: 12
+    policeHeat: 0
+    ranking: 6
+    money: 4800
+    crestSprite: {fileID: 21300000, guid: df0041f9be78d3b468a07b0daca3b50e, type: 3}
+    bannerSprite: {fileID: 21300000, guid: e02cc6bc5b9c7a444936f65852229719, type: 3}
+  - clubName: West End FC
+    clubShortName: WEFC
+    primaryColor: '#C8A800'
+    secondaryColor: '#1A1A1A'
+    firmName: Yellow Firm
+    rivalClubName: South United
+    fans: 1
+    strength: 25
+    reputation: 20
+    policeHeat: 0
+    ranking: 3
+    money: 6000
+    crestSprite: {fileID: 21300000, guid: d2fd33401f51b3a4380b713a42cd146c, type: 3}
+    bannerSprite: {fileID: 21300000, guid: b206dcc102f2ccd4fadbc7e3588d8395, type: 3}

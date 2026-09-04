@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 5b55715039c544846a31054d9ee3ee34
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 226420
+  packageName: Simple Mini Map
+  packageVersion: 1.0.0
+  assetPath: Assets/UnitySimpleMiniMap/Demo/MapBounds.prefab
+  uploadId: 637144

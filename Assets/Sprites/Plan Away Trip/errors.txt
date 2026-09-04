@@ -1,0 +1,9 @@
+Multiple layers for the "default" skin in the "button icon" slot have the same name "button icon":
+button icon
+button icon
+Rename or use the [ignore] tag for these layers.
+---
+Multiple layers for the "default" skin in the "fist icon" slot have the same name "fist icon":
+fist icon
+fist icon
+Rename or use the [ignore] tag for these layers.

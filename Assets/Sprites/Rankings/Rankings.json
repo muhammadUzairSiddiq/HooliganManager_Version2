@@ -1,0 +1,57 @@
+{ "skeleton": { "images": "D:/akash/slicing new/EXPECTED INTERFACES/EXPECTED INTERFACES/rankings/" },
+"PhotoshopToSpine": { "scale": 1, "padding": 1, "trim": true },
+"bones": [
+	{ "name": "root" }
+],
+"slots": [
+	{ "name": "Layer 0", "bone": "root", "attachment": "Layer 0" },
+	{ "name": "back button top", "bone": "root", "attachment": "back button top" },
+	{ "name": "upper bar", "bone": "root", "attachment": "upper bar" },
+	{ "name": "skull logo", "bone": "root", "attachment": "skull logo" },
+	{ "name": "yellow logo", "bone": "root", "attachment": "yellow logo" },
+	{ "name": "red bar", "bone": "root", "attachment": "red bar" },
+	{ "name": "red logo", "bone": "root", "attachment": "red logo" },
+	{ "name": "green logo", "bone": "root", "attachment": "green logo" },
+	{ "name": "1", "bone": "root", "attachment": "1" },
+	{ "name": "blue logo", "bone": "root", "attachment": "blue logo" },
+	{ "name": "back button", "bone": "root", "attachment": "back button" }
+],
+"skins": {
+	"default": {
+		"Layer 0": {
+			"Layer 0": { "x": 470.5, "y": -836, "width": 943, "height": 1674 }
+		},
+		"back button top": {
+			"back button top": { "x": 161.5, "y": -95.5, "width": 93, "height": 89 }
+		},
+		"upper bar": {
+			"upper bar": { "x": 471.5, "y": -385.5, "width": 661, "height": 229 }
+		},
+		"skull logo": {
+			"skull logo": { "x": 262.5, "y": -1089, "width": 67, "height": 78 }
+		},
+		"yellow logo": {
+			"yellow logo": { "x": 262.5, "y": -980, "width": 67, "height": 78 }
+		},
+		"red bar": {
+			"red bar": { "x": 472, "y": -765.5, "width": 692, "height": 111 }
+		},
+		"red logo": {
+			"red logo": { "x": 262.5, "y": -869.5, "width": 67, "height": 79 }
+		},
+		"green logo": {
+			"green logo": { "x": 260.5, "y": -765.5, "width": 67, "height": 79 }
+		},
+		"1": {
+			"1": { "x": 471.5, "y": -646, "width": 693, "height": 110 }
+		},
+		"blue logo": {
+			"blue logo": { "x": 262.5, "y": -646, "width": 71, "height": 72 }
+		},
+		"back button": {
+			"back button": { "x": 470.5, "y": -1395.5, "width": 401, "height": 97 }
+		}
+	}
+},
+"animations": { "animation": {} }
+}

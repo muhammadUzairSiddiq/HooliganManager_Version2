@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f29d25f377d61a34882272fd21ba6821
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 226420
+  packageName: Simple Mini Map
+  packageVersion: 1.0.0
+  assetPath: Assets/UnitySimpleMiniMap/Demo/M2.mat
+  uploadId: 637144

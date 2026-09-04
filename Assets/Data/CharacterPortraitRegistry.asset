@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47013e4ebf0ae4c00a75cb1cabb59706, type: 3}
+  m_Name: CharacterPortraitRegistry
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterPortraitRegistry
+  entries:
+  - modelPrefab: {fileID: 919132149155446097, guid: e66365da02bdf48f584f22170678b3f5, type: 3}
+    animatorController: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 194e9a09ebfd84c4d80fd19b258cda2c, type: 3}
+  - modelPrefab: {fileID: 919132149155446097, guid: 67e92305b9dec4ba596796fcc090b9ef, type: 3}
+    animatorController: {fileID: 0}
+    portrait: {fileID: 21300000, guid: d698487d7486a4bf39baa3c570147a2d, type: 3}
+  - modelPrefab: {fileID: 919132149155446097, guid: ff0f2521730d04d18a368c54b807e7fa, type: 3}
+    animatorController: {fileID: 0}
+    portrait: {fileID: 21300000, guid: ef271fc7df11444a99108824416aaff2, type: 3}
+  - modelPrefab: {fileID: 919132149155446097, guid: b075f27d076fc420985f26d723eb0e27, type: 3}
+    animatorController: {fileID: 9100000, guid: 2a0ff443b6d0644fd827da650c45b762, type: 2}
+    portrait: {fileID: 21300000, guid: 18d7287ce00b6419b8cfd0193e825f65, type: 3}
+  - modelPrefab: {fileID: 919132149155446097, guid: c03069f39df31499ea97652f44738fe4, type: 3}
+    animatorController: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 4c92c88d5915b43c0af8537f49291a4a, type: 3}
+  - modelPrefab: {fileID: 919132149155446097, guid: adbabce49faa14f2492a29d5934deea6, type: 3}
+    animatorController: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 4f6c7ee45ef044884bb0946b2fb37918, type: 3}
+  - modelPrefab: {fileID: 919132149155446097, guid: 2a18348bae8144a318be6388e429ad8d, type: 3}
+    animatorController: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 823fe76df803949b48d9e9e22e37efed, type: 3}
+  - modelPrefab: {fileID: 919132149155446097, guid: 5989ca9d015fb4bb6b6c1df58e99ce47, type: 3}
+    animatorController: {fileID: 0}
+    portrait: {fileID: 21300000, guid: 7a7ca5b0294a44e938884981eb9b28c2, type: 3}
+  - modelPrefab: {fileID: 919132149155446097, guid: 65bc47fc6f4754b758ff1d0b27c3eeb9, type: 3}
+    animatorController: {fileID: 0}
+    portrait: {fileID: 21300000, guid: f2f5582ea85a54db5acb3efc26d9cedb, type: 3}
