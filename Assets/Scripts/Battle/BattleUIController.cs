@@ -16,6 +16,8 @@ using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 public class BattleUIController : MonoBehaviour
 {
     public static BattleUIController instance;
+    [Header("Landscape layout")]
+    public bool landscapeLayout;
     [Header("Panel References")]
     public BattleResultController resultPanel; // panel prefab for showing end-of-battle results
 
@@ -98,9 +100,9 @@ public class BattleUIController : MonoBehaviour
         pauseButton?.onClick.AddListener(OnPause);
 
         // Deactivate attack, retreat, and move buttons to clean up HUD and support default movement
-        if (attackBtn != null) attackBtn.gameObject.SetActive(false);
-        if (retreatBtn != null) retreatBtn.gameObject.SetActive(false);
-        if (moveBtn != null) moveBtn.gameObject.SetActive(false);
+        if (attackBtn != null) attackBtn.gameObject.SetActive(landscapeLayout);
+        if (retreatBtn != null) retreatBtn.gameObject.SetActive(landscapeLayout);
+        if (moveBtn != null) moveBtn.gameObject.SetActive(landscapeLayout);
 
         // Subscribe to BattleManager events
         if (BattleManager.instance != null)
@@ -240,6 +242,7 @@ public class BattleUIController : MonoBehaviour
     private void UpdateCounts(int aliveP, int aliveE)
     {
         if (playerCountText) playerCountText.text = $"MEMBERS: {aliveP}";
+        if (landscapeLayout && enemyCountText) enemyCountText.text = $"RIVALS: {aliveE}";
     }
 
     // ── Selection HUD ─────────────────────────────────────────────────────
@@ -390,8 +393,15 @@ public class BattleUIController : MonoBehaviour
         _portraitScrollReady = true;
     }
 
-    private static void ConfigurePortraitContent(RectTransform stripRt)
+    private void ConfigurePortraitContent(RectTransform stripRt)
     {
+        if (landscapeLayout)
+        {
+            var vertical = stripRt.GetComponent<VerticalLayoutGroup>() ?? stripRt.gameObject.AddComponent<VerticalLayoutGroup>();
+            vertical.spacing=10; vertical.childControlWidth=true; vertical.childControlHeight=false;
+            vertical.childForceExpandHeight=false; vertical.childForceExpandWidth=false;
+            return;
+        }
         var hlg = stripRt.GetComponent<HorizontalLayoutGroup>();
         if (hlg == null) hlg = stripRt.gameObject.AddComponent<HorizontalLayoutGroup>();
         hlg.spacing = PortraitSpacing;
@@ -408,8 +418,14 @@ public class BattleUIController : MonoBehaviour
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
     }
 
-    private static void SizePortraitCard(GameObject cardGO)
+    private void SizePortraitCard(GameObject cardGO)
     {
+        if (landscapeLayout)
+        {
+            var rect=cardGO.transform as RectTransform;
+            if(rect) rect.sizeDelta=new Vector2(234,92);
+            LandscapeUI.LayoutSize(cardGO,234,92);return;
+        }
         var rt = cardGO.transform as RectTransform;
         if (rt != null)
             rt.sizeDelta = new Vector2(PortraitCardW, PortraitCardH);
@@ -427,6 +443,13 @@ public class BattleUIController : MonoBehaviour
     /// <summary>Big readable mid-screen alert (turf / secure / etc).</summary>
     public void ShowAlert(string message, float seconds = 3.5f)
     {
+        if (landscapeLayout)
+        {
+            if (!selectedUnitsLabel) return;
+            selectedUnitsLabel.text=message; selectedUnitsLabel.fontSize=26;
+            if (_alertRoutine!=null) StopCoroutine(_alertRoutine);
+            _alertRoutine=StartCoroutine(AlertTimeout(seconds));return;
+        }
         if (selectedUnitsLabel == null) return;
         if (_alertBaseFontSize < 0f)
             _alertBaseFontSize = Mathf.Max(selectedUnitsLabel.fontSize, 22f);

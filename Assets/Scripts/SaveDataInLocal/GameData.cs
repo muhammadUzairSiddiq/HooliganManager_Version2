@@ -101,6 +101,8 @@ public class GameData : MonoBehaviour
         PlayerData.Money      = money;
 
         PlayerData.MatchDay     = 1;
+        PlayerData.LandscapeClaimedMissions = new List<string>();
+        PlayerData.LandscapeBonusMatchday = 0;
         PlayerData.Wins         = 0;
         PlayerData.Losses       = 0;
         PlayerData.BattleWins   = 0;

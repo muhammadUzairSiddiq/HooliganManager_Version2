@@ -6,11 +6,25 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 public static class SaveDataInLocal
 {
+#if UNITY_EDITOR
+    // The UI smoke harness uses a separate save path and restores the in-memory campaign.
+    public static string EditorSaveOverride;
+#endif
+    private static string SavePath
+    {
+        get
+        {
+#if UNITY_EDITOR
+            if (!string.IsNullOrEmpty(EditorSaveOverride)) return EditorSaveOverride;
+#endif
+            return Application.persistentDataPath + "/playerdata.sz";
+        }
+    }
     // Location of data C:\Users\samiz\AppData\LocalLow\DefaultCompany\SoftBall
     public static void DataSave(PlayerData Playerdata)
     {
         BinaryFormatter formatter = new BinaryFormatter();
-        string path = Application.persistentDataPath + "/playerdata.sz";
+        string path = SavePath;
         Stream stream = new FileStream(path, FileMode.Create);
 
         // PlayerData playerdata = new PlayerData(Playerdata);
@@ -22,7 +36,7 @@ public static class SaveDataInLocal
 
     public static PlayerData DataLoad()
     {
-        string path = Application.persistentDataPath + "/playerdata.sz";
+        string path = SavePath;
         Debug.Log("Load player data from "+path);
         if (File.Exists(path))
         {

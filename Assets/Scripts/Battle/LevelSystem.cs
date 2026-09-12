@@ -305,7 +305,7 @@ public class LevelSystem : MonoBehaviour
         var scaler = canvasGo.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         // Match the battle HUD canvas so spacing lines up with the timer / top bar.
-        scaler.referenceResolution = new Vector2(720f, 1280f);
+        scaler.referenceResolution = LandscapeUI.Resolution;
         scaler.matchWidthOrHeight = 0f;
 
         // Level / objective strip — BattleHudLayoutFix places this BELOW the heat bar.

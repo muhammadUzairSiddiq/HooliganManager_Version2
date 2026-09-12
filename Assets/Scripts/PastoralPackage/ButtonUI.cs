@@ -15,6 +15,7 @@ public class ButtonUI : Selectable, IPointerClickHandler, IEventSystemHandler, I
     private bool isClicking;
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (!IsActive() || !IsInteractable() || eventData.button != PointerEventData.InputButton.Left) return;
         if (!isClicking)
         {
             isClicking = true;
@@ -32,7 +33,16 @@ public class ButtonUI : Selectable, IPointerClickHandler, IEventSystemHandler, I
     }
     public void OnSubmit(BaseEventData eventData)
     {
+        if (!IsActive() || !IsInteractable() || isClicking) return;
+        OnPointerClick(new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left });
+    }
 
+    protected override void OnDisable()
+    {
+        base.OnDisable();
+        StopAllCoroutines();
+        isClicking = false;
+        transform.localScale = Vector3.one;
     }
 
     [SerializeField]

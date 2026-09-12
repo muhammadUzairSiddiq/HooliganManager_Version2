@@ -53,7 +53,7 @@ public class MainMenuController : MonoBehaviour
         GameManager.instance?.ContinueIntoGameplay();
     }
 
-    void OnSettings() => Debug.Log("Settings — coming soon");
+    void OnSettings() => FindFirstObjectByType<LandscapeFrontEnd>()?.Navigate("settings");
 
     void OnExit()
     {

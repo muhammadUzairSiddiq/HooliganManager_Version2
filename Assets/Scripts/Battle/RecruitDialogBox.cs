@@ -80,21 +80,21 @@ public class RecruitDialogBox : MonoBehaviour
         canvas.sortingOrder = 24000;
         var scaler = canvasGo.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1080f, 1920f);
-        scaler.matchWidthOrHeight = 0f;
+        scaler.referenceResolution = LandscapeUI.Resolution;
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
         _root = new GameObject("Dialog", typeof(RectTransform), typeof(Image));
         _root.transform.SetParent(canvasGo.transform, false);
         var rt = _root.GetComponent<RectTransform>();
         // Short bottom box — taller than before for fat buttons.
-        rt.anchorMin = new Vector2(0.04f, 0.03f);
-        rt.anchorMax = new Vector2(0.96f, 0.28f);
+        rt.anchorMin = new Vector2(0.20f, 0.13f);
+        rt.anchorMax = new Vector2(0.80f, 0.48f);
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
         var bg = _root.GetComponent<Image>();
-        bg.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
+        bg.sprite = LandscapeTheme.Current ? LandscapeTheme.Current.panel : Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
         bg.type = Image.Type.Sliced;
-        bg.color = new Color(0.07f, 0.08f, 0.11f, 0.97f);
+        bg.color = Color.white;
 
         var accent = new GameObject("Accent", typeof(RectTransform), typeof(Image));
         accent.transform.SetParent(_root.transform, false);

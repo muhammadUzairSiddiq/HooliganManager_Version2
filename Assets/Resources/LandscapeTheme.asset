@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6118037279b112440ab9457c05fe8384, type: 3}
+  m_Name: LandscapeTheme
+  m_EditorClassIdentifier: 
+  font: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  mainBackground: {fileID: 21300000, guid: 8f63768ae26a95c4ea4361afe6872859, type: 3}
+  townBackground: {fileID: 21300000, guid: 7fc0a8e17a0cd70489cec769189529aa, type: 3}
+  tacticalBackground: {fileID: 21300000, guid: 258d4e0d304b26b4f934020e95e50664, type: 3}
+  logo: {fileID: 3945743388369871991, guid: 6912dec163c74fe4585fa0a9b773d552, type: 3}
+  cash: {fileID: 5349454706136359848, guid: 6912dec163c74fe4585fa0a9b773d552, type: 3}
+  crew: {fileID: -4298574957547531957, guid: 6912dec163c74fe4585fa0a9b773d552, type: 3}
+  star: {fileID: 1560286427630432367, guid: 6912dec163c74fe4585fa0a9b773d552, type: 3}
+  shield: {fileID: 8799330581215578408, guid: 6912dec163c74fe4585fa0a9b773d552, type: 3}
+  settings: {fileID: 3041082722531355676, guid: 6912dec163c74fe4585fa0a9b773d552, type: 3}
+  emblem: {fileID: -5090176270661260661, guid: 4a9437fc874361843a924e719b0237c1, type: 3}
+  celebration: {fileID: 3361922360508061046, guid: 4a9437fc874361843a924e719b0237c1, type: 3}
+  panel: {fileID: 646905182892122349, guid: 18e4bb0835e1d724d9b95499c5b84f9c, type: 3}
+  card: {fileID: -3518721618884921689, guid: 482e5125b8124804283e04e10b8e9e23, type: 3}
+  redButton: {fileID: 7371052949212109300, guid: 0ad066b6d051efc4b82015ca1cd4d209, type: 3}
+  greenButton: {fileID: -5159320037731008124, guid: d5e68892d285ba249bd69e218728d1d3, type: 3}
+  darkButton: {fileID: 4145843948179763718, guid: faa42c0b397a77946acba975bd679cca, type: 3}
+  outlineButton: {fileID: -6058467453909153471, guid: d6567c99e2f8c8043bf46226d9f35cb7, type: 3}
+  portraits:
+  - {fileID: 3864319887302466163, guid: 3176141614f692646bee2fd28b3370e1, type: 3}
+  - {fileID: 1439983049952952831, guid: 3176141614f692646bee2fd28b3370e1, type: 3}
+  - {fileID: -6021406866511509003, guid: 3176141614f692646bee2fd28b3370e1, type: 3}
+  - {fileID: -4027200565316533501, guid: 3176141614f692646bee2fd28b3370e1, type: 3}
+  - {fileID: 7111507242042348212, guid: 3176141614f692646bee2fd28b3370e1, type: 3}

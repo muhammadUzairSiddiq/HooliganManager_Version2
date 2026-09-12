@@ -23,7 +23,7 @@ public class RecruitOptionCardUI : MonoBehaviour
     {
         if (titleText)       titleText.text       = title;
         if (descriptionText) descriptionText.text = description;
-        if (costText)        costText.text         = $"€ {cost:N0}";
+        if (costText)        costText.text         = $"£{cost:N0}";
         if (fanRangeText)    fanRangeText.text     = $"+{minFans} - {maxFans} FANS";
         if (iconImage && icon != null) iconImage.sprite = icon;
     }

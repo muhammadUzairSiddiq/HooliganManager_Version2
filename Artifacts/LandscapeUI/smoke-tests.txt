@@ -1,0 +1,8 @@
+PASS all seven headquarters pages navigate with live data.
+PASS recruitment charges money, queues fans and displays confirmation.
+PASS recruitment rejects insufficient funds.
+PASS fallen roster and revival restore a member.
+PASS mission reward granted once; repeated claim cannot pay twice.
+PASS mission claims survive save/load.
+PASS disabled ButtonUI rejects pointer input.
+PASS settings open, persist and close.

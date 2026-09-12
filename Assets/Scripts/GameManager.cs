@@ -25,17 +25,17 @@ public class GameManager : MonoBehaviour
         if (instance != null) { Destroy(gameObject); return; }
         instance = this;
         DontDestroyOnLoad(gameObject);
-        ForcePortraitOrientation();
+        ForceLandscapeOrientation();
     }
 
-    /// <summary>Lock the game to portrait on phone (dashboard + battle).</summary>
-    public static void ForcePortraitOrientation()
+    /// <summary>Support both landscape rotations across menus and gameplay.</summary>
+    public static void ForceLandscapeOrientation()
     {
-        Screen.autorotateToPortrait = true;
+        Screen.autorotateToLandscapeLeft = true;
+        Screen.autorotateToLandscapeRight = true;
+        Screen.autorotateToPortrait = false;
         Screen.autorotateToPortraitUpsideDown = false;
-        Screen.autorotateToLandscapeLeft = false;
-        Screen.autorotateToLandscapeRight = false;
-        Screen.orientation = ScreenOrientation.Portrait;
+        Screen.orientation = ScreenOrientation.AutoRotation;
     }
 
     // ── Convenience accessors ─────────────────────────────────────────────

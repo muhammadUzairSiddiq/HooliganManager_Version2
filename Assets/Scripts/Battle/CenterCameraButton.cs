@@ -22,6 +22,7 @@ public class CenterCameraButton : MonoBehaviour
 
     void Awake()
     {
+        _instance = this;
         if (targetButton == null) targetButton = GetComponent<Button>();
         if (targetButton != null)
             targetButton.onClick.AddListener(Recenter);

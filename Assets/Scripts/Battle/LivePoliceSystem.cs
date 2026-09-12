@@ -653,7 +653,7 @@ public class LivePoliceSystem : MonoBehaviour
         canvas.sortingOrder = 20000;
         var scaler = canvasGo.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(720f, 1280f);
+        scaler.referenceResolution = LandscapeUI.Resolution;
         scaler.matchWidthOrHeight = 0.5f;
 
         var vig = new GameObject("Vignette", typeof(RectTransform), typeof(CanvasGroup));

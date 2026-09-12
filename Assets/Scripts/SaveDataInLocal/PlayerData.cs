@@ -3,6 +3,10 @@ using System.Collections.Generic;
 [System.Serializable]
 public class PlayerData
 {
+    [System.Runtime.Serialization.OptionalField]
+    public List<string> LandscapeClaimedMissions;
+    [System.Runtime.Serialization.OptionalField]
+    public int LandscapeBonusMatchday;
     // ── Original fields (do not remove) ──────────────────────────────────
     public bool AcceptedPrivacyPolicy;
     public bool[] HelpInfoSeen = new bool[1];

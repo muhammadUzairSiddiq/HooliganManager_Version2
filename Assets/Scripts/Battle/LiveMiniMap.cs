@@ -121,11 +121,11 @@ public class LiveMiniMap : MonoBehaviour
         _canvas.sortingOrder = 14000;
         var scaler = canvasGo.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1080f, 1920f);
-        scaler.matchWidthOrHeight = 0f;
+        scaler.referenceResolution = LandscapeUI.Resolution;
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
-        _compactPos = new Vector2(-14f, -58f);
-        _compactSize = new Vector2(200f, 200f);
+        _compactPos = new Vector2(-27f, -122f);
+        _compactSize = new Vector2(266f, 250f);
 
         // Dimmer (expanded) — does NOT close on click (use X). Blocks world taps.
         _expandedRoot = new GameObject("ExpandedDim", typeof(RectTransform), typeof(Image));
@@ -146,7 +146,8 @@ public class LiveMiniMap : MonoBehaviour
         _borderRt.anchoredPosition = _compactPos;
         _borderRt.sizeDelta = _compactSize + new Vector2(8f, 8f);
         var borderImg = borderGo.GetComponent<Image>();
-        borderImg.sprite = MakeRingSprite(128, new Color(0.85f, 0.16f, 0.16f, 0.95f), 6);
+        borderImg.sprite = LandscapeTheme.Current ? LandscapeTheme.Current.panel : _uiSprite;
+        borderImg.type = Image.Type.Sliced;
         borderImg.raycastTarget = false;
 
         var frameGo = new GameObject("Frame", typeof(RectTransform), typeof(Image), typeof(Mask), typeof(Button));
@@ -158,7 +159,7 @@ public class LiveMiniMap : MonoBehaviour
         _frame.sizeDelta = _compactSize;
 
         var frameImg = frameGo.GetComponent<Image>();
-        frameImg.sprite = MakeCircleSprite(128, Color.white);
+        frameImg.sprite = _uiSprite;
         frameImg.type = Image.Type.Simple;
         frameImg.color = Color.white;
         frameGo.GetComponent<Mask>().showMaskGraphic = false;
@@ -316,11 +317,12 @@ public class LiveMiniMap : MonoBehaviour
         _borderRt.offsetMax = Vector2.zero;
         _borderRt.anchoredPosition = _compactPos;
         _borderRt.sizeDelta = _compactSize + new Vector2(8f, 8f);
-        _borderRt.GetComponent<Image>().sprite = MakeRingSprite(128, new Color(0.85f, 0.16f, 0.16f, 0.95f), 6);
+        _borderRt.GetComponent<Image>().sprite = LandscapeTheme.Current ? LandscapeTheme.Current.panel : _uiSprite;
+        _borderRt.GetComponent<Image>().type = Image.Type.Sliced;
         _borderRt.GetComponent<Image>().color = Color.white;
 
         var frameImg = _frame.GetComponent<Image>();
-        frameImg.sprite = MakeCircleSprite(128, Color.white);
+        frameImg.sprite = _uiSprite;
         frameImg.type = Image.Type.Simple;
         frameImg.color = Color.white;
 

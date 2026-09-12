@@ -105,6 +105,7 @@ public class PlanAwayTripController : MonoBehaviour
 
     void SelectDestination(int index)
     {
+        if (index < 0 || index >= destinations.Count) return;
         AnimateSelected(index);
         _selectedIndex = index;
         if (index < 0 || index >= destinations.Count) return;
@@ -214,6 +215,8 @@ public class PlanAwayTripController : MonoBehaviour
 
     void OnBack()
     {
+        var landscape = GetComponentInParent<LandscapeFrontEnd>();
+        if (landscape != null) { landscape.Navigate("home"); return; }
         UIp.UITweeningOutsideScreenViewFrom(
             this,
             GetComponent<RectTransform>(),

@@ -80,6 +80,7 @@ public class RecruitFansController : MonoBehaviour
 
     // ── State ─────────────────────────────────────────────────────────────
     private int _selectedIndex = 0;
+    private bool _cardsBuilt;
 
     void Start()
     {
@@ -101,10 +102,13 @@ public class RecruitFansController : MonoBehaviour
         RefreshLockStates();
         UpdateWatchlistWarning();
         RefreshReviveRows();
+        if (_cardsBuilt) SelectOption(_selectedIndex);
     }
 
     void BuildCards()
     {
+        if (_cardsBuilt) return;
+        _cardsBuilt = true;
         for (int i = 0; i < optionCards.Count && i < recruitOptions.Count; i++)
         {
             var card = optionCards[i];
@@ -220,6 +224,8 @@ public class RecruitFansController : MonoBehaviour
 
         GameData.instance.SaveData();
         UpdateTopBar();
+        SelectOption(_selectedIndex);
+        if (footerLabel) footerLabel.text = $"RECRUITMENT CONFIRMED · +{fanGain} FANS ARRIVE NEXT MATCHDAY. £{effectiveCost:N0} SPENT.";
 
         string modNote = combined < 0.9f ? $" (reduced — police watching + low morale)" : "";
         Debug.Log($"[Recruit] Spent £{effectiveCost}, queued +{fanGain} fans.{modNote}");
@@ -242,6 +248,8 @@ public class RecruitFansController : MonoBehaviour
 
     void OnBack()
     {
+        var landscape = GetComponentInParent<LandscapeFrontEnd>();
+        if (landscape != null) { landscape.Navigate("home"); return; }
         UIp.UITweeningOutsideScreenViewFrom(
             this,
             GetComponent<RectTransform>(),
@@ -290,15 +298,19 @@ public class RecruitFansController : MonoBehaviour
             var row = Instantiate(reviveRowPrefab, reviveRowContainer);
 
             // Wire agent name
-            var nameTmp = row.transform.GetChild(1)?.GetChild(0)?.GetComponent<TextMeshProUGUI>();
+            var nameTmp = row.transform.Find("AgentName")?.GetComponent<TextMeshProUGUI>();
+            if (nameTmp == null && row.transform.childCount > 1 && row.transform.GetChild(1).childCount > 0)
+                nameTmp = row.transform.GetChild(1).GetChild(0).GetComponent<TextMeshProUGUI>();
             if (nameTmp) nameTmp.text = agent.AgentName.ToUpper();
 
             // Wire cost label
-            var costTmp = row.transform.GetChild(0)?.GetChild(2)?.GetComponent<TextMeshProUGUI>();
+            var costTmp = row.transform.Find("ReviveCost")?.GetComponent<TextMeshProUGUI>();
+            if (costTmp == null && row.transform.childCount > 0 && row.transform.GetChild(0).childCount > 2)
+                costTmp = row.transform.GetChild(0).GetChild(2).GetComponent<TextMeshProUGUI>();
             if (costTmp) costTmp.text = $"£{effectiveCost:N0}";
 
             // Wire revive button
-            var reviveBtn = row.transform.GetChild(2)?.GetComponent<ButtonUI>();
+            var reviveBtn = row.GetComponentInChildren<ButtonUI>();
             if (reviveBtn != null)
             {
                 bool canAfford = d != null && d.Money >= effectiveCost;

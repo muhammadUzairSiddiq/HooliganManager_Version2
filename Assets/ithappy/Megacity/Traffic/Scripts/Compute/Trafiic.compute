@@ -1,0 +1,433 @@
+// special prefixes:
+// ct_     -> Custom Type
+// b_      -> Buffer or boolean
+// R + *_  -> Read Type
+// RW + *_ -> Read-Write Type
+
+#pragma kernel k_MoveTraffic
+#define Kf_Epsilon 0.0001f
+
+struct CarData
+{
+    float f_speed;
+    float f_acceleration;
+};
+
+struct CarTransport
+{
+    int i_index;
+    int i_turnIndex;
+
+    float f_progress;
+    float f_speed;
+};
+
+struct CarTransform
+{
+    float3 f3_position;
+    float3 f3_forward;
+    float3 f3_up;
+};
+
+struct SplineData
+{
+    int3 i3_outputs; // if i3_outputs[i] is empty it must be eqal to -1
+    float f_length;
+
+    float3 f3_p0;
+    float3 f3_p1;
+    float3 f3_p2;
+    float3 f3_p3;
+
+    float3 f3_startNormal;
+    float3 f3_endNormal;
+
+    int i_crossIndex;
+};
+
+struct CrossData
+{
+    float2 f2_timing;
+};
+
+struct CrossState
+{
+    float f_time;
+    int i_activity;
+};
+
+StructuredBuffer<CarData> Rb_CarData;
+
+StructuredBuffer<SplineData> Rb_SplineData_0;
+StructuredBuffer<SplineData> Rb_SplineData_2048;
+
+StructuredBuffer<CrossData> Rb_CrossroadData;
+
+RWStructuredBuffer<CarTransport> RWb_CarTransport;
+RWStructuredBuffer<CarTransform> RWb_CarTransform;
+RWStructuredBuffer<CrossState> RWb_CrossroadState;
+
+float Rf_DeltaTime;
+float Rf_CarSpacing;
+
+uint Ri_CarCount;
+uint Ri_CrossCount;
+
+void v_GetSpline(int i_index, out SplineData ct_splineData)
+{
+    ct_splineData = (SplineData)0;;
+
+    if(i_index < 2048)
+    {
+        ct_splineData = Rb_SplineData_0[i_index];
+        return;
+    }
+    if(i_index < 4096)
+    {
+        ct_splineData = Rb_SplineData_2048[i_index - 2048];
+        return;
+    }
+}
+
+void v_RangedRandom(int min, int max, out int random)
+{
+    float randomno = frac(sin(dot(Rf_DeltaTime, float2(12.9898, 78.233))) * 43758.5453);
+    random = (int)floor(lerp(min, max, randomno));
+}
+
+void v_ReciveCar(in uint i_index, out CarData ct_carData, out CarTransport ct_carTransport, out SplineData ct_splineData)
+{
+    ct_carData = Rb_CarData[i_index];
+    ct_carTransport = RWb_CarTransport[i_index];
+
+    ct_splineData = (SplineData)0;
+    v_GetSpline(ct_carTransport.i_index, ct_splineData);
+}
+
+void v_SelectTurn(in SplineData ct_splineData, inout int i_turnIndex)
+{
+    int i_turnSection;
+    v_RangedRandom(0, 3, i_turnSection);
+    if(ct_splineData.i3_outputs[i_turnSection] < 0)
+    {
+        if(ct_splineData.i3_outputs[0] < 0)
+        {
+            i_turnIndex = -1;
+        }
+        else
+        {
+            i_turnIndex = ct_splineData.i3_outputs[0];
+        }
+    }
+    else
+    {
+        i_turnIndex = ct_splineData.i3_outputs[i_turnSection];
+    }
+}
+
+bool b_CheckCollision(in int i_carIndex, in CarTransport ct_carTransport, in SplineData ct_splineData, in int i_carCount, out int i_otherIndex)
+{
+    i_otherIndex = -1;
+    CarTransport ct_otherCar = (CarTransport)0;
+
+    int i_turnIndex = ct_carTransport.i_turnIndex;
+    SplineData ct_out = (SplineData)0;
+    v_GetSpline(i_turnIndex, ct_out);
+
+    int i;
+    for(i = 0; i < i_carCount; i++)
+    {
+        if(i_carIndex == i)
+        {
+            continue;
+        }
+
+        ct_otherCar = RWb_CarTransport[i];
+
+        //Checking same spline case
+        if(ct_otherCar.i_index == ct_carTransport.i_index)
+        {
+            float f_carDistance = (ct_otherCar.f_progress - ct_carTransport.f_progress) * ct_splineData.f_length;
+            if(f_carDistance < Rf_CarSpacing)
+            {
+                if(f_carDistance > Kf_Epsilon)
+                {
+                    i_otherIndex = i;
+                    return true;
+                }
+                if(f_carDistance > -Kf_Epsilon && i > i_carIndex) 
+                {
+                    i_otherIndex = i;
+                    return true;
+                }
+            }
+        }
+        
+        //Checking output spline case
+        if(ct_otherCar.i_index == i_turnIndex)
+        {
+            if(ct_out.i_crossIndex >= 0)
+            {
+                i_otherIndex = i;
+                return true;
+            }
+
+            float f_carDistance = ct_otherCar.f_progress * ct_out.f_length + (1.0f - ct_carTransport.f_progress) * ct_splineData.f_length;
+            if(f_carDistance < Rf_CarSpacing) 
+            {
+                if(f_carDistance > Kf_Epsilon)
+                {
+                    i_otherIndex = i;
+                    return true;
+                }
+                if(f_carDistance > -Kf_Epsilon && i > i_carIndex )
+                {
+                    i_otherIndex = i;
+                    return true;
+                }
+            }
+        }
+
+
+        //checking same output case
+        if(ct_otherCar.i_turnIndex == i_turnIndex && ct_otherCar.i_index != ct_carTransport.i_index)
+        {
+            SplineData ct_otherSpline = (SplineData)0;
+            v_GetSpline(ct_otherCar.i_index, ct_otherSpline);
+
+            float f_otherDistance = (1.0 - ct_otherCar.f_progress) * ct_otherSpline.f_length;
+            float f_thisDistance = (1.0 - ct_carTransport.f_progress) * ct_splineData.f_length;
+
+            if(f_otherDistance < f_thisDistance)
+            {
+                i_otherIndex = i;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+void v_EvaluateAcceleration(in SplineData ct_spline, in float f_t, out float3 f3_acceleration)
+{
+    f3_acceleration =  
+        ct_spline.f3_p0 * ( -6.0f * f_t + 6.0f ) +
+        ct_spline.f3_p1 * ( 18.0f * f_t - 12.0f) +
+        ct_spline.f3_p2 * (-18.0f * f_t + 6.0f ) +
+        ct_spline.f3_p3 * (  6.0f * f_t );
+}
+
+void v_EvaluatePosition(in SplineData ct_spline, in float f_t, out float3 f3_position)
+{
+    float f_t2 = f_t * f_t;
+    float f_t3 = f_t2 * f_t;
+    
+    f3_position =
+        ct_spline.f3_p0 * ( -1.0f * f_t3 + 3.0f * f_t2 - 3.0f * f_t + 1.0f ) +
+        ct_spline.f3_p1 * (  3.0f * f_t3 - 6.0f * f_t2 + 3.0f * f_t) +
+        ct_spline.f3_p2 * ( -3.0f * f_t3 + 3.0f * f_t2) +
+        ct_spline.f3_p3 * (         f_t3 );
+}
+    
+void v_EvaluateTangent(in SplineData ct_spline, in float f_t, out float3 f3_tangent)
+{
+    float f_t2 = f_t * f_t;
+
+    f3_tangent =
+        ct_spline.f3_p0 * ( -3.0f * f_t2 +  6.0f * f_t - 3.0f ) +
+        ct_spline.f3_p1 * (  9.0f * f_t2 - 12.0f * f_t + 3.0f) +
+        ct_spline.f3_p2 * ( -9.0f * f_t2 +  6.0f * f_t ) +
+        ct_spline.f3_p3 * (  3.0f * f_t2 );
+}
+
+void v_EvaluateNormal(in SplineData ct_spline, in float f_t, out float3 f3_normal)
+{
+    f3_normal = lerp(ct_spline.f3_startNormal, ct_spline.f3_endNormal, f_t);
+}
+
+void v_CalculateCurvature(in float3 f3_firstDeriv, in float3 f3_secondDeriv, out float f_kappa)
+{
+    float f_firstDerivNormSq = dot(f3_firstDeriv, f3_firstDeriv);
+    float f_secondDerivNormSq = dot(f3_secondDeriv, f3_secondDeriv);
+    float f_derivDot = dot(f3_firstDeriv, f3_secondDeriv);
+
+    f_kappa = sqrt((f_firstDerivNormSq * f_secondDerivNormSq) - (f_derivDot * f_derivDot))
+         / ( f_firstDerivNormSq * length(f3_firstDeriv));
+}
+
+void v_EvaluateCurve(in SplineData ct_spline, in float f_t, out float3 f3_position, out float3 f3_tangent, out float3 f3_up)
+{
+    float3 f3_acceleration;
+    v_EvaluateTangent(ct_spline, f_t, f3_tangent);
+    v_EvaluateAcceleration(ct_spline, f_t, f3_acceleration);
+
+    v_EvaluatePosition(ct_spline, f_t, f3_position);
+    v_EvaluateTangent(ct_spline, f_t, f3_tangent);
+    v_EvaluateNormal(ct_spline, f_t, f3_up);
+}
+
+void v_CheckSectionEnter(in SplineData ct_currentData, in int i_turnIndex, inout bool b_canPass)
+{
+    if(i_turnIndex < 0)
+    {
+        b_canPass = false;
+        return;
+    }
+
+    SplineData ct_splineData = (SplineData)0;
+    v_GetSpline(i_turnIndex, ct_splineData);
+
+    if(ct_splineData.i_crossIndex < 0 || ct_splineData.i_crossIndex == ct_currentData.i_crossIndex)
+    {
+        b_canPass = true;
+        return;
+    }
+
+    //Decomposition with numerals 12 -> index = 1, pass = 2
+    uint i_crossIndex = (uint)abs(ct_splineData.i_crossIndex) / 10;
+    uint i_crossPass = (uint)abs(ct_splineData.i_crossIndex) % 10;
+
+    CrossState ct_crossState = RWb_CrossroadState[i_crossIndex];
+    if(ct_crossState.i_activity == (int)i_crossPass)
+    {
+        b_canPass = true;
+        return;
+    }
+    
+    b_canPass = false;
+}
+
+void v_EvaluateSpline(inout SplineData ct_splineData, inout CarTransport ct_carTransport, out CarTransform ct_carTransform)
+{
+    ct_carTransform = (CarTransform)0;
+
+    float f_displacement = ct_carTransport.f_speed * Rf_DeltaTime;
+    ct_carTransport.f_progress += f_displacement / ct_splineData.f_length;
+
+    //Turn search
+    if(ct_carTransport.i_turnIndex == -2 && ct_carTransport.i_index >= 0)
+    {
+        v_SelectTurn(ct_splineData, ct_carTransport.i_turnIndex);
+    }
+
+    //Evaluating curves
+    if(ct_carTransport.f_progress > 1.0f)
+    {
+        bool b_canPass = (bool)0;
+        v_CheckSectionEnter(ct_splineData, ct_carTransport.i_turnIndex, b_canPass);
+
+        if(b_canPass)
+        {
+            float f_scaledProgress = (ct_carTransport.f_progress - 1.0f) * ct_splineData.f_length;
+
+            ct_splineData = (SplineData)0;
+            v_GetSpline(ct_carTransport.i_turnIndex, ct_splineData);
+
+            ct_carTransport.i_index = ct_carTransport.i_turnIndex;
+            ct_carTransport.f_progress = saturate(f_scaledProgress / ct_splineData.f_length);
+
+            v_SelectTurn(ct_splineData, ct_carTransport.i_turnIndex);
+        }
+        else
+        {
+            ct_carTransport.f_progress = 1.0f;
+            ct_carTransport.f_speed = 0.0f;
+        }
+    }
+
+    v_EvaluateCurve(ct_splineData, ct_carTransport.f_progress, ct_carTransform.f3_position, ct_carTransform.f3_forward, ct_carTransform.f3_up);
+}
+
+
+void v_MoveCars(inout uint i_carIndex, inout uint i_carCount)
+{
+    CarData ct_carData = (CarData)0;
+    CarTransport ct_carTransport = (CarTransport)0;
+    CarTransform ct_carTransform = (CarTransform)0;
+    SplineData ct_splineData = (SplineData)0;
+
+    v_ReciveCar(i_carIndex, ct_carData, ct_carTransport, ct_splineData);
+
+    if(Rf_CarSpacing > Kf_Epsilon)
+    {
+        int i_frontIndex;
+        bool check_0 = b_CheckCollision(i_carIndex, ct_carTransport, ct_splineData, i_carCount, i_frontIndex);
+
+        if(check_0)
+        {
+            ct_carTransport.f_speed = ct_carTransport.f_speed - Rf_DeltaTime * ct_carData.f_acceleration, 0.0f;
+        }
+        else
+        {
+            ct_carTransport.f_speed = min(ct_carTransport.f_speed + Rf_DeltaTime * ct_carData.f_acceleration, ct_carData.f_speed);
+        }
+    }
+
+    if(ct_carTransport.f_speed < 0)
+    {
+        ct_carTransport.f_speed = 0.0f;
+        RWb_CarTransport[i_carIndex] = ct_carTransport;
+        RWb_CarTransform[i_carIndex] = RWb_CarTransform[i_carIndex];
+        return;
+    }
+
+    v_EvaluateSpline(ct_splineData, ct_carTransport, ct_carTransform);
+
+    RWb_CarTransport[i_carIndex] = ct_carTransport;
+    RWb_CarTransform[i_carIndex] = ct_carTransform;
+}
+
+void v_MoveCrossroads(inout uint i_crossIndex)
+{
+    CrossData ct_crossData = Rb_CrossroadData[i_crossIndex];
+    CrossState ct_crossState = RWb_CrossroadState[i_crossIndex];
+
+    if(ct_crossState.i_activity < 0 || ct_crossData.f2_timing[0] < 0 || ct_crossData.f2_timing[1] < 0)
+    {
+        return;
+    }
+
+    ct_crossState.f_time -= Rf_DeltaTime;
+    if(ct_crossState.f_time <= 0.0f)
+    {
+        ct_crossState.i_activity++;
+        if((uint)abs(ct_crossState.i_activity) % 2 == 0)
+        {
+            ct_crossState.f_time = ct_crossData.f2_timing[1];
+            if(ct_crossState.i_activity >= 4)
+            {
+                ct_crossState.i_activity = 0;
+            }
+        }
+        else
+        {
+            ct_crossState.f_time = ct_crossData.f2_timing[0];
+            if(ct_crossState.i_activity >= 5)
+            {
+                ct_crossState.i_activity = 1;
+            }
+        }
+    }
+
+    RWb_CrossroadState[i_crossIndex] = ct_crossState;
+}
+
+
+[numthreads(32, 1, 1)]
+void k_MoveTraffic (uint3 id : SV_DispatchThreadID)
+{
+    uint i_index = id.x;
+
+    if(i_index < Ri_CarCount)
+    {
+        v_MoveCars(i_index, Ri_CarCount);
+        return;
+    }
+
+    i_index -= Ri_CarCount;
+    if(i_index >= 0 && i_index < Ri_CrossCount)
+    {
+        v_MoveCrossroads(i_index);
+    }
+}

@@ -27,6 +27,7 @@ public class BattleHudLayoutFix : MonoBehaviour
 
     public static void EnsureExists()
     {
+        if (FindFirstObjectByType<LandscapeBattleHUD>() != null) return;
         if (_instance == null)
         {
             var go = new GameObject("BattleHudLayoutFix");
@@ -414,7 +415,7 @@ public class BattleHudLayoutFix : MonoBehaviour
         canvas.sortingOrder = 13000;
         var scaler = canvasGo.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(720f, 1280f);
+        scaler.referenceResolution = LandscapeUI.Resolution;
         scaler.matchWidthOrHeight = 0.5f;
 
         var go = new GameObject("Hint", typeof(RectTransform), typeof(Image));

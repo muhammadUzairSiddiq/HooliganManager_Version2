@@ -67,6 +67,8 @@ public class ClubInfoController : MonoBehaviour
 
     void OnBack()
     {
+        var landscape = GetComponentInParent<LandscapeFrontEnd>();
+        if (landscape != null) { landscape.Navigate("home"); return; }
         UIp.UITweeningOutsideScreenViewFrom(
             this,
             GetComponent<RectTransform>(),

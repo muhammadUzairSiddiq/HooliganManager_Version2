@@ -158,7 +158,7 @@ public class MainDashboardController : MonoBehaviour
             bribePolicePanel.SetActive(false);
 
         // Change Team button (team selection moved here from the main menu).
-        EnsureChangeTeamButton();
+        if (GetComponentInParent<LandscapeFrontEnd>() == null) EnsureChangeTeamButton();
 
         RefreshUI();
     }
@@ -193,7 +193,7 @@ public class MainDashboardController : MonoBehaviour
         go.GetComponent<Button>().onClick.AddListener(OpenChangeTeamPopup);
     }
 
-    private void OpenChangeTeamPopup()
+    public void OpenChangeTeamPopup()
     {
         if (clubRegistry == null || clubRegistry.clubs == null) return;
         var options = new System.Collections.Generic.List<GamePopup.Option>();
@@ -364,6 +364,7 @@ public class MainDashboardController : MonoBehaviour
 
     void HideAllPanels()
     {
+        if (GetComponentInParent<LandscapeFrontEnd>() != null) return;
         HidePanel(recruitFansPanel);
         HidePanel(planAwayTripPanel);
         HidePanel(rankingsPanel);
