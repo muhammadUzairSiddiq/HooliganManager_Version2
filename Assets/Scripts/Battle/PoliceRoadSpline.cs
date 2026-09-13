@@ -21,7 +21,6 @@ public class PoliceRoadSpline : MonoBehaviour
     private float[] _cumLen = System.Array.Empty<float>();
     private float _totalLen;
     private LineRenderer _line;
-    private static readonly NavMeshPath _sharedPath = new NavMeshPath();
 
     public float TotalLength => _totalLen;
     public bool IsReady => _points != null && _points.Length >= 4 && _totalLen > 1f;
@@ -42,6 +41,7 @@ public class PoliceRoadSpline : MonoBehaviour
 
     public void Build()
     {
+        if (gameObject.scene.name=="Gameplay") { BuildCityRoute(); return; }
         var raw = SampleRoadPoints();
         if (raw.Count < 6)
             raw = SampleNavMeshRing(32);
@@ -87,6 +87,26 @@ public class PoliceRoadSpline : MonoBehaviour
         float segLen = (i + 1 < _cumLen.Length ? _cumLen[i + 1] : _totalLen) - segStart;
         float u = segLen > 0.0001f ? (dist - segStart) / segLen : 0f;
         return Vector3.Lerp(_points[i], _points[j], u);
+    }
+
+    void BuildCityRoute()
+    {
+        Vector3 home=BattleManager.instance?.playerSpawnRoot ? BattleManager.instance.playerSpawnRoot.position : new Vector3(120,0,90);
+        Vector3[] guesses={home+new Vector3(-75,0,-90),home+new Vector3(105,0,-90),home+new Vector3(105,0,60),home+new Vector3(-75,0,60)};
+        var stops=new List<Vector3>();
+        foreach(var guess in guesses)if(NavMesh.SamplePosition(guess,out var hit,60,1<<3))stops.Add(hit.position);
+        if(stops.Count<3){Debug.LogError("City police route has no connected road surface.");return;}
+        var points=new List<Vector3>();
+        for(int i=0;i<stops.Count;i++)
+        {
+            var path=new NavMeshPath();
+            if(!NavMesh.CalculatePath(stops[i],stops[(i+1)%stops.Count],1<<3,path)||path.status!=NavMeshPathStatus.PathComplete)
+            {Debug.LogError("City police patrol contains an unreachable road segment.");return;}
+            points.AddRange(path.corners);
+        }
+        _points=ResamplePolyline(points,1.25f);
+        BuildCumulative();showRouteLine=false;
+        Debug.Log("City police road route ready: "+_totalLen+"m");
     }
 
     public Vector3 GetTangentAtDistance(float dist)
@@ -362,11 +382,12 @@ public class PoliceRoadSpline : MonoBehaviour
     private static bool TryNavMeshPathLength(Vector3 a, Vector3 b, out float length)
     {
         length = 0f;
-        if (!NavMesh.CalculatePath(a, b, NavMesh.AllAreas, _sharedPath))
+        var path = new NavMeshPath();
+        if (!NavMesh.CalculatePath(a, b, NavMesh.AllAreas, path))
             return false;
-        if (_sharedPath.status != NavMeshPathStatus.PathComplete)
+        if (path.status != NavMeshPathStatus.PathComplete)
             return false;
-        var corners = _sharedPath.corners;
+        var corners = path.corners;
         if (corners == null || corners.Length < 2) return false;
         for (int i = 1; i < corners.Length; i++)
             length += Vector3.Distance(corners[i - 1], corners[i]);
@@ -376,13 +397,14 @@ public class PoliceRoadSpline : MonoBehaviour
     /// <summary>True when every NavMesh corner / mid-sample sits on (or next to) road asphalt.</summary>
     private static bool PathStaysNearRoad(Vector3 a, Vector3 b)
     {
-        if (!NavMesh.CalculatePath(a, b, NavMesh.AllAreas, _sharedPath))
+        var path = new NavMeshPath();
+        if (!NavMesh.CalculatePath(a, b, NavMesh.AllAreas, path))
             return false;
-        if (_sharedPath.status != NavMeshPathStatus.PathComplete)
+        if (path.status != NavMeshPathStatus.PathComplete)
             return false;
 
         Transform roadsRoot = FindRoadsRoot();
-        var corners = _sharedPath.corners;
+        var corners = path.corners;
         for (int i = 0; i < corners.Length; i++)
         {
             if (!PointOnOrNearRoad(corners[i], roadsRoot, 2.0f))
@@ -467,9 +489,10 @@ public class PoliceRoadSpline : MonoBehaviour
             Vector3 a = loop[i];
             Vector3 b = loop[(i + 1) % loop.Count];
 
-            if (!NavMesh.CalculatePath(a, b, NavMesh.AllAreas, _sharedPath) ||
-                _sharedPath.status != NavMeshPathStatus.PathComplete ||
-                _sharedPath.corners == null || _sharedPath.corners.Length < 2)
+            var path = new NavMeshPath();
+            if (!NavMesh.CalculatePath(a, b, NavMesh.AllAreas, path) ||
+                path.status != NavMeshPathStatus.PathComplete ||
+                path.corners == null || path.corners.Length < 2)
             {
                 // Skip illegal closing chord rather than cutting through a block.
                 if (i == loop.Count - 1) break;
@@ -477,7 +500,7 @@ public class PoliceRoadSpline : MonoBehaviour
                 continue;
             }
 
-            var corners = _sharedPath.corners;
+            var corners = path.corners;
             for (int c = 0; c < corners.Length; c++)
             {
                 Vector3 p = corners[c];

@@ -92,7 +92,7 @@ public class RecruitDialogBox : MonoBehaviour
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
         var bg = _root.GetComponent<Image>();
-        bg.sprite = LandscapeTheme.Current ? LandscapeTheme.Current.panel : Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
+        bg.sprite = LandscapeTheme.Current ? LandscapeTheme.Current.panel : null;
         bg.type = Image.Type.Sliced;
         bg.color = Color.white;
 
@@ -153,7 +153,7 @@ public class RecruitDialogBox : MonoBehaviour
         go.GetComponent<LayoutElement>().flexibleWidth = 1f;
         go.GetComponent<LayoutElement>().minHeight = 88f;
         var img = go.GetComponent<Image>();
-        img.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
+        img.sprite = null;
         img.type = Image.Type.Sliced;
         img.color = color;
         var txt = NewText("Label", go.transform, label, 30f, FontStyles.Bold);

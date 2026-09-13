@@ -27,6 +27,8 @@ public class TerritoryControlPoint : MonoBehaviour
 
     void Start()
     {
+        if(CityGameplay.HomeMode && gameObject.scene.name=="Gameplay" && GameManager.Data?.CityCapturedZones?.Contains(zoneName)==true)
+        { _isCaptured=true;gameObject.SetActive(false);return; }
         MiniMapIconFactory.Register(transform, MiniMapIconFactory.Kind.Turf, zoneName);
     }
 
@@ -81,6 +83,20 @@ public class TerritoryControlPoint : MonoBehaviour
     private void CaptureZone()
     {
         _isCaptured = true;
+        if(gameObject.scene.name=="Gameplay" && GameManager.Data!=null)
+        {
+            var data=GameManager.Data;
+            if(CityGameplay.HomeMode)
+            {
+                if(data.CityCapturedZones==null)data.CityCapturedZones=new List<string>();
+                if(data.CityCapturedZones.Contains(zoneName))return;
+                data.CityCapturedZones.Add(zoneName);
+            }
+            data.Money+=moneyReward;data.Reputation+=reputationReward;
+            data.PoliceHeat=Mathf.Clamp(data.PoliceHeat+heatGained,0,10);
+            GameManager.Save();
+            CityGameplay.Instance?.PostEvent("SECURED "+zoneName.ToUpperInvariant()+" +£"+moneyReward);
+        }
 
         if (BattleManager.instance != null)
         {

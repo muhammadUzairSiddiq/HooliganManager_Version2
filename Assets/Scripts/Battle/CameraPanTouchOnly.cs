@@ -74,12 +74,25 @@ public class CameraPanTouchOnly : MonoBehaviour
     private int _fingerDownCount;
     private bool _movedThisGesture;
     private Vector2 _gestureStartPos;
+    private bool _followSelection;
+    private bool _mouseGesture, _mouseDragged;
+    private Vector2 _mouseStart;
+    public bool IsFollowingSelection => _followSelection;
 
     void Awake()
     {
         Instance = this;
         _camera = GetComponent<Camera>();
         if (_camera == null) _camera = Camera.main;
+        if (gameObject.scene.name == "Gameplay")
+        {
+            camMinHeight=35; camMaxHeight=220; defaultHeight=65;
+            isometricEuler=new Vector3(PlayerPrefs.GetFloat("CityCameraPitch",65),45,0);
+            panMinX=-1000; panMaxX=1450; panMinZ=-600; panMaxZ=450;
+            _camera.fieldOfView=PlayerPrefs.GetFloat("CityCameraFov",65);
+            _camera.nearClipPlane=.3f; _camera.farClipPlane=2500;
+            _camera.useOcclusionCulling=false;
+        }
         _smoothTime = moveSmoothTime;
     }
 
@@ -130,6 +143,7 @@ public class CameraPanTouchOnly : MonoBehaviour
 
     private void UpdateBoundsFromMap()
     {
+        if (gameObject.scene.name == "Gameplay") return;
         var bounds = FindAnyObjectByType<Arikan.MiniMapBounds>(FindObjectsInactive.Include);
         if (bounds != null)
         {
@@ -148,6 +162,7 @@ public class CameraPanTouchOnly : MonoBehaviour
 
         HandleTouch();
         HandleEditorInput();
+        if (_followSelection && TryGetSelectionCentroid(out var followed)) MoveFocus(followed);
 
         // Smooth toward target — NO collision. Collision caused shake + yellow flash.
         Vector3 desired = _targetPosition;
@@ -278,6 +293,23 @@ public class CameraPanTouchOnly : MonoBehaviour
         var mouse = Mouse.current;
         if (mouse != null)
         {
+            var position = mouse.position.ReadValue();
+            if (mouse.leftButton.wasPressedThisFrame)
+            {
+                _mouseGesture = !IsPointerOverUI(position);
+                _mouseDragged = false;
+                _mouseStart = position;
+            }
+            if (_mouseGesture && mouse.leftButton.isPressed)
+            {
+                _mouseDragged |= Vector2.Distance(position, _mouseStart) > 18f;
+                if (_mouseDragged) DragPan(position - mouse.delta.ReadValue(), position);
+            }
+            if (mouse.leftButton.wasReleasedThisFrame)
+            {
+                _mouseGesture = false;
+            }
+            if (IsPointerOverUI(position)) return;
             float scroll = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) > 0.01f) Zoom(scroll * scrollZoomSpeed * 0.01f);
 
@@ -292,9 +324,6 @@ public class CameraPanTouchOnly : MonoBehaviour
                 }
             }
 
-            // Editor double-click recenter
-            if (mouse.leftButton.wasPressedThisFrame)
-                TryDoubleTap(mouse.position.ReadValue());
         }
 #endif
     }
@@ -312,6 +341,7 @@ public class CameraPanTouchOnly : MonoBehaviour
 
     private void PanBy(Vector3 worldDelta)
     {
+        _followSelection = false;
         _targetPosition += worldDelta;
         ClampXZ();
     }
@@ -339,6 +369,16 @@ public class CameraPanTouchOnly : MonoBehaviour
         ClampXZ();
     }
 
+    public void ZoomIn()
+    {
+        Zoom(scrollZoomSpeed * 0.9f);
+    }
+
+    public void ZoomOut()
+    {
+        Zoom(-scrollZoomSpeed * 0.9f);
+    }
+
     private float ZoomFactor()
     {
         float denom = Mathf.Max(0.001f, camMinHeight);
@@ -346,6 +386,13 @@ public class CameraPanTouchOnly : MonoBehaviour
     }
 
     public void FocusOn(Vector3 worldPoint)
+    {
+        _followSelection = false;
+        _smoothTime = recenterSmoothTime;
+        MoveFocus(worldPoint);
+    }
+
+    private void MoveFocus(Vector3 worldPoint)
     {
         Vector3 currentFocus = FocusFromTarget();
         Vector3 shift = worldPoint - currentFocus;
@@ -358,7 +405,10 @@ public class CameraPanTouchOnly : MonoBehaviour
     {
         if (TryGetSelectionCentroid(out Vector3 centroid))
             FocusOn(centroid);
+        _followSelection = true;
     }
+
+    public void FollowSelection() { _followSelection = true; }
 
     private bool TryGetSelectionCentroid(out Vector3 centroid)
     {
@@ -413,6 +463,42 @@ public class CameraPanTouchOnly : MonoBehaviour
         _targetPosition.y = y;
         transform.position = _targetPosition;
         _velocity = Vector3.zero;
+    }
+
+    public void ConfigureCity(float fov, float height, float pitch)
+    {
+        Vector3 focus=FocusFromTarget();
+        isometricEuler.x=Mathf.Clamp(pitch,50,85);
+        _camera.fieldOfView=Mathf.Clamp(fov,45,85);
+        transform.rotation=Quaternion.Euler(isometricEuler);
+        float h=Mathf.Clamp(height,35,180);
+        _targetPosition=focus-transform.forward*(h/Mathf.Max(.1f,transform.forward.y*-1));
+        _velocity=Vector3.zero;
+        PlayerPrefs.SetFloat("CityCameraFov",_camera.fieldOfView);
+        PlayerPrefs.SetFloat("CityCameraHeight",h);
+        PlayerPrefs.SetFloat("CityCameraPitch",isometricEuler.x);
+    }
+
+    public static Vector3 SafeCityPosition(Vector3 focus,Vector3 position)
+    {
+        // Raise the sight line over intersecting buildings, preserving the ground focus.
+        for(int i=0;i<6;i++)
+        {
+            Vector3 start=focus+Vector3.up*2;
+            Vector3 delta=position-start;
+            float required=position.y;
+            foreach(var hit in Physics.SphereCastAll(start,1.2f,delta.normalized,delta.magnitude,~0,QueryTriggerInteraction.Ignore))
+            {
+                if(hit.collider.transform.root.name!="Demonstration" || hit.collider.bounds.size.y<4) continue;
+                float fraction=Mathf.Max(.12f,hit.distance/Mathf.Max(1,delta.magnitude));
+                required=Mathf.Max(required,start.y+(hit.collider.bounds.max.y+4-start.y)/fraction);
+            }
+            if(required<=position.y+.01f)break;
+            position.y=Mathf.Min(required,500);
+            position.x=Mathf.Lerp(position.x,focus.x,.25f);
+            position.z=Mathf.Lerp(position.z,focus.z,.25f);
+        }
+        return position;
     }
 
     public void ForceOrthoSize(float size)

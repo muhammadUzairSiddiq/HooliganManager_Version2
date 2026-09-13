@@ -174,7 +174,7 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
             b.onClick.AddListener(() =>
             {
                 if (!a.IsAlive) { if (GameData.instance.ReviveFan(a, reviveCost)) BuildSquad(); return; }
-                GamePopup.Instance.Show(a.AgentName.ToUpper(), $"Health {a.CurrentHp:0}/{a.MaxHp:0}  ·  Strength {a.Strength:0}  ·  Speed {a.Speed:0.0}\nActive members deploy automatically. End the matchday to recover health.", new GamePopup.Option("BACK TO SQUAD", PanelColor, null));
+                GamePopup.Instance.Show(a.AgentName.ToUpper(), $"Health {a.CurrentHp:0}/{a.MaxHp:0}  ·  Strength {a.Strength:0}  ·  Speed {a.Speed:0.0}\nChoose travelling members from the Away Trips screen. End the matchday to recover health.", new GamePopup.Option("BACK TO SQUAD", PanelColor, null));
             });
             shown++;
         }
@@ -184,25 +184,7 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
             LayoutSize(empty.gameObject, 900, 300);
         }
     }
-    struct Mission
-    {
-        public string id, title, body; public int progress, target, reward;
-        public Mission(string id, string title, string body, int p, int t, int r) { this.id=id; this.title=title; this.body=body; progress=p; target=t; reward=r; }
-    }
-    Mission[] GetMissions(PlayerData d)
-    {
-        if (missionTab == 1) return new[] {
-            new Mission("day"+d.MatchDay+"crew", "BRING IN NEW BLOOD", "Queue at least two fans for next matchday.", d.PendingFansGain, 2, 200),
-            new Mission("day"+d.MatchDay+"morale", "KEEP THE FAITH", "Maintain crew morale at 75 or higher.", d.FanMorale, 75, 250),
-            new Mission("day"+d.MatchDay+"funds", "BUILD A WAR CHEST", "Keep £6,000 available for your next trip.", d.Money, 6000, 300)
-        };
-        return new[] {
-            new Mission("crew5", "BUILD YOUR CREW", "Grow your active squad to five members.", d.Fans, 5, 1000),
-            new Mission("win3", "MAKE YOUR MARK", "Win three battles against rival firms.", d.BattleWins, 3, 1500),
-            new Mission("rep30", "EARN YOUR REPUTATION", "Reach 30 reputation across the campaign.", d.Reputation, 30, 1800),
-            new Mission("level3", "TAKE THE STREETS", "Reach campaign level three.", d.CurrentLevel, 3, 2500)
-        };
-    }
+    FirmMissions.Mission[] GetMissions(PlayerData d) => FirmMissions.Get(d, missionTab);
     public void BuildMissions()
     {
         if (!missionContent) return;
@@ -225,24 +207,17 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
         }
         int prior = missionTab; missionTab = 1; var daily = GetMissions(d); missionTab = prior;
         int completed = 0; foreach (var m in daily) if (d.LandscapeClaimedMissions.Contains(m.id)) completed++;
-        if (missionSummary) missionSummary.text = $"MATCHDAY {d.MatchDay:00}\n\n{completed} / 3 OBJECTIVES CLAIMED\n\nComplete and claim all three matchday objectives to collect your bonus.\n\n<size=34><color=#E8BA5A>£750</color></size>";
-        if (missionBonusButton) missionBonusButton.interactable = completed == 3 && d.LandscapeBonusMatchday != d.MatchDay;
+        if (missionSummary) missionSummary.text = $"MATCHDAY {d.MatchDay:00}\n\n{completed} / {daily.Length} OBJECTIVES CLAIMED\n\nComplete and claim every matchday objective to collect your bonus.\n\n<size=34><color=#E8BA5A>£750</color></size>";
+        if (missionBonusButton) missionBonusButton.interactable = completed == daily.Length && d.LandscapeBonusMatchday != d.MatchDay;
     }
     void ClaimMission(string id)
     {
-        var d = GameData.instance?.PlayerData; if (d == null) return;
-        if (d.LandscapeClaimedMissions == null) d.LandscapeClaimedMissions = new List<string>();
-        foreach (var m in GetMissions(d)) if (m.id == id && m.progress >= m.target && !d.LandscapeClaimedMissions.Contains(id))
-        {
-            d.LandscapeClaimedMissions.Add(id); d.Money += m.reward; GameData.instance.SaveData(); break;
-        }
+        if(FirmMissions.Claim(GameManager.Data,id)) GameManager.Save();
         BuildMissions();
     }
     void ClaimBonus()
     {
-        var d = GameData.instance?.PlayerData; if (d == null || d.LandscapeBonusMatchday == d.MatchDay) return;
-        int prior = missionTab; missionTab = 1; var daily = GetMissions(d); missionTab = prior;
-        foreach (var m in daily) if (d.LandscapeClaimedMissions == null || !d.LandscapeClaimedMissions.Contains(m.id)) return;
-        d.LandscapeBonusMatchday = d.MatchDay; d.Money += 750; GameData.instance.SaveData(); BuildMissions();
+        if(FirmMissions.ClaimBonus(GameManager.Data)) GameManager.Save();
+        BuildMissions();
     }
 }

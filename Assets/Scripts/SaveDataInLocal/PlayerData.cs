@@ -3,6 +3,9 @@ using System.Collections.Generic;
 [System.Serializable]
 public class PlayerData
 {
+    [System.Runtime.Serialization.OptionalField] public List<string> CityCapturedZones;
+    [System.Runtime.Serialization.OptionalField] public int HomeTrainingLevel;
+    [System.Runtime.Serialization.OptionalField] public bool HomeDefenceCompleted;
     [System.Runtime.Serialization.OptionalField]
     public List<string> LandscapeClaimedMissions;
     [System.Runtime.Serialization.OptionalField]
@@ -70,9 +73,15 @@ public class PlayerData
 
     // ── Hooligan Manager — Away trip ─────────────────────────────────────
     public string LastSelectedDestination = "";
+    [System.Runtime.Serialization.OptionalField]
+    public int LastAwayTripMatchday;
+    [System.Runtime.Serialization.OptionalField]
+    public List<string> SelectedAwayAgentIds = new List<string>();
 
     // ── Campaign level (1–5), saved across sessions ───────────────────────
     public int CurrentLevel = 1;
+    [System.Runtime.Serialization.OptionalField]
+    public int LastTrainingMatchday;
 
     // ── Battle session snapshot (leave = keep progress; Try Again = restore) ──
     /// <summary>True while a street battle session is in progress across loads.</summary>

@@ -60,6 +60,11 @@ public class PlanAwayTripController : MonoBehaviour
     public TextMeshProUGUI detailInfamyText;
     public GameObject      detailLockOverlay;
     public TextMeshProUGUI detailLockReasonText;
+    public RectTransform   deploymentContent;
+    public TextMeshProUGUI deploymentSummaryText;
+    public Button          selectAllMembersBtn;
+    public Button          clearMembersBtn;
+    public int             maxDeployMembers = 12;
 
     [Header("Buttons")]
     public ButtonUI startTripBtn;
@@ -77,10 +82,22 @@ public class PlanAwayTripController : MonoBehaviour
 
         startTripBtn?.AfterClickAnimation.AddListener(OnStartTrip);
         backBtn?.AfterClickAnimation.AddListener(OnBack);
+        selectAllMembersBtn?.onClick.AddListener(SelectAllMembers);
+        clearMembersBtn?.onClick.AddListener(ClearMemberSelection);
+        EnsureDeploymentPanel();
+        FitDeploymentPanel();
+        EnsureDeploymentSelection();
+        BuildDeploymentList();
+        RefreshDestinationCardImages();
         SelectDestination(0);
     }
 
-    void OnEnable() => SelectDestination(_selectedIndex);
+    void OnEnable()
+    {
+        EnsureDeploymentSelection();
+        BuildDeploymentList();
+        SelectDestination(_selectedIndex);
+    }
 
     void AnimateSelected(int index)
     {
@@ -142,6 +159,11 @@ public class PlanAwayTripController : MonoBehaviour
 
         if (detailNameText) detailNameText.text = dest.name.ToUpper();
         if (detailDescriptionText) detailDescriptionText.text = dest.description;
+        if (detailLocationImage)
+        {
+            detailLocationImage.sprite = dest.locationImage != null ? dest.locationImage : CreateDestinationSprite(dest.name);
+            detailLocationImage.color = detailLocationImage.sprite != null ? Color.white : detailLocationImage.color;
+        }
         if (detailRewardText) detailRewardText.text = $"£{dynamicReward:N0}";
         if (detailRivalStrengthText) detailRivalStrengthText.text = strengthLabel;
         if (detailTravelCostText) detailTravelCostText.text = $"£{dest.travelCost:N0}";
@@ -154,18 +176,30 @@ public class PlanAwayTripController : MonoBehaviour
         if (detailArchetypeText) detailArchetypeText.gameObject.SetActive(false);
         if (detailMottoText) detailMottoText.gameObject.SetActive(false);
 
-        int aliveAgents = 0;
-        if (d?.RecruitedAgents != null)
-            foreach (var agent in d.RecruitedAgents)
-                if (agent.IsAlive) aliveAgents++;
+        int aliveAgents = CountAliveAgents(d);
+        int selectedAgents = CountSelectedAliveAgents(d);
 
         if (startTripBtn != null)
-            startTripBtn.interactable = d != null && d.Money >= dest.travelCost && aliveAgents > 0 && d.Fans > 0;
+            startTripBtn.interactable = d != null && d.Money >= dest.travelCost && aliveAgents > 0 && selectedAgents > 0 && d.Fans > 0;
 
         if (d != null)
         {
             d.LastSelectedDestination = dest.name;
             GameData.instance.SaveData();
+        }
+        RefreshDeploymentSummary();
+    }
+
+    void RefreshDestinationCardImages()
+    {
+        for (int i = 0; i < destinations.Count; i++)
+        {
+            var dest = destinations[i];
+            if (dest == null || dest.mapButton == null) continue;
+            var location = dest.mapButton.transform.parent?.Find("Location")?.GetComponent<Image>();
+            if (location == null) continue;
+            location.sprite = dest.locationImage != null ? dest.locationImage : CreateDestinationSprite(dest.name);
+            if (location.sprite != null) location.color = Color.white;
         }
     }
 
@@ -177,11 +211,10 @@ public class PlanAwayTripController : MonoBehaviour
         var dest = destinations[_selectedIndex];
         if (d.Money < dest.travelCost) return;
 
-        int aliveAgents = 0;
-        if (d.RecruitedAgents != null)
-            foreach (var agent in d.RecruitedAgents)
-                if (agent.IsAlive) aliveAgents++;
-        if (aliveAgents <= 0 || d.Fans <= 0) return;
+        EnsureDeploymentSelection();
+        int aliveAgents = CountAliveAgents(d);
+        int selectedAgents = CountSelectedAliveAgents(d);
+        if (aliveAgents <= 0 || selectedAgents <= 0 || d.Fans <= 0) return;
 
         BotData bot = null;
         if (d.RivalBots != null)
@@ -189,6 +222,7 @@ public class PlanAwayTripController : MonoBehaviour
 
         d.Money -= dest.travelCost;
         d.LastSelectedDestination = dest.name;
+        d.LastAwayTripMatchday = d.MatchDay;
         if (d.DestinationVisitCounts == null)
             d.DestinationVisitCounts = new SerializableDictionary<string, int>();
         int visits = d.DestinationVisitCounts.GetOrDefault(dest.name, 0);
@@ -201,6 +235,235 @@ public class PlanAwayTripController : MonoBehaviour
 
         // Always go to gameplay — police pressure is in-scene only.
         GameManager.instance?.StartRivalFight(rivalCount, rivalStr, dest.potentialReward, rivalFirmName);
+    }
+
+    void EnsureDeploymentPanel()
+    {
+        if (deploymentContent != null) return;
+        var parent = transform as RectTransform;
+        if (parent == null) return;
+
+        var panel = LandscapeUI.Panel("DeploySelection", parent, 286, 596, 666, 88, true);
+        LandscapeUI.Text("Title", panel.transform, "TRAVELLING CREW", 18, 10, 210, 28, 22, null, true);
+        deploymentSummaryText = LandscapeUI.Text("Summary", panel.transform, "", 18, 41, 210, 28, 16, LandscapeUI.Muted);
+        selectAllMembersBtn = LandscapeUI.Button("SelectAllMembers", panel.transform, "ALL", 244, 16, 70, 28, "green");
+        clearMembersBtn = LandscapeUI.Button("ClearMembers", panel.transform, "NONE", 244, 48, 70, 28, "dark");
+        deploymentContent = LandscapeUI.Scroll("DeployList", panel.transform, 326, 11, 326, 66, true).content;
+        selectAllMembersBtn.onClick.AddListener(SelectAllMembers);
+        clearMembersBtn.onClick.AddListener(ClearMemberSelection);
+    }
+
+    void FitDeploymentPanel()
+    {
+        if (deploymentContent == null) return;
+        Transform panel = deploymentContent;
+        while (panel != null && panel.name != "DeploySelection")
+            panel = panel.parent;
+        if (panel is RectTransform panelRt)
+            LandscapeUI.Place(panelRt, 286, 596, 666, 88);
+
+        PlaceChild(panel, "Title", 18, 10, 210, 28);
+        PlaceChild(panel, "DeployTitle", 18, 10, 210, 28);
+        PlaceChild(panel, "Summary", 18, 41, 210, 28);
+        PlaceChild(panel, "DeploySummary", 18, 41, 210, 28);
+
+        var scroll = deploymentContent.GetComponentInParent<ScrollRect>();
+        if (scroll != null)
+        {
+            scroll.horizontal = true;
+            scroll.vertical = false;
+            if (scroll.transform is RectTransform scrollRt)
+                LandscapeUI.Place(scrollRt, 326, 11, 326, 66);
+        }
+
+        if (selectAllMembersBtn && selectAllMembersBtn.transform is RectTransform allRt)
+        {
+            LandscapeUI.Place(allRt, 244, 16, 70, 28);
+            SetButtonLabel(selectAllMembersBtn, "ALL");
+        }
+        if (clearMembersBtn && clearMembersBtn.transform is RectTransform clearRt)
+        {
+            LandscapeUI.Place(clearRt, 244, 48, 70, 28);
+            SetButtonLabel(clearMembersBtn, "NONE");
+        }
+
+        var vertical = deploymentContent.GetComponent<VerticalLayoutGroup>();
+        if (vertical) Destroy(vertical);
+        var horizontal = deploymentContent.GetComponent<HorizontalLayoutGroup>() ?? deploymentContent.gameObject.AddComponent<HorizontalLayoutGroup>();
+        horizontal.spacing = 8;
+        horizontal.padding = new RectOffset(4, 4, 4, 4);
+        horizontal.childControlWidth = false;
+        horizontal.childControlHeight = false;
+        horizontal.childForceExpandWidth = false;
+        horizontal.childForceExpandHeight = false;
+        var fitter = deploymentContent.GetComponent<ContentSizeFitter>() ?? deploymentContent.gameObject.AddComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
+    }
+
+    void PlaceChild(Transform parent, string childName, float x, float y, float w, float h)
+    {
+        var child = parent != null ? parent.Find(childName) as RectTransform : null;
+        if (child != null) LandscapeUI.Place(child, x, y, w, h);
+    }
+
+    void SetButtonLabel(Button button, string label)
+    {
+        var text = button ? button.GetComponentInChildren<TextMeshProUGUI>() : null;
+        if (text != null) text.text = label;
+    }
+
+    void BuildDeploymentList()
+    {
+        if (deploymentContent == null) return;
+        LandscapeUI.Clear(deploymentContent);
+        var d = GameData.instance?.PlayerData;
+        if (d?.RecruitedAgents == null) return;
+        EnsureDeploymentSelection();
+
+        int shown = 0;
+        foreach (var agent in d.RecruitedAgents)
+        {
+            if (agent == null || !agent.IsAlive) continue;
+            var a = agent;
+            bool selected = IsMemberSelected(d, a);
+            var row = LandscapeUI.Panel("Deploy_" + a.AgentId, deploymentContent, 0, 0, 154, 54, true);
+            LandscapeUI.LayoutSize(row.gameObject, 154, 54);
+            LandscapeUI.Image("State", row.transform, 8, 13, 28, 28, null, selected ? LandscapeUI.Green : new Color(.22f, .26f, .29f));
+            LandscapeUI.Text("Check", row.transform, selected ? "ON" : "", 8, 13, 28, 28, 15, Color.black, true, TextAlignmentOptions.Center);
+            LandscapeUI.Text("Name", row.transform, a.AgentName.ToUpper(), 43, 6, 98, 22, 17, null, true);
+            LandscapeUI.Text("Stats", row.transform, $"{a.CurrentHp:0}/{a.MaxHp:0}  STR {a.Strength:0}", 43, 29, 98, 18, 13, LandscapeUI.Muted);
+            var toggle = row.gameObject.AddComponent<Button>();
+            toggle.targetGraphic = row;
+            LandscapeUI.Colors(toggle);
+            toggle.onClick.AddListener(() => ToggleMember(a));
+            shown++;
+        }
+
+        if (shown == 0)
+        {
+            var empty = LandscapeUI.Text("NoMembers", deploymentContent, "NO MATCH-READY MEMBERS\nRecruit or revive someone before travelling.", 0, 0, 278, 120, 20, LandscapeUI.Muted, false, TextAlignmentOptions.Center);
+            LandscapeUI.LayoutSize(empty.gameObject, 278, 120);
+        }
+
+        RefreshDeploymentSummary();
+    }
+
+    void EnsureDeploymentSelection()
+    {
+        var d = GameData.instance?.PlayerData;
+        if (d == null) return;
+        bool initializeFromRoster = d.SelectedAwayAgentIds == null;
+        if (d.SelectedAwayAgentIds == null) d.SelectedAwayAgentIds = new List<string>();
+
+        for (int i = d.SelectedAwayAgentIds.Count - 1; i >= 0; i--)
+            if (!IsLivingAgentId(d, d.SelectedAwayAgentIds[i]))
+                d.SelectedAwayAgentIds.RemoveAt(i);
+
+        if (initializeFromRoster && d.RecruitedAgents != null)
+        {
+            foreach (var agent in d.RecruitedAgents)
+            {
+                if (agent == null || !agent.IsAlive) continue;
+                if (d.SelectedAwayAgentIds.Count >= maxDeployMembers) break;
+                d.SelectedAwayAgentIds.Add(agent.AgentId);
+            }
+        }
+    }
+
+    void SelectAllMembers()
+    {
+        var d = GameData.instance?.PlayerData;
+        if (d?.RecruitedAgents == null) return;
+        d.SelectedAwayAgentIds = new List<string>();
+        foreach (var agent in d.RecruitedAgents)
+        {
+            if (agent == null || !agent.IsAlive) continue;
+            if (d.SelectedAwayAgentIds.Count >= maxDeployMembers) break;
+            d.SelectedAwayAgentIds.Add(agent.AgentId);
+        }
+        GameData.instance.SaveData();
+        BuildDeploymentList();
+        SelectDestination(_selectedIndex);
+    }
+
+    void ClearMemberSelection()
+    {
+        var d = GameData.instance?.PlayerData;
+        if (d == null) return;
+        if (d.SelectedAwayAgentIds == null) d.SelectedAwayAgentIds = new List<string>();
+        d.SelectedAwayAgentIds.Clear();
+        GameData.instance.SaveData();
+        BuildDeploymentList();
+        SelectDestination(_selectedIndex);
+    }
+
+    void ToggleMember(AgentData agent)
+    {
+        var d = GameData.instance?.PlayerData;
+        if (d == null || agent == null || !agent.IsAlive) return;
+        if (d.SelectedAwayAgentIds == null) d.SelectedAwayAgentIds = new List<string>();
+        if (d.SelectedAwayAgentIds.Contains(agent.AgentId))
+            d.SelectedAwayAgentIds.Remove(agent.AgentId);
+        else if (d.SelectedAwayAgentIds.Count < maxDeployMembers)
+            d.SelectedAwayAgentIds.Add(agent.AgentId);
+        GameData.instance.SaveData();
+        BuildDeploymentList();
+        SelectDestination(_selectedIndex);
+    }
+
+    bool IsMemberSelected(PlayerData d, AgentData agent)
+    {
+        return d?.SelectedAwayAgentIds != null && agent != null && d.SelectedAwayAgentIds.Contains(agent.AgentId);
+    }
+
+    bool IsLivingAgentId(PlayerData d, string agentId)
+    {
+        if (d?.RecruitedAgents == null || string.IsNullOrEmpty(agentId)) return false;
+        foreach (var agent in d.RecruitedAgents)
+            if (agent != null && agent.IsAlive && agent.AgentId == agentId)
+                return true;
+        return false;
+    }
+
+    int CountAliveAgents(PlayerData d)
+    {
+        int count = 0;
+        if (d?.RecruitedAgents != null)
+            foreach (var agent in d.RecruitedAgents)
+                if (agent != null && agent.IsAlive) count++;
+        return count;
+    }
+
+    int CountSelectedAliveAgents(PlayerData d)
+    {
+        int count = 0;
+        if (d?.SelectedAwayAgentIds == null) return 0;
+        foreach (string id in d.SelectedAwayAgentIds)
+            if (IsLivingAgentId(d, id)) count++;
+        return count;
+    }
+
+    void RefreshDeploymentSummary()
+    {
+        var d = GameData.instance?.PlayerData;
+        if (deploymentSummaryText == null || d == null) return;
+        int selected = CountSelectedAliveAgents(d);
+        int alive = CountAliveAgents(d);
+        deploymentSummaryText.text = $"{selected} / {alive} selected for this away trip.";
+    }
+
+    Sprite CreateDestinationSprite(string destination)
+    {
+        string key = destination switch
+        {
+            "North End" => "CityPresentation/CityLoading_NorthEnd",
+            "Riverside" => "CityPresentation/CityLoading_Riverside",
+            "Old Town" => "CityPresentation/CityLoading_OldTown",
+            _ => "CityPresentation/CityLoading_Docks",
+        };
+        var texture = Resources.Load<Texture2D>(key);
+        return texture ? Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(.5f, .5f)) : null;
     }
 
     int EnemyCountFromStrength(string rivalStrength) => rivalStrength switch

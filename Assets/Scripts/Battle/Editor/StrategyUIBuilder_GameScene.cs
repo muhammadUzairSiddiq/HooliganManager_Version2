@@ -6,11 +6,11 @@ using UnityEditor.SceneManagement;
 using TMPro;
 
 /// <summary>
-/// Editor utility that adds all Strategy Overhaul UI to GameScene's ResultsPanel
+/// Editor utility that adds all Strategy Overhaul UI to Gameplay's ResultsPanel
 /// and wires the new fields on BattleResultController.
 ///
 /// Usage:
-///   1. Open GameScene in the Unity Editor.
+///   1. Open Gameplay in the Unity Editor.
 ///   2. Menu → Hooligan / Apply Strategy UI — Game Scene (Battle Result)
 ///   3. Save the scene (Ctrl+S).
 /// </summary>
@@ -25,7 +25,7 @@ public static class StrategyUIBuilder_GameScene
         if (!scene.name.Contains("Game") && !scene.name.Contains("Battle"))
         {
             EditorUtility.DisplayDialog("Wrong Scene",
-                "Please open GameScene first, then run this tool.", "OK");
+                "Please Open Gameplay first, then run this tool.", "OK");
             return;
         }
 
@@ -34,7 +34,7 @@ public static class StrategyUIBuilder_GameScene
         if (resultsPanel == null)
         {
             EditorUtility.DisplayDialog("Not Found",
-                "Could not find 'ResultsPanel' GameObject in GameScene.\n\nMake sure the scene is fully loaded.", "OK");
+                "Could not find 'ResultsPanel' GameObject in Gameplay.\n\nMake sure the scene is fully loaded.", "OK");
             return;
         }
 
@@ -128,19 +128,19 @@ public static class StrategyUIBuilder_GameScene
         EditorSceneManager.MarkSceneDirty(scene);
 
         EditorUtility.DisplayDialog("Strategy UI Applied",
-            $"Done! {count} UI element(s) created/wired in GameScene.\n\nSave the scene with Ctrl+S.", "OK");
-        Debug.Log($"[StrategyUI] Applied {count} changes to GameScene ResultsPanel.");
+            $"Done! {count} UI element(s) created/wired in Gameplay.\n\nSave the scene with Ctrl+S.", "OK");
+        Debug.Log($"[StrategyUI] Applied {count} changes to Gameplay ResultsPanel.");
     }
 
     public static void ApplyBatch()
     {
-        var scenePath = "Assets/Scenes/GameScene.unity";
+        var scenePath = "Assets/Scenes/Gameplay.unity";
         var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
 
         var resultsPanel = FindGameObjectInScene(scene, "ResultsPanel");
         if (resultsPanel == null)
         {
-            Debug.LogError("[StrategyUI] Could not find 'ResultsPanel' GameObject in GameScene.");
+            Debug.LogError("[StrategyUI] Could not find 'ResultsPanel' GameObject in Gameplay.");
             return;
         }
 
@@ -220,7 +220,7 @@ public static class StrategyUIBuilder_GameScene
         EditorUtility.SetDirty(ctrl);
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
-        Debug.Log($"[StrategyUI] Applied {count} changes to GameScene ResultsPanel in batch mode.");
+        Debug.Log($"[StrategyUI] Applied {count} changes to Gameplay ResultsPanel in batch mode.");
     }
 
     // =========================================================================

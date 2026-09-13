@@ -17,6 +17,8 @@ public static class GameplayReadability
         _applied = true;
 
         PullCameraCloser();
+        if(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name=="Gameplay")
+        { EnlargeMinimapIcons();return; }
         EnlargeBattleHudTexts();
         EnlargePortraits();
         EnlargeMinimapIcons();
@@ -29,6 +31,13 @@ public static class GameplayReadability
     {
         var cam = Camera.main;
         if (cam == null) return;
+        if (cam.gameObject.scene.name == "Gameplay")
+        {
+            CameraPanTouchOnly.Instance?.ConfigureCity(PlayerPrefs.GetFloat("CityCameraFov",65),
+                PlayerPrefs.GetFloat("CityCameraHeight",65),PlayerPrefs.GetFloat("CityCameraPitch",65));
+            CameraPanTouchOnly.Instance?.CenterOnSelection();
+            return;
+        }
 
         var pan = CameraPanTouchOnly.Instance;
         if (cam.orthographic)

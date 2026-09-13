@@ -17,7 +17,7 @@ public static partial class LandscapeSceneBuilder
 {
     const string Prefabs="Assets/UI/Landscape/";
     static LandscapeTheme theme;
-    static readonly string[] SceneNames={"MainMenu","DashboardScene","GameScene"};
+    static readonly string[] SceneNames={"MainMenu","DashboardScene","Gameplay"};
 
     [MenuItem("Hooligan/Landscape/Rebuild all UI scenes")]
     public static void ApplyAll()
@@ -251,8 +251,15 @@ public static partial class LandscapeSceneBuilder
             Text("Details",card.transform,$"{d.distanceKm} KM   /   {d.rivalStrength} RIVALS",20,139,283,28,17,Muted);
             d.mapButton=Button("Select",card.transform,"SELECT DESTINATION",18,176,287,35,"outline");
         }
+        var deploy=Panel("DeploySelection",page,286,596,666,88,true);
+        Text("DeployTitle",deploy.transform,"TRAVELLING CREW",18,10,210,28,22,null,true);
+        c.deploymentSummaryText=Text("DeploySummary",deploy.transform,"",18,41,210,28,16,Muted);
+        c.selectAllMembersBtn=Button("SelectAllMembers",deploy.transform,"ALL",244,16,70,28,"green");
+        c.clearMembersBtn=Button("ClearMembers",deploy.transform,"NONE",244,48,70,28,"dark");
+        c.deploymentContent=Scroll("DeployList",deploy.transform,326,11,326,66,true).content;
         var detail=Panel("TripBriefing",page,1000,124,565,494,true);
-        c.detailNameText=Text("Name",detail.transform,"DESTINATION",28,25,510,54,35,null,true);
+        c.detailLocationImage=Image("BriefingImage",detail.transform,365,25,170,96,null,Color.white,true);
+        c.detailNameText=Text("Name",detail.transform,"DESTINATION",28,25,320,54,35,null,true);
         c.detailDescriptionText=Text("Description",detail.transform,"",28,100,510,85,23,Muted);
         Text("RewardLabel",detail.transform,"POTENTIAL REWARD",28,207,300,32,20,Muted);
         c.detailRewardText=Text("Reward",detail.transform,"",315,201,220,44,30,Gold,true,TextAlignmentOptions.Right);
@@ -261,8 +268,8 @@ public static partial class LandscapeSceneBuilder
         Text("RiskLabel",detail.transform,"RIVAL STRENGTH",28,331,290,32,20,Muted);
         c.detailRivalStrengthText=Text("Risk",detail.transform,"",315,325,220,44,28,null,true,TextAlignmentOptions.Right);
         c.startTripBtn=LegacyButton("StartTrip",detail.transform,"START AWAY TRIP    >",28,405,510,61,"red");
-        Text("Requirements",page,"A living squad member, fans and enough travel funds are required.",1000,636,565,47,19,Muted);
-        c.backBtn=null;c.detailLocationImage=null;c.detailPoliceText=null;c.detailArchetypeText=null;c.detailMottoText=null;c.detailInfamyText=null;c.detailNetResultText=null;c.detailLockOverlay=null;c.detailLockReasonText=null;
+        Text("Requirements",page,"Select at least one match-ready member, keep fans available and cover the travel cost.",1000,636,565,47,19,Muted);
+        c.backBtn=null;c.detailPoliceText=null;c.detailArchetypeText=null;c.detailMottoText=null;c.detailInfamyText=null;c.detailNetResultText=null;c.detailLockOverlay=null;c.detailLockReasonText=null;
     }
     static void BuildRecruitment(LandscapeFrontEnd shell,Transform frame,RecruitFansController old)
     {
@@ -339,7 +346,7 @@ public static partial class LandscapeSceneBuilder
         Text("Heading",page,"THE PEOPLE BEHIND YOUR FIRM",286,25,1230,45,32,null,true);
         shell.rosterSummary=Text("RosterSummary",page,"YOUR ROSTER",286,83,1230,35,21,Muted);
         shell.squadContent=Scroll("SquadRoster",page,280,139,1292,503,true).content;
-        Text("SquadNote",page,"Drag to browse the full roster. Active members deploy automatically on away trips.",292,655,1250,31,19,Muted);
+        Text("SquadNote",page,"Drag to browse the full roster. Choose travelling members from the Away Trips screen.",292,655,1250,31,19,Muted);
     }
     static void BuildMissionPage(LandscapeFrontEnd shell,Transform frame)
     {

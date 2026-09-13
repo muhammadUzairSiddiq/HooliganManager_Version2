@@ -161,6 +161,18 @@ public class PreBattleSequencer : MonoBehaviour
     /// </summary>
     public IEnumerator PlaySequence()
     {
+        if (_cam && _cam.gameObject.scene.name=="Gameplay")
+        {
+            if(preBattlePanel)preBattlePanel.SetActive(false);
+            yield return CityArrivalSequence.Play(_cam,cameraPanTouchOnly ? cameraPanTouchOnly : CameraPanTouchOnly.Instance);
+            _sequenceDone=true;
+            yield break;
+        }
+        if (_cam && _cam.gameObject.scene.name=="Gameplay")
+        {
+            cameraPanHeight=65;
+            _camOrigRot=Quaternion.Euler(65,45,0);
+        }
         _sequenceDone = false;
 
         // Make sure the overlay is visible
@@ -299,11 +311,14 @@ public class PreBattleSequencer : MonoBehaviour
             t += Time.unscaledDeltaTime;
             float s = Mathf.SmoothStep(0f, 1f, t / duration);
             _cam.transform.position = Vector3.Lerp(startPos, endPos, s);
+            if(_cam.gameObject.scene.name=="Gameplay")
+                _cam.transform.position=CameraPanTouchOnly.SafeCityPosition(rawTarget,_cam.transform.position);
             // Hold original rotation every frame so nothing can accidentally overwrite it.
             _cam.transform.rotation = _camOrigRot;
             yield return null;
         }
 
+        if(_cam.gameObject.scene.name=="Gameplay")endPos=CameraPanTouchOnly.SafeCityPosition(rawTarget,endPos);
         _cam.transform.position = endPos;
         _cam.transform.rotation = _camOrigRot;
     }

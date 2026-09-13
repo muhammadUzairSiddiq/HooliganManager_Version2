@@ -14,7 +14,7 @@ public static partial class LandscapeSceneBuilder
 {
     static void BuildBattle()
     {
-        EditorSceneManager.OpenScene("Assets/Scenes/GameScene.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/Gameplay.unity");
         var old=Find<BattleUIController>();var oldResult=Find<BattleResultController>();var oldPause=Find<BattlePauseMenuController>();
         var oldBuilding=Find<BuildingInteractionPanel>();var oldRaid=Find<PoliceRaidGameplayController>();var oldJoystick=Find<VirtualJoystick>();var canvases=OldCanvases();
         var frame=CanvasFrame("LandscapeBattle",null,11000,out var canvas);
@@ -32,6 +32,7 @@ public static partial class LandscapeSceneBuilder
         Image("SquadRail",hudRoot,22,123,265,588,null,new Color32(8,15,20,224));
         Text("SquadTitle",hudRoot,"YOUR SQUAD",39,135,233,30,21,null,true);
         ui.playerCountText=Text("MemberCount",hudRoot,"MEMBERS: 0",39,173,233,28,18,Green,true);
+        Button("SquadSelectToggle",hudRoot,"",245,171,32,28,"outline");
         var roster=Scroll("PortraitScroll",hudRoot,29,215,250,472);
         ui.portraitStrip=roster.content;ui.portraitCardPrefab=BuildPortraitPrefab();
         ui.enemyCountText=Text("EnemyCount",hudRoot,"RIVALS: 0",1303,401,271,27,21,Gold,true);

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.AI;
 
 /// <summary>
 /// Orchestrates the entire battle: spawns agents, manages rounds + timer,
@@ -99,14 +100,99 @@ public class BattleManager : MonoBehaviour
     {
         if (instance != null && instance != this) { Destroy(gameObject); return; }
         instance = this;
+        if(gameObject.scene.name=="Gameplay")
+        {
+            if(!GameData.instance)new GameObject("GameData").AddComponent<GameData>();
+            if(!GameManager.instance)new GameObject("GameManager").AddComponent<GameManager>();
+        }
     }
 
     void loadSpawnPoint()
     {
-        Transform gangPos = GameObject.Find("GangPositionGameObject").transform;
+        Transform gangPos = GameObject.Find("GangPositionGameObject")?.transform;
+        if (gangPos == null)
+            gangPos = CreateGameplaySpawnAnchors();
+
         playerSpawnRoot = gangPos.GetChild(0);
         enemySpawnRoot = gangPos.GetChild(1);
         retreatPoint = gangPos.GetChild(0);
+    }
+
+    private Transform CreateGameplaySpawnAnchors()
+    {
+        Bounds bounds = FindSceneGameplayBounds();
+        Vector3 center = bounds.center;
+        float spread = Mathf.Clamp(Mathf.Min(bounds.extents.x, bounds.extents.z) * 0.22f, 18f, 60f);
+
+        var root = new GameObject("GangPositionGameObject").transform;
+        root.position = Vector3.zero;
+
+        var player = new GameObject("PlayerSpawnRoot").transform;
+        player.SetParent(root, false);
+        player.position = FindPlayablePoint(center + new Vector3(-spread, 0f, -spread * 0.6f), bounds);
+        player.LookAt(new Vector3(center.x, player.position.y, center.z));
+
+        var enemies = new GameObject("EnemySpawnRoot").transform;
+        enemies.SetParent(root, false);
+        enemies.position = FindPlayablePoint(center + new Vector3(spread, 0f, spread * 0.6f), bounds);
+        enemies.LookAt(new Vector3(center.x, enemies.position.y, center.z));
+
+        Vector3[] offsets =
+        {
+            new Vector3(spread, 0f, spread * 0.6f),
+            new Vector3(spread * 0.7f, 0f, -spread * 0.15f),
+            new Vector3(spread * 0.1f, 0f, spread * 0.85f),
+            new Vector3(-spread * 0.35f, 0f, spread * 0.55f),
+            new Vector3(spread * 1.2f, 0f, -spread * 0.65f)
+        };
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            var point = new GameObject($"EnemySpawn_{i + 1:00}").transform;
+            point.SetParent(enemies, false);
+            point.position = FindPlayablePoint(center + offsets[i], bounds);
+            point.rotation = enemies.rotation;
+        }
+
+        return root;
+    }
+
+    private static Bounds FindSceneGameplayBounds()
+    {
+        var renderers = FindObjectsByType<Renderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+            .Where(r => r != null && r.gameObject.scene.IsValid() && r.bounds.size.sqrMagnitude > 1f);
+
+        bool hasBounds = false;
+        Bounds bounds = new Bounds(Vector3.zero, new Vector3(120f, 10f, 120f));
+        foreach (var renderer in renderers)
+        {
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        if (!hasBounds)
+            bounds = new Bounds(Vector3.zero, new Vector3(120f, 10f, 120f));
+
+        return bounds;
+    }
+
+    private static Vector3 FindPlayablePoint(Vector3 preferred, Bounds bounds)
+    {
+        if (NavMesh.SamplePosition(preferred, out NavMeshHit navHit, 25f, NavMesh.AllAreas))
+            return navHit.position;
+
+        Vector3 rayStart = new Vector3(preferred.x, bounds.max.y + 25f, preferred.z);
+        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, bounds.size.y + 75f))
+            return hit.point;
+
+        return new Vector3(preferred.x, bounds.min.y + 0.1f, preferred.z);
     }
 
     void Start()
@@ -135,6 +221,8 @@ public class BattleManager : MonoBehaviour
         yield return StartCoroutine(mapController.SpawnMap(GetMapIdForSelectedTrip()));
         OnMapSpawnedIn?.Invoke();
         loadSpawnPoint();
+        ApplyCityModeSpawnProfile();
+        if(gameObject.scene.name=="Gameplay") CityGameplay.EnsureExists();
 
         // Subtle, clean lighting + solid city materials (no post FX).
         yield return StartCoroutine(CityAtmosphere.ApplyAfterMapReady());
@@ -262,7 +350,7 @@ public class BattleManager : MonoBehaviour
         if (enemySpawnRoot == null) return;
         
         int count = Mathf.Min(3, enemySpawnRoot.childCount);
-        string[] names = { "Old Crown Pub", "Docks Warehouse", "Riverside Alley" };
+        string[] names = GetControlPointNames();
         var bots = GameData.instance?.PlayerData?.RivalBots;
         
         for (int i = 0; i < count; i++)
@@ -306,11 +394,99 @@ public class BattleManager : MonoBehaviour
         return selectedDest switch
         {
             "East Docks" => MapController.MapId.Map,
-            "North End"  => MapController.MapId.Map,
-            "Riverside"  => MapController.MapId.Map,
-            "Old Town"   => MapController.MapId.Map,
+            "North End"  => MapController.MapId.Map1,
+            "Riverside"  => MapController.MapId.Map2,
+            "Old Town"   => MapController.MapId.Map3,
             _            => MapController.MapId.Map // Fallback default
         };
+    }
+
+    private string[] GetControlPointNames()
+    {
+        if (CityGameplay.HomeMode)
+            return new[] { "Local Pub", "Training Yard", "Stadium Approach" };
+
+        string dest = GameData.instance?.PlayerData?.LastSelectedDestination ?? "";
+        return dest switch
+        {
+            "North End" => new[] { "North End Pub", "Market Cut", "Rail Arches" },
+            "Riverside" => new[] { "Riverside Pub", "Boatyard", "Bridge Route" },
+            "Old Town" => new[] { "Crown Pub", "Town Square", "Cathedral Lane" },
+            _ => new[] { "East Docks Pub", "Warehouse Row", "Container Yard" },
+        };
+    }
+
+    private void ApplyCityModeSpawnProfile()
+    {
+        if (playerSpawnRoot == null || enemySpawnRoot == null) return;
+
+        string dest = GameData.instance?.PlayerData?.LastSelectedDestination ?? "";
+        Vector3 playerTarget = CityGameplay.HomeMode ? new Vector3(120, 0, 90) : GetAwayPlayerSpawn(dest);
+        Vector3 enemyTarget = CityGameplay.HomeMode ? new Vector3(195, 0, 60) : GetAwayEnemySpawn(dest);
+
+        playerSpawnRoot.position = FindReachableSpawn(playerTarget, playerSpawnRoot.position);
+        enemySpawnRoot.position = FindReachableSpawn(enemyTarget, enemySpawnRoot.position);
+
+        Vector3 facing = enemySpawnRoot.position - playerSpawnRoot.position;
+        facing.y = 0f;
+        if (facing.sqrMagnitude > 0.01f)
+        {
+            playerSpawnRoot.forward = facing.normalized;
+            enemySpawnRoot.forward = -facing.normalized;
+        }
+
+        Vector3[] enemyOffsets = GetAwayEnemyOffsets(dest);
+        for (int i = 0; i < enemySpawnRoot.childCount; i++)
+        {
+            Transform child = enemySpawnRoot.GetChild(i);
+            Vector3 target = enemySpawnRoot.position + enemyOffsets[i % enemyOffsets.Length];
+            child.position = FindReachableSpawn(target, enemySpawnRoot.position);
+            child.rotation = enemySpawnRoot.rotation;
+        }
+    }
+
+    private static Vector3 GetAwayPlayerSpawn(string destination)
+    {
+        return destination switch
+        {
+            "North End" => new Vector3(50, 0, 55),
+            "Riverside" => new Vector3(118, 0, 218),
+            "Old Town" => new Vector3(-130, 0, 88),
+            _ => new Vector3(210, 0, -132),
+        };
+    }
+
+    private static Vector3 GetAwayEnemySpawn(string destination)
+    {
+        return destination switch
+        {
+            "North End" => new Vector3(88, 0, 116),
+            "Riverside" => new Vector3(170, 0, 178),
+            "Old Town" => new Vector3(-76, 0, 128),
+            _ => new Vector3(250, 0, -70),
+        };
+    }
+
+    private static Vector3[] GetAwayEnemyOffsets(string destination)
+    {
+        if (CityGameplay.HomeMode)
+            return new[] { new Vector3(0, 0, 0), new Vector3(24, 0, 22), new Vector3(-18, 0, 24), new Vector3(42, 0, -10), new Vector3(-36, 0, -18) };
+        return destination switch
+        {
+            "North End" => new[] { new Vector3(0, 0, 0), new Vector3(34, 0, -12), new Vector3(-28, 0, 20), new Vector3(10, 0, 46), new Vector3(48, 0, 38) },
+            "Riverside" => new[] { new Vector3(0, 0, 0), new Vector3(30, 0, 18), new Vector3(-24, 0, 26), new Vector3(42, 0, -28), new Vector3(-38, 0, -16) },
+            "Old Town" => new[] { new Vector3(0, 0, 0), new Vector3(26, 0, 30), new Vector3(-32, 0, 12), new Vector3(16, 0, -42), new Vector3(-46, 0, -24) },
+            _ => new[] { new Vector3(0, 0, 0), new Vector3(36, 0, 10), new Vector3(-22, 0, 32), new Vector3(18, 0, -38), new Vector3(-46, 0, -12) },
+        };
+    }
+
+    private static Vector3 FindReachableSpawn(Vector3 preferred, Vector3 fallback)
+    {
+        if (NavMesh.SamplePosition(preferred, out var hit, 24f, NavMesh.AllAreas))
+            return hit.position;
+        if (NavMesh.SamplePosition(fallback, out hit, 24f, NavMesh.AllAreas))
+            return hit.position;
+        return preferred;
     }
 
     // ── Police Raid setup coroutine ───────────────────────────────────────
@@ -544,7 +720,7 @@ public class BattleManager : MonoBehaviour
         // Show dedicated result screen
         BattleUIController.instance?.resultPanel.Show(resultData);
         // NOTE: Police Raid chaining is now handled by PoliceRaidGameplayController
-        // in the GameScene — BattleScene only ever runs Rival fights.
+        // in the Gameplay scene. Battle flow only ever runs rival fights here.
     }
 
     // ── Spawning ──────────────────────────────────────────────────────────
@@ -578,9 +754,11 @@ public class BattleManager : MonoBehaviour
         foreach (var data in roster)
         {
             if (!data.IsAlive) continue;
+            if (!CityGameplay.HomeMode && !IsSelectedForAwayTrip(data)) continue;
             if (spawnIdx >= maxPlayerAgents) break;
 
             Vector3 pos = GetSpawnPosition(playerSpawnRoot, spawnIdx);
+            if (NavMesh.SamplePosition(pos,out var spawnHit,5f,NavMesh.AllAreas))pos=spawnHit.position;
             var go      = Instantiate(playerAgentPrefab, pos, Quaternion.identity);
             var ac      = go.GetComponent<AgentController>();
 
@@ -601,6 +779,17 @@ public class BattleManager : MonoBehaviour
 
         // Snapshot roster once per battle session (leave keeps recruits; Try Again restores).
         GameData.instance?.EnsureBattleSessionSnapshot();
+    }
+
+    private bool IsSelectedForAwayTrip(AgentData data)
+    {
+        var d = GameData.instance?.PlayerData;
+        if (data == null || d == null) return false;
+        if (d.SelectedAwayAgentIds == null)
+            return true;
+        if (d.SelectedAwayAgentIds.Count == 0)
+            return false;
+        return d.SelectedAwayAgentIds.Contains(data.AgentId);
     }
 
     private void SpawnEnemyAgents()
@@ -1144,7 +1333,9 @@ public class BattleManager : MonoBehaviour
         if (GameData.instance?.PlayerData != null)
         {
             GameData.instance.PlayerData.Money += reward;
+            if(gameObject.scene.name=="Gameplay")GameData.instance.PlayerData.BattleWins++;
             GameData.instance.AddReputation(repGain);
+            PersistBattleProgress();
         }
 
         int rank = GameData.instance?.PlayerData?.Ranking ?? 0;
@@ -1275,7 +1466,7 @@ public class BattleManager : MonoBehaviour
     /// </summary>
     public AgentController SpawnRecruitedAgentAt(Vector3 position, string name)
     {
-        if (_playerAgents.Count >= maxPlayerAgents)
+        if (_playerAgents.Count(a=>a && a.IsAlive) >= maxPlayerAgents)
         {
             Debug.LogWarning("[BattleManager] Cannot spawn recruit — max active player agents reached!");
             return null;

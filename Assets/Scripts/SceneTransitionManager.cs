@@ -45,12 +45,16 @@ public class SceneTransitionManager : MonoBehaviour
     // ── UI ─────────────────────────────────────────────────────────────────
     private CanvasGroup _group;
     private Image _barFill;
+    private Image _backgroundImage;
     private TextMeshProUGUI _percentLabel;
     private TextMeshProUGUI _titleLabel;
     private TextMeshProUGUI _subtitleLabel;
+    private Texture2D[] _loadingArt;
+    private float _nextArtSwap;
 
     private bool _battleHold;
     private bool _battleReady;
+    private bool _transitioning;
 
     private string _pendingTitle;
     private string _pendingSubtitle;
@@ -72,7 +76,9 @@ public class SceneTransitionManager : MonoBehaviour
     /// <summary>Themed transition with an optional title and subtitle/tip line.</summary>
     public void Transition(string sceneName, string title, string subtitle)
     {
-        bool isBattle = sceneName == "GameScene";
+        if (_transitioning) return;
+        _transitioning = true;
+        bool isBattle = sceneName == GameManager.SCENE_BATTLE;
         _pendingTitle = string.IsNullOrEmpty(title) ? "LOADING" : title;
         _pendingSubtitle = string.IsNullOrEmpty(subtitle)
             ? LoadingTips[Random.Range(0, LoadingTips.Length)]
@@ -92,6 +98,7 @@ public class SceneTransitionManager : MonoBehaviour
 
         if (_titleLabel != null) _titleLabel.text = _pendingTitle ?? "LOADING";
         if (_subtitleLabel != null) _subtitleLabel.text = _pendingSubtitle ?? "";
+        SwapLoadingArt(true);
 
         yield return Fade(1f);            // fade to loading overlay
         SetProgress(0f);
@@ -103,13 +110,17 @@ public class SceneTransitionManager : MonoBehaviour
 
         while (op.progress < 0.9f)
         {
+            SwapLoadingArt(false);
             SetProgress(Mathf.Clamp01(op.progress / 0.9f) * (isBattle ? 0.7f : 1f));
             yield return null;
         }
 
         // Respect a minimum display time so the bar never just flashes.
         while (Time.unscaledTime - startTime < MinShowSeconds)
+        {
+            SwapLoadingArt(false);
             yield return null;
+        }
 
         op.allowSceneActivation = true;
         while (!op.isDone) yield return null;
@@ -121,6 +132,7 @@ public class SceneTransitionManager : MonoBehaviour
             float t = 0.7f;
             while (_battleHold && !_battleReady)
             {
+                SwapLoadingArt(false);
                 t = Mathf.Min(0.97f, t + Time.unscaledDeltaTime * 0.15f);
                 SetProgress(t);
                 yield return null;
@@ -129,6 +141,7 @@ public class SceneTransitionManager : MonoBehaviour
 
         SetProgress(1f);
         yield return Fade(0f);            // reveal the new scene
+        _transitioning = false;
     }
 
     private IEnumerator Fade(float targetAlpha)
@@ -176,13 +189,18 @@ public class SceneTransitionManager : MonoBehaviour
         var bg = NewImage("Background", canvasGo.transform);
         Stretch(bg.rectTransform);
         bg.color = new Color(0.055f, 0.06f, 0.08f, 1f);
+        _backgroundImage = bg;
+        LoadLoadingArt();
+        SwapLoadingArt(true);
+        var shade=NewImage("Readability",canvasGo.transform);
+        Stretch(shade.rectTransform);shade.color=new Color(.02f,.04f,.07f,.3f);
 
         // Title
         _titleLabel = NewText("Title", canvasGo.transform, "LOADING", 64f, FontStyles.Bold);
         var tr = _titleLabel.rectTransform;
         tr.anchorMin = tr.anchorMax = new Vector2(0.5f, 0.5f);
         tr.pivot = new Vector2(0.5f, 0.5f);
-        tr.anchoredPosition = new Vector2(0f, 70f);
+        tr.anchoredPosition = new Vector2(0f, -260f);
         tr.sizeDelta = new Vector2(1200f, 100f);
         _titleLabel.color = new Color(0.92f, 0.94f, 1f, 1f);
         _titleLabel.alignment = TextAlignmentOptions.Center;
@@ -192,8 +210,8 @@ public class SceneTransitionManager : MonoBehaviour
         var bbr = barBg.rectTransform;
         bbr.anchorMin = bbr.anchorMax = new Vector2(0.5f, 0.5f);
         bbr.pivot = new Vector2(0.5f, 0.5f);
-        bbr.anchoredPosition = new Vector2(0f, -20f);
-        bbr.sizeDelta = new Vector2(760f, 26f);
+        bbr.anchoredPosition = new Vector2(0f, -350f);
+        bbr.sizeDelta = new Vector2(1200f, 8f);
         barBg.color = new Color(1f, 1f, 1f, 0.10f);
 
         // Progress bar fill
@@ -203,14 +221,14 @@ public class SceneTransitionManager : MonoBehaviour
         _barFill.fillMethod = Image.FillMethod.Horizontal;
         _barFill.fillOrigin = (int)Image.OriginHorizontal.Left;
         _barFill.fillAmount = 0f;
-        _barFill.color = new Color(0.85f, 0.16f, 0.16f, 1f); // firm red
+        _barFill.color = LandscapeUI.Gold;
 
         // Percent label
         _percentLabel = NewText("Percent", canvasGo.transform, "0%", 26f, FontStyles.Normal);
         var pr = _percentLabel.rectTransform;
         pr.anchorMin = pr.anchorMax = new Vector2(0.5f, 0.5f);
         pr.pivot = new Vector2(0.5f, 0.5f);
-        pr.anchoredPosition = new Vector2(0f, -62f);
+        pr.anchoredPosition = new Vector2(0f, -391f);
         pr.sizeDelta = new Vector2(400f, 40f);
         _percentLabel.color = new Color(0.75f, 0.78f, 0.85f, 1f);
         _percentLabel.alignment = TextAlignmentOptions.Center;
@@ -220,10 +238,30 @@ public class SceneTransitionManager : MonoBehaviour
         var sr = _subtitleLabel.rectTransform;
         sr.anchorMin = sr.anchorMax = new Vector2(0.5f, 0.5f);
         sr.pivot = new Vector2(0.5f, 0.5f);
-        sr.anchoredPosition = new Vector2(0f, -120f);
+        sr.anchoredPosition = new Vector2(0f, -455f);
         sr.sizeDelta = new Vector2(1300f, 40f);
         _subtitleLabel.color = new Color(0.62f, 0.66f, 0.74f, 1f);
         _subtitleLabel.alignment = TextAlignmentOptions.Center;
+    }
+
+    private void LoadLoadingArt()
+    {
+        var all = Resources.LoadAll<Texture2D>("CityPresentation");
+        var list = new System.Collections.Generic.List<Texture2D>();
+        foreach (var texture in all)
+            if (texture != null && texture.name.StartsWith("CityLoading"))
+                list.Add(texture);
+        _loadingArt = list.ToArray();
+    }
+
+    private void SwapLoadingArt(bool force)
+    {
+        if (_backgroundImage == null || _loadingArt == null || _loadingArt.Length == 0) return;
+        if (!force && Time.unscaledTime < _nextArtSwap) return;
+        _nextArtSwap = Time.unscaledTime + 1.4f;
+        var art = _loadingArt[Random.Range(0, _loadingArt.Length)];
+        _backgroundImage.sprite = Sprite.Create(art, new Rect(0, 0, art.width, art.height), new Vector2(.5f, .5f));
+        _backgroundImage.color = Color.white;
     }
 
     private static Image NewImage(string name, Transform parent)

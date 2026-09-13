@@ -105,6 +105,7 @@ public class EnemyController : MonoBehaviour
     public string firmName = "";
     public Color primaryColor = Color.blue;
     public bool isHostile = false;
+    public Transform defenceObjective;
 
     // ─────────────────────────────────────────────────────────────────────
 
@@ -182,7 +183,8 @@ public class EnemyController : MonoBehaviour
         GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
 
         // Add the Animator component dynamically
-        animator = spawnedCharacter.AddComponent<Animator>();
+        animator = spawnedCharacter.GetComponent<Animator>();
+        if (!animator) animator=spawnedCharacter.AddComponent<Animator>();
         animator.runtimeAnimatorController = entry.animatorController != null ? entry.animatorController : BattleManager.instance.characterAnimator;
 
         // Set rendering layer to match the enemy's so they receive the same lighting.
@@ -207,6 +209,18 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
+        if(defenceObjective && _nav && _nav.enabled && _nav.isOnNavMesh)
+        {
+            var nearby=BattleManager.instance?.GetNearestAgent(transform.position);
+            if(!nearby || Vector3.Distance(nearby.transform.position,transform.position)>12)
+            {
+                ClearTarget();_nav.speed=_chaseSpeed;
+                if(!_nav.pathPending && (!_nav.hasPath || Vector3.Distance(_nav.destination,defenceObjective.position)>1))
+                    _nav.SetDestination(defenceObjective.position);
+                _anim?.Tick(_nav.velocity.magnitude/Mathf.Max(.1f,_chaseSpeed));
+                return;
+            }
+        }
         _attackTimer += Time.deltaTime;
         _scanTimer   += Time.deltaTime;
 

@@ -93,6 +93,7 @@ public class BattleEnvironmentFX : MonoBehaviour
 
     void Update()
     {
+        if (dustParticles == null) { _modulesCached = false; return; }
         if (!_modulesCached) return;
 
         // ── Oscillating wind direction ────────────────────────────────────
@@ -108,9 +109,11 @@ public class BattleEnvironmentFX : MonoBehaviour
         Vector3 windVel = windDir * windStrength * (0.7f + 0.3f * Mathf.Abs(gustSin));
 
         // Apply to velocity-over-lifetime so each particle drifts naturally
-        _velModule.x = new ParticleSystem.MinMaxCurve(windVel.x - 0.1f, windVel.x + 0.1f);
-        _velModule.y = new ParticleSystem.MinMaxCurve(windVel.y - 0.05f, windVel.y + 0.05f);
-        _velModule.z = new ParticleSystem.MinMaxCurve(windVel.z - 0.1f, windVel.z + 0.1f);
+        var velModule = dustParticles.velocityOverLifetime;
+        velModule.enabled = true;
+        velModule.x = new ParticleSystem.MinMaxCurve(windVel.x - 0.1f, windVel.x + 0.1f);
+        velModule.y = new ParticleSystem.MinMaxCurve(windVel.y - 0.05f, windVel.y + 0.05f);
+        velModule.z = new ParticleSystem.MinMaxCurve(windVel.z - 0.1f, windVel.z + 0.1f);
     }
 
     // ── Public API (called by PreBattleSequencer / BattleManager) ─────────
@@ -160,7 +163,8 @@ public class BattleEnvironmentFX : MonoBehaviour
     private void SetEmissionMultiplier(float multiplier)
     {
         if (!_modulesCached) return;
-        _emissionModule.rateOverTime = _baseEmissionRate * multiplier;
+        var emissionModule = dustParticles.emission;
+        emissionModule.rateOverTime = _baseEmissionRate * multiplier;
     }
 
     private void RestoreIntroEmission()

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -66,6 +67,8 @@ public class BattleUIController : MonoBehaviour
     private Camera _cam;
     private ScrollRect _portraitScroll;
     private bool _portraitScrollReady;
+    private Button _selectAllSquadToggle;
+    private TextMeshProUGUI _selectAllSquadLabel;
     private const float PortraitCardW = 120f;
     private const float PortraitCardH = 140f;
     private const float PortraitSpacing = 12f;
@@ -243,6 +246,7 @@ public class BattleUIController : MonoBehaviour
     {
         if (playerCountText) playerCountText.text = $"MEMBERS: {aliveP}";
         if (landscapeLayout && enemyCountText) enemyCountText.text = $"RIVALS: {aliveE}";
+        EnsureSquadSelectToggle();
     }
 
     // ── Selection HUD ─────────────────────────────────────────────────────
@@ -255,6 +259,8 @@ public class BattleUIController : MonoBehaviour
                 : $"SELECTED: {selected.Count} UNITS";
 
         EnsurePortraitScrollView();
+        EnsureSquadSelectToggle();
+        RefreshSquadSelectToggle(selected);
 
         // Clear portrait strip
         if (portraitStrip != null)
@@ -263,11 +269,15 @@ public class BattleUIController : MonoBehaviour
 
         if (portraitCardPrefab == null || portraitStrip == null) return;
 
-        // All selected agents — scroll horizontally when they don't fit.
-        for (int i = 0; i < selected.Count; i++)
+        var allAgents = BattleManager.instance != null
+            ? BattleManager.instance.PlayerAgents
+            : new List<AgentController>();
+
+        for (int i = 0; i < allAgents.Count; i++)
         {
-            var agent = selected[i];
+            var agent = allAgents[i];
             if (agent == null || !agent.IsAlive) continue;
+            bool isSelected = selected.Contains(agent);
 
             var cardGO = Instantiate(portraitCardPrefab, portraitStrip);
             SizePortraitCard(cardGO);
@@ -276,6 +286,7 @@ public class BattleUIController : MonoBehaviour
             if (card != null)
             {
                 card.Initialise(agent, BattleManager.instance.portraitRegistry, agent.modelPrefab);
+                card.SetSelected(isSelected);
             }
             else
             {
@@ -292,6 +303,11 @@ public class BattleUIController : MonoBehaviour
                 if (nameLabel != null && agent.Data != null)
                     nameLabel.text = agent.Data.AgentName.ToUpper();
             }
+
+            var button = cardGO.GetComponent<Button>() ?? cardGO.AddComponent<Button>();
+            button.targetGraphic = cardGO.GetComponent<Graphic>();
+            LandscapeUI.Colors(button);
+            button.onClick.AddListener(() => AgentSelectionManager.instance?.ToggleSelect(agent));
         }
 
         // Rebuild content width and keep scroll usable on touch.
@@ -301,6 +317,40 @@ public class BattleUIController : MonoBehaviour
             LayoutRebuilder.ForceRebuildLayoutImmediate(portraitStrip as RectTransform);
             _portraitScroll.horizontalNormalizedPosition = 0f;
         }
+    }
+
+    private void EnsureSquadSelectToggle()
+    {
+        if (!landscapeLayout || _selectAllSquadToggle != null) return;
+        Transform parent = playerCountText != null ? playerCountText.transform.parent : transform;
+        _selectAllSquadToggle = parent.Find("SquadSelectToggle")?.GetComponent<Button>();
+        if (_selectAllSquadToggle == null)
+            _selectAllSquadToggle = LandscapeUI.Button("SquadSelectToggle", parent, "", 245, 171, 32, 28, "outline");
+        _selectAllSquadLabel = _selectAllSquadToggle.GetComponentInChildren<TextMeshProUGUI>();
+        if (_selectAllSquadLabel != null)
+        {
+            _selectAllSquadLabel.fontSizeMin = 10;
+            _selectAllSquadLabel.fontSizeMax = 18;
+        }
+        _selectAllSquadToggle.onClick.AddListener(ToggleAllSquadSelection);
+    }
+
+    private void RefreshSquadSelectToggle(List<AgentController> selected)
+    {
+        if (_selectAllSquadLabel == null) return;
+        int alive = BattleManager.instance != null ? BattleManager.instance.PlayerAgents.Count(a => a != null && a.IsAlive) : 0;
+        bool allSelected = alive > 0 && selected != null && selected.Count(a => a != null && a.IsAlive) >= alive;
+        _selectAllSquadLabel.text = allSelected ? "ON" : "";
+    }
+
+    private void ToggleAllSquadSelection()
+    {
+        int alive = BattleManager.instance != null ? BattleManager.instance.PlayerAgents.Count(a => a != null && a.IsAlive) : 0;
+        int selected = AgentSelectionManager.instance != null ? AgentSelectionManager.instance.SelectedAgents.Count(a => a != null && a.IsAlive) : 0;
+        if (alive > 0 && selected >= alive)
+            AgentSelectionManager.instance?.DeselectAll();
+        else
+            AgentSelectionManager.instance?.SelectAll();
     }
 
     /// <summary>
@@ -496,6 +546,8 @@ public class BattleUIController : MonoBehaviour
     {
         _awaitingMoveTarget = false;
         AgentSelectionManager.instance?.CommandSelectedRetreat();
+        if(CityGameplay.Instance && CityGameplay.HomeMode)
+        {CityGameplay.Instance.PostEvent("REGROUPING AT HEADQUARTERS");return;}
 
         // If the units are already at the HQ, trigger escape immediately!
         if (BattleManager.instance != null && BattleManager.instance.CheckEscapeCondition())
@@ -560,8 +612,6 @@ public class BattleUIController : MonoBehaviour
     void OnDisable()
     {
         Touch.onFingerDown -= OnFingerDown;
-        TouchSimulation.Disable();
-        EnhancedTouchSupport.Disable();
     }
 
     /// <summary>
@@ -569,6 +619,8 @@ public class BattleUIController : MonoBehaviour
     /// </summary>
     private void OnFingerDown(Finger finger)
     {
+        // City selection resolves release after gesture classification; never issue orders on press.
+        if(CityGameplay.Instance)return;
         HandleTap(finger.screenPosition);
     }
 

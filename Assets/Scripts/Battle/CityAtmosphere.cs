@@ -31,13 +31,17 @@ public static class CityAtmosphere
         StripPostProcessing();
         StripPsxEffects();
         SetupCleanLighting();
-        BuildMaterialsIfNeeded();
-        SolidifyEnvironment();
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "Gameplay")
+        {
+            BuildMaterialsIfNeeded();
+            SolidifyEnvironment();
+        }
         ConfigureCameras();
     }
 
     public static void ReapplyEnvironmentTextures()
     {
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Gameplay") return;
         BuildMaterialsIfNeeded();
         SolidifyEnvironment();
     }

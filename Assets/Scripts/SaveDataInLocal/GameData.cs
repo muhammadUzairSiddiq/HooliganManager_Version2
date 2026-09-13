@@ -125,6 +125,10 @@ public class GameData : MonoBehaviour
         // Generate starting agent roster from initial fan count
         PlayerData.RecruitedAgents = new List<AgentData>();
         GenerateAgentsForFans(fans);
+        PlayerData.SelectedAwayAgentIds = new List<string>();
+        foreach (var agent in PlayerData.RecruitedAgents)
+            if (agent != null && agent.IsAlive)
+                PlayerData.SelectedAwayAgentIds.Add(agent.AgentId);
 
         SaveData();
     }

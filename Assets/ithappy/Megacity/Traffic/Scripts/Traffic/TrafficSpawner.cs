@@ -46,13 +46,17 @@ namespace ITHappy
                 while (offset <= length - m_SpawnDistance)
                 {
                     float random = Random.Range(0f, 1f);
-                    if (random < m_SpawnProbability)
+                    float density = gameObject.scene.name == "Gameplay" ? 0.1f : 1f;
+                    if (random < m_SpawnProbability * density)
                     {
                         var prefIndex = Random.Range(0, m_CarPrefabs.Count);
                         var carTransform = Instantiate(m_CarPrefabs[prefIndex]).transform;
 
                         carTransform.name = $"Car_{m_Cars.Count}";
                         carTransform.SetParent((m_CarRoot == null) ? m_Transform : m_CarRoot);
+                        if (density < 1f)
+                            foreach (var source in carTransform.GetComponentsInChildren<AudioSource>())
+                                source.volume *= .15f;
 
                         var car = carTransform.GetComponent<Car>();
 

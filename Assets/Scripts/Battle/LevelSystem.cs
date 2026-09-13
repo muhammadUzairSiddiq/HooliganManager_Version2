@@ -77,6 +77,7 @@ public class LevelSystem : MonoBehaviour
     /// <summary>Called by BattleManager after a rival firm is fully wiped.</summary>
     public void OnGangEliminated(string firmName)
     {
+        if(CityGameplay.HomeMode && gameObject.scene.name=="Gameplay")return;
         if (_transitioning) return;
         if (string.IsNullOrEmpty(firmName) || firmName == "POLICE") return;
         if (!_clearedFirms.Add(firmName))
@@ -372,6 +373,13 @@ public class LevelSystem : MonoBehaviour
 
     private void RefreshHud()
     {
+        if(CityGameplay.HomeMode && gameObject.scene.name=="Gameplay")
+        {
+            if(_levelTitle)_levelTitle.text="HOME DISTRICT";
+            if(_objectiveText)_objectiveText.text="Prepare your squad\nProtect headquarters";
+            if(_objectiveFill)_objectiveFill.fillAmount=1;
+            return;
+        }
         int idx = Mathf.Clamp(_level - 1, 0, MaxLevels - 1);
         if (_levelTitle != null) _levelTitle.text = LevelTitles[idx];
         if (_objectiveText != null)

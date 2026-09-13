@@ -30,6 +30,8 @@ public class AgentSelectionManager : MonoBehaviour
 
     // ── Internal ──────────────────────────────────────────────────────────
     private Camera _cam;
+    private Vector2 _mouseDown;
+    private bool _mouseTap, _mouseDragged;
 
     [Header("Tap vs Drag")]
     [Tooltip("Max finger travel (px) still counted as a tap. Beyond this it's a camera drag and is ignored.")]
@@ -37,6 +39,7 @@ public class AgentSelectionManager : MonoBehaviour
 
     // A gesture that ever had 2+ fingers (pinch/zoom) or dragged far is not a tap.
     private bool _multiTouchThisGesture;
+    private bool _touchDragged, _touchStartedOnUI;
     private int _fingersDown;
 
     // Double-tap: skip the unit-order tap when camera consumed a recenter double-tap.
@@ -59,18 +62,33 @@ public class AgentSelectionManager : MonoBehaviour
 
     void OnEnable()
     {
+        EnhancedTouchSupport.Enable();
         Touch.onFingerDown += OnFingerDown;
         Touch.onFingerUp += OnFingerUp;
     }
 
     void OnDisable()
     {
+        _pendingTapTime=-1;_mouseTap=false;_fingersDown=0;
         Touch.onFingerDown -= OnFingerDown;
         Touch.onFingerUp -= OnFingerUp;
     }
 
     void Update()
     {
+        var mouse=UnityEngine.InputSystem.Mouse.current;
+        if (mouse!=null && Touch.activeTouches.Count==0)
+        {
+            var position=mouse.position.ReadValue();
+            if(mouse.leftButton.wasPressedThisFrame)
+            { _mouseDown=position; _mouseTap=!IsPointerOverUI(position); _mouseDragged=false; }
+            if(mouse.leftButton.isPressed)
+                _mouseDragged |= Vector2.Distance(position,_mouseDown)>dragThresholdPixels;
+            if(mouse.leftButton.wasReleasedThisFrame && _mouseTap && !_mouseDragged)
+                QueueTap(position);
+        }
+        foreach(var touch in Touch.activeTouches)
+            if(Vector2.Distance(touch.screenPosition,touch.startScreenPosition)>dragThresholdPixels)_touchDragged=true;
         // Fire deferred single-tap only if a double-tap never arrived.
         if (_pendingTapTime > 0f && Time.unscaledTime >= _pendingTapTime)
         {
@@ -83,6 +101,7 @@ public class AgentSelectionManager : MonoBehaviour
 
     private void OnFingerDown(Finger finger)
     {
+        if(_fingersDown==0){_touchDragged=false;_touchStartedOnUI=IsPointerOverUI(finger.currentTouch.screenPosition);}
         _fingersDown++;
         if (_fingersDown >= 2) _multiTouchThisGesture = true;
     }
@@ -91,7 +110,7 @@ public class AgentSelectionManager : MonoBehaviour
     {
         var t = finger.currentTouch;
         float dpiThreshold = Mathf.Max(dragThresholdPixels, Screen.height * 0.02f);
-        bool wasTap = !_multiTouchThisGesture &&
+        bool wasTap = !_multiTouchThisGesture && !_touchDragged && !_touchStartedOnUI &&
                       Vector2.Distance(t.screenPosition, t.startScreenPosition) <= dpiThreshold;
 
         _fingersDown = Mathf.Max(0, _fingersDown - 1);
@@ -99,24 +118,30 @@ public class AgentSelectionManager : MonoBehaviour
 
         if (!wasTap) return;
 
-        // Defer so a second tap (double-tap recenter) can cancel the unit order.
-        if (_pendingTapTime > 0f && Time.unscaledTime < _pendingTapTime)
+        QueueTap(t.screenPosition);
+    }
+
+    private void QueueTap(Vector2 position)
+    {
+        // Resolve both mouse and touch taps here, independent of camera Update order.
+        if (_pendingTapTime > 0f && Time.unscaledTime < _pendingTapTime && Vector2.Distance(position,_pendingTapPos)<55)
         {
-            // Second tap within window — camera handles recenter; cancel move.
             _pendingTapTime = -1f;
             _doubleTapConsumed = true;
+            CameraPanTouchOnly.Instance?.CenterOnSelection();
             return;
         }
 
         _doubleTapConsumed = false;
-        _pendingTapPos = t.screenPosition;
-        _pendingTapTime = Time.unscaledTime + DoubleTapDelay;
+        _pendingTapPos = position;
+        _pendingTapTime = Time.unscaledTime + 0.34f;
     }
 
     // ── Tap handling ──────────────────────────────────────────────────────
 
     private void HandleTap(Vector2 screenPos)
     {
+        if (LiveMiniMap.IsExpanded || Time.timeScale == 0 || !_cam) return;
         // Ignore taps on UI (joystick, buttons)
         if (IsPointerOverUI(screenPos))
             return;
@@ -125,7 +150,7 @@ public class AgentSelectionManager : MonoBehaviour
         Ray ray = _cam.ScreenPointToRay(screenPos);
         
         // ── 1. Check if we hit an Agent (Player or Enemy) ──
-        if (Physics.Raycast(ray, out RaycastHit hit, 100f, LayerMask.GetMask("Agent")))
+        if (Physics.Raycast(ray, out RaycastHit hit, 2500f, LayerMask.GetMask("Agent")))
         {
             var agent = hit.collider.GetComponent<AgentController>();
             if (agent == null)
@@ -220,7 +245,7 @@ public class AgentSelectionManager : MonoBehaviour
         bool groundHit = false;
 
         // Physics raycast against Default layer (which represents ground/environment)
-        if (Physics.Raycast(ray, out RaycastHit groundHitInfo, 150f, LayerMask.GetMask("Default")))
+        if (Physics.Raycast(ray, out RaycastHit groundHitInfo, 2500f, LayerMask.GetMask("Default"), QueryTriggerInteraction.Ignore))
         {
             groundPoint = groundHitInfo.point;
             groundHit = true;
@@ -236,8 +261,9 @@ public class AgentSelectionManager : MonoBehaviour
             }
         }
 
-        if (groundHit)
+        if (groundHit && UnityEngine.AI.NavMesh.SamplePosition(groundPoint,out var walkHit,3f,UnityEngine.AI.NavMesh.AllAreas))
         {
+            groundPoint=walkHit.position;
             // If nothing is currently selected, auto-select all alive units to make movement default
             if (_selected.Count == 0)
             {
@@ -280,7 +306,7 @@ public class AgentSelectionManager : MonoBehaviour
 
     public void DeselectAll()
     {
-        foreach (var a in _selected) a?.SetSelected(false);
+        foreach (var a in _selected) if(a)a.SetSelected(false);
         _selected.Clear();
         NotifyUI();
     }
@@ -305,12 +331,19 @@ public class AgentSelectionManager : MonoBehaviour
 
     public void CommandSelectedRetreat()
     {
+        CameraPanTouchOnly.Instance?.FollowSelection();
         foreach (var a in _selected)
             if (a != null && a.IsAlive) a.CommandRetreat();
     }
 
     public void CommandSelectedMoveTo(Vector3 worldPoint)
     {
+        var leader=_selected.Find(a=>a && a.IsAlive);
+        if(!leader)return;
+        var path=new UnityEngine.AI.NavMeshPath();
+        if(!UnityEngine.AI.NavMesh.CalculatePath(leader.transform.position,worldPoint,UnityEngine.AI.NavMesh.AllAreas,path) || path.status!=UnityEngine.AI.NavMeshPathStatus.PathComplete)
+        {CityGameplay.Instance?.PostEvent("DESTINATION BLOCKED - CHOOSE A STREET APPROACH");return;}
+        CameraPanTouchOnly.Instance?.FollowSelection();
         Debug.DrawRay(worldPoint, Vector3.up*10, Color.green, 3f);
         // Spread agents in a formation row along X around the target point
         for (int i = 0; i < _selected.Count; i++)

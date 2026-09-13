@@ -1,7 +1,9 @@
 namespace ITHappy
 {
     using UnityEngine;  // UnityEngine gives us general access.
+#if UNITY_EDITOR
     using UnityEditor;  // UnityEditor gives us editor-specific access.
+#endif
 
     /// <summary>Performs manual iteration to swap out one game object for another.</summary>
     public class PrefabSwitch : MonoBehaviour
@@ -90,6 +92,7 @@ namespace ITHappy
         }
     }
 
+#if UNITY_EDITOR
     /// <summary>Custom Editor for our PrefabSwitch script, to allow us to perform actions
     /// from the editor.</summary>
     [CustomEditor(typeof(PrefabSwitch))]
@@ -120,4 +123,5 @@ namespace ITHappy
             }
         }
     }
+#endif
 }

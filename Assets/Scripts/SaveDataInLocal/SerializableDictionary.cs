@@ -24,6 +24,16 @@ public class SerializableDictionary<TKey, TValue>
     private List<Pair> _pairs = new List<Pair>();
 
     // ── Dictionary-like API ───────────────────────────────────────────────
+    public int Count => _pairs.Count;
+
+    public IEnumerable<TValue> Values
+    {
+        get
+        {
+            foreach (var pair in _pairs)
+                yield return pair.value;
+        }
+    }
 
     public bool ContainsKey(TKey key)
     {

@@ -77,6 +77,7 @@ public class LivePoliceSystem : MonoBehaviour
 
     void Start()
     {
+        if(gameObject.scene.name=="Gameplay") {cutsceneHeight=65;startingHeat=GameManager.Data?.PoliceHeat??0;}
         _heat = Mathf.Clamp(startingHeat, 0, maxHeat);
         BuildUI();
         PoliceRoadSpline.EnsureExists();
@@ -244,10 +245,13 @@ public class LivePoliceSystem : MonoBehaviour
         // 4) Park car beside the player and spawn stronger officers in front.
         Vector3 forward = GetPlayerForward();
         Vector3 carPark = playerPos - forward * 6f + Vector3.right * 2.5f;
-        if (NavMesh.SamplePosition(carPark, out var carHit, 8f, NavMesh.AllAreas))
+        int roadMask=gameObject.scene.name=="Gameplay" ? 1<<3 : NavMesh.AllAreas;
+        if (NavMesh.SamplePosition(carPark, out var carHit, 60f, roadMask))
             carPark = carHit.position;
 
-        if (nearest != null)
+        if(nearest!=null && gameObject.scene.name=="Gameplay")
+            yield return nearest.DriveArrival(carPark);
+        else if (nearest != null)
             nearest.ParkAt(carPark, forward);
         else if (_responseCar != null)
             _responseCar.transform.position = carPark;
@@ -306,6 +310,7 @@ public class LivePoliceSystem : MonoBehaviour
 
         Vector3 startPos = cam.transform.position;
         Vector3 focusPos = FrameFromRotation(cam.transform.rotation, focus, cutsceneHeight);
+        if(gameObject.scene.name=="Gameplay")focusPos=CameraPanTouchOnly.SafeCityPosition(focus,focusPos);
 
         yield return MoveCamRealtime(cam, startPos, focusPos, 0.7f);
         yield return new WaitForSecondsRealtime(cutsceneHoldSeconds);
@@ -325,6 +330,7 @@ public class LivePoliceSystem : MonoBehaviour
 
         Vector3 player = BattleManager.instance.GetPlayerCentroid();
         Vector3 dest = FrameFromRotation(cam.transform.rotation, player, cutsceneHeight);
+        if(gameObject.scene.name=="Gameplay")dest=CameraPanTouchOnly.SafeCityPosition(player,dest);
         yield return MoveCamRealtime(cam, cam.transform.position, dest, 0.7f);
 
         if (camCtl != null)
@@ -742,7 +748,7 @@ public class LivePoliceSystem : MonoBehaviour
         pr.pivot = new Vector2(0.5f, 0.5f);
         pr.sizeDelta = new Vector2(720f, 360f);
         var panelImg = _popupRoot.GetComponent<Image>();
-        panelImg.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
+        panelImg.sprite = null;
         panelImg.type = Image.Type.Sliced;
         panelImg.color = new Color(0.08f, 0.09f, 0.12f, 0.97f);
 
@@ -778,7 +784,7 @@ public class LivePoliceSystem : MonoBehaviour
         rt.anchoredPosition = anchoredPos;
         rt.sizeDelta = new Vector2(300f, 90f);
         var img = go.GetComponent<Image>();
-        img.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
+        img.sprite = null;
         img.type = Image.Type.Sliced;
         img.color = color;
         label = NewText("Label", go.transform, text, 26f, FontStyles.Bold);

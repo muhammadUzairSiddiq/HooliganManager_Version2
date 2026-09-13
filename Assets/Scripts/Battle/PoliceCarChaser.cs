@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 /// <summary>
 /// Police van that sticks to <see cref="PoliceRoadSpline"/> during patrol
@@ -25,6 +26,9 @@ public class PoliceCarChaser : MonoBehaviour
     private PoliceRoadSpline _spline;
     private Vector3 _lastPos;
     private bool _hasLastPos;
+    private NavMeshPath _responsePath;
+    private int _responseCorner;
+    private float _nextRepath;
 
     public bool IsPatrolCar => _patrolling;
     public bool IsActiveCar => _patrolling || _chasing || _parked;
@@ -116,6 +120,7 @@ public class PoliceCarChaser : MonoBehaviour
 
         if (_chasing && _target != null)
         {
+            if(gameObject.scene.name=="Gameplay") { DriveCityResponse(dt);return; }
             // Still prefer road when close; otherwise drive straight at target.
             Vector3 to = _target.position - transform.position;
             to.y = 0f;
@@ -174,6 +179,47 @@ public class PoliceCarChaser : MonoBehaviour
             next.y = hit.point.y;
         transform.position = next;
         ApplyFacing(dir);
+    }
+
+    private void DriveCityResponse(float dt)
+    {
+        if(Time.time>=_nextRepath)
+        {
+            _nextRepath=Time.time+1.5f;
+            _responsePath=new NavMeshPath();_responseCorner=1;
+            if(!NavMesh.SamplePosition(transform.position,out var start,15,1<<3) ||
+               !NavMesh.SamplePosition(_target.position,out var end,60,1<<3) ||
+               !NavMesh.CalculatePath(start.position,end.position,1<<3,_responsePath) ||
+               _responsePath.status!=NavMeshPathStatus.PathComplete)
+            { _responsePath=null;return; }
+        }
+        if(_responsePath==null || _responseCorner>=_responsePath.corners.Length)return;
+        Vector3 point=_responsePath.corners[_responseCorner];
+        Vector3 direction=point-transform.position;direction.y=0;
+        if(direction.magnitude<.7f){_responseCorner++;return;}
+        Vector3 next=Vector3.MoveTowards(transform.position,point,chaseSpeed*dt);
+        if(NavMesh.Raycast(transform.position,next,out var obstruction,1<<3))return;
+        transform.position=next;ApplyFacing(direction);
+        if(Vector3.Distance(transform.position,_responsePath.corners[_responsePath.corners.Length-1])<2)StopAndIdle();
+    }
+
+    public System.Collections.IEnumerator DriveArrival(Vector3 destination)
+    {
+        StopAndIdle();
+        var path=new NavMeshPath();
+        if(!NavMesh.SamplePosition(transform.position,out var start,12,1<<3) ||
+            !NavMesh.CalculatePath(start.position,destination,1<<3,path) || path.status!=NavMeshPathStatus.PathComplete)
+            yield break;
+        for(int i=1;i<path.corners.Length;i++)
+        {
+            while(Vector3.Distance(transform.position,path.corners[i])>.15f)
+            {
+                Vector3 next=Vector3.MoveTowards(transform.position,path.corners[i],12*Time.unscaledDeltaTime);
+                ApplyFacing(next-transform.position);transform.position=next;
+                if(CameraPanTouchOnly.Instance)CameraPanTouchOnly.Instance.FocusOn(transform.position);
+                yield return null;
+            }
+        }
     }
 
     private void ApplyFacing(Vector3 forwardXZ)

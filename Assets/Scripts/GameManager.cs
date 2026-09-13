@@ -14,8 +14,8 @@ public class GameManager : MonoBehaviour
     // ── Scene constants ───────────────────────────────────────────────────
     public const string SCENE_MAIN_MENU      = "MainMenu";
     public const string SCENE_DASHBOARD      = "DashboardScene";
-    public const string SCENE_GAME           = "GameScene";
-    public const string SCENE_BATTLE         = "GameScene";
+    public const string SCENE_GAME           = "Gameplay";
+    public const string SCENE_BATTLE         = "Gameplay";
 
     // ── Singleton ─────────────────────────────────────────────────────────
     public static GameManager instance;
@@ -84,7 +84,7 @@ public class GameManager : MonoBehaviour
             ? d.RivalBots[0].firmName
             : "Rival Firm";
 
-        StartRivalFight(enemyCount, enemyStr, reward, firm);
+        EnterHomeTerritory();
     }
 
     /// <summary>
@@ -158,6 +158,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void StartRivalFight(int enemyCount, int enemyStrength, int reward, string enemyFirmName = "")
     {
+        CityGameplay.HomeMode=false;
         PendingBattleMode     = BattleManager.BattleMode.RivalFight;
         PendingEnemyCount     = enemyCount;
         PendingEnemyStrength  = enemyStrength;
@@ -172,12 +173,13 @@ public class GameManager : MonoBehaviour
 
     /// <summary>
     /// Triggered when PoliceHeat is at max (10) and the player tries to start an
-    /// Away Trip.  Loads GameScene just like a normal rival fight.
+    /// Away Trip.  Loads Gameplay just like a normal rival fight.
     /// BattleManager.Start() detects PendingBattleMode == PoliceRaid and activates
     /// PoliceRaidGameplayController instead of running the normal 3D battle.
     /// </summary>
     public void StartPoliceRaid()
     {
+        CityGameplay.HomeMode=false;
         // Derive officer params from registry (falls back to hardcoded if manager missing)
         int heat = GameData.instance?.PlayerData?.PoliceHeat ?? 10;
         (int policeCount, int policeStrength) = PoliceManager.instance != null
@@ -191,7 +193,7 @@ public class GameManager : MonoBehaviour
         PendingBattleReward  = 0;
         PendingEnemyFirmName = "POLICE";
 
-        // Load GameScene — BattleManager.Start() will detect PoliceRaid mode
+        // Load Gameplay — BattleManager.Start() will detect PoliceRaid mode
         // and activate PoliceRaidGameplayController instead of spawning agents.
         LoadScene(SCENE_BATTLE, "POLICE RAID", "The filth are onto your firm.");
     }
@@ -216,7 +218,17 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>Return to main dashboard after a battle.</summary>
-    public void ReturnToDashboard() => LoadScene(SCENE_DASHBOARD, "BACK TO HQ", "Counting the takings...");
+    public void ReturnToDashboard() => EnterHomeTerritory();
+
+    public void EnterHomeTerritory()
+    {
+        BattleManager.instance?.PersistBattleProgress();
+        CityGameplay.HomeMode=true;
+        PendingBattleMode=BattleManager.BattleMode.RivalFight;
+        PendingEnemyCount=6; PendingEnemyStrength=20; PendingBattleReward=0;
+        PendingEnemyFirmName="Rival Visitors";
+        LoadScene(SCENE_GAME,"HOME TERRITORY","Returning to headquarters");
+    }
 
     // ── Utility ───────────────────────────────────────────────────────────
     public static bool HasSaveData()

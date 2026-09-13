@@ -130,7 +130,8 @@ public class AgentController : MonoBehaviour
         GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
 
         // Add the Animator component dynamically
-        animator = spawnedCharacter.AddComponent<Animator>();
+        animator = spawnedCharacter.GetComponent<Animator>();
+        if (!animator) animator=spawnedCharacter.AddComponent<Animator>();
         animator.runtimeAnimatorController = entry.animatorController != null ? entry.animatorController : BattleManager.instance.characterAnimator;
 
         // Set rendering layer to match the agent so they receive the same lighting.
@@ -151,7 +152,7 @@ public class AgentController : MonoBehaviour
     public void SetSelected(bool selected)
     {
         IsSelected = selected;
-        selectionCircle?.SetActive(selected);
+        if(selectionCircle)selectionCircle.SetActive(selected);
     }
 
     // ── Cinematic idle lock ───────────────────────────────────────────────
@@ -174,7 +175,11 @@ public class AgentController : MonoBehaviour
     /// <summary>Move to a world-space point, then return to Idle.</summary>
     public void CommandMoveTo(Vector3 point)
     {
-        if (!IsAlive) return;
+        if (!IsAlive || _cinematicIdle || _nav == null || !_nav.isOnNavMesh) return;
+        if (!NavMesh.SamplePosition(point,out var destination,3f,_nav.areaMask)) return;
+        var path=new NavMeshPath();
+        if (!_nav.CalculatePath(destination.position,path) || path.status!=NavMeshPathStatus.PathComplete) return;
+        point=destination.position;
         _moveTarget = point;
         _target     = null;
         SetState(State.MovingToPoint);

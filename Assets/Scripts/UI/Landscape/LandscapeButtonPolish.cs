@@ -18,6 +18,7 @@ public sealed class LandscapeButtonPolish : MonoBehaviour, IPointerEnterHandler,
     float press;
     float width;
     Color baseColor = Color.white;
+    public void SetBaseColor(Color color) {baseColor=color;if(image)image.color=color;}
 
     void Awake()
     {

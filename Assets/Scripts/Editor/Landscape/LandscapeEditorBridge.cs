@@ -26,7 +26,30 @@ public static class LandscapeEditorBridge
                     .Where(c=>c && c.gameObject.scene.IsValid()).Select(c=>c.GetType().Name+" @ "+PathOf(c.transform));
                 File.WriteAllLines(OutputPath,lines); return;
             }
-            if (command=="build") LandscapeSceneBuilder.ApplyAll();
+            if (command=="city-build") CityGameplayBuilder.Build();
+            else if(command=="milestone-checks") MilestoneChecks.Run();
+            else if(command=="service-checks") CityServiceChecks.Run();
+            else if(command=="android-review-build")
+            {
+                if(EditorApplication.isPlaying)throw new InvalidOperationException("Stop play mode before building.");
+                Directory.CreateDirectory("Artifacts/Builds");
+                File.WriteAllText("Artifacts/Builds/android-build.txt","BUILDING "+DateTime.Now.ToString("s"));
+                var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions {
+                    scenes=EditorBuildSettings.scenes.Where(s=>s.enabled).Select(s=>s.path).ToArray(),
+                    locationPathName="Artifacts/Builds/Hooligan-Milestones-1-2-Review.apk",target=BuildTarget.Android,options=BuildOptions.None
+                });
+                File.WriteAllText("Artifacts/Builds/android-build.txt",report.summary.result+"\nErrors: "+report.summary.totalErrors+"\nWarnings: "+report.summary.totalWarnings+"\nSize: "+report.summary.totalSize+"\nDuration: "+report.summary.totalTime);
+                if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)throw new InvalidOperationException("Android build did not succeed.");
+            }
+            else if(command=="city-report") CityGameplayBuilder.Report();
+            else if (command=="city-inspect")
+            {
+                var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                var rows = scene.GetRootGameObjects().SelectMany(g=>g.GetComponentsInChildren<MeshRenderer>(true))
+                    .Select(r=>PathOf(r.transform)+" | center="+r.bounds.center.ToString("F2")+" size="+r.bounds.size.ToString("F2")+" collider="+(r.GetComponent<Collider>()!=null));
+                File.WriteAllLines("Artifacts/LandscapeUI/city-geometry.txt",rows);
+            }
+            else if (command=="build") LandscapeSceneBuilder.ApplyAll();
             else if (command.StartsWith("size:")) LandscapeSceneBuilder.SetGameViewSize(command.Substring(5));
             else if (command=="play") EditorApplication.isPlaying=true;
             else if (command=="stop") EditorApplication.isPlaying=false;
@@ -34,7 +57,7 @@ public static class LandscapeEditorBridge
             else if (command.StartsWith("scene:"))
             {
                 string name=command.Substring(6);
-                if (name!="MainMenu" && name!="DashboardScene" && name!="GameScene") throw new InvalidOperationException("Unknown UI scene");
+                if (name!="MainMenu" && name!="DashboardScene" && name!="GameScene" && name!="Gameplay") throw new InvalidOperationException("Unknown UI scene");
                 if (EditorApplication.isPlaying) UnityEngine.SceneManagement.SceneManager.LoadScene(name);
                 else EditorSceneManager.OpenScene("Assets/Scenes/"+name+".unity");
             }

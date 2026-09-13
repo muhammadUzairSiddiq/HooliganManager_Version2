@@ -73,7 +73,8 @@ public class LiveMiniMap : MonoBehaviour
 
     private void Build()
     {
-        _uiSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
+        if(gameObject.scene.name=="Gameplay") {cameraHeight=300;orthographicSize=100;expandedOrthoSize=350;}
+        _uiSprite = null;
         DisableLegacyMinimap();
         BuildSprites();
         BuildCamera();
@@ -102,7 +103,7 @@ public class LiveMiniMap : MonoBehaviour
         _miniCam.orthographic = true;
         _miniCam.orthographicSize = orthographicSize;
         _miniCam.nearClipPlane = 0.3f;
-        _miniCam.farClipPlane = 200f;
+        _miniCam.farClipPlane = 1500f;
         _miniCam.clearFlags = CameraClearFlags.SolidColor;
         _miniCam.backgroundColor = new Color(0.08f, 0.09f, 0.11f, 1f);
         _miniCam.targetTexture = _rt;
@@ -124,7 +125,7 @@ public class LiveMiniMap : MonoBehaviour
         scaler.referenceResolution = LandscapeUI.Resolution;
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
-        _compactPos = new Vector2(-27f, -122f);
+        _compactPos = new Vector2(-27f, gameObject.scene.name=="Gameplay" ? -510f : -122f);
         _compactSize = new Vector2(266f, 250f);
 
         // Dimmer (expanded) — does NOT close on click (use X). Blocks world taps.
@@ -397,8 +398,8 @@ public class LiveMiniMap : MonoBehaviour
         _panFocus.x -= delta.x * worldPerPixel;
         _panFocus.z -= delta.y * worldPerPixel;
         // Soft town bounds so you can explore the whole map.
-        _panFocus.x = Mathf.Clamp(_panFocus.x, -280f, 280f);
-        _panFocus.z = Mathf.Clamp(_panFocus.z, -280f, 280f);
+        _panFocus.x = Mathf.Clamp(_panFocus.x, -1000f, 1450f);
+        _panFocus.z = Mathf.Clamp(_panFocus.z, -600f, 450f);
         SnapCamToPan();
     }
 
