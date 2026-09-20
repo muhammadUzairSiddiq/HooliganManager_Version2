@@ -71,6 +71,16 @@ public static class LandscapeUI
         t.enableWordWrapping = true;
         return t;
     }
+    public static void FitBoxed(TextMeshProUGUI t, float minSize = 10f)
+    {
+        if (!t) return;
+        t.enableWordWrapping = false;
+        t.textWrappingMode = TextWrappingModes.NoWrap;
+        t.overflowMode = TextOverflowModes.Ellipsis;
+        t.enableAutoSizing = true;
+        t.fontSizeMin = minSize;
+        t.raycastTarget = false;
+    }
     public static Button Button(string name, Transform p, string label, float x, float y, float w, float h, string style = "dark")
     {
         var i = ButtonImage(name, p, label, x, y, w, h, style);

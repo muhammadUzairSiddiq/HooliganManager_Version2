@@ -126,14 +126,18 @@ public sealed class CityOperationsSystem : MonoBehaviour
     public void AttachHud(RectTransform root)
     {
         if(frame||!root)return;frame=root;
-        boardButton=LandscapeUI.Button("CityOperations",frame,"OPERATIONS",488,22,150,50,"dark");
+        boardButton=LandscapeUI.Button("CityOperations",frame,"OPERATIONS",504,18,168,50,"dark");
         boardButton.onClick.AddListener(OpenBoard);
         var opIcon=LandscapeTheme.Current?.lootBat;
         if(opIcon)
         {
-            var icon=LandscapeUI.Image("Icon",boardButton.transform,9,15,20,20,opIcon,Color.white,true);icon.raycastTarget=false;
+            var icon=LandscapeUI.Image("Icon",boardButton.transform,8,15,20,20,opIcon,Color.white,true);icon.raycastTarget=false;
             var label=boardButton.transform.Find("Label")?.GetComponent<TextMeshProUGUI>();
-            if(label)LandscapeUI.Place(label.rectTransform,30,4,116,42);
+            if(label)
+            {
+                LandscapeUI.Place(label.rectTransform,30,6,132,38);
+                LandscapeUI.FitBoxed(label,11f);
+            }
         }
         // Use a dedicated overlay canvas. Gameplay contains several independently
         // sorted canvases (minimap, conversation UI), so a nested panel can be

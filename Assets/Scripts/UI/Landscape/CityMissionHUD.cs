@@ -8,8 +8,11 @@ public sealed class CityMissionHUD : MonoBehaviour
 {
     RectTransform frame, content;
     GameObject missionPanel;
-    TextMeshProUGUI resources, objectives, events, missionHeading, missionBriefing;
-    TextMeshProUGUI[] statusValues = new TextMeshProUGUI[5];
+    TextMeshProUGUI objectives, events, missionHeading, missionBriefing;
+    TextMeshProUGUI[] statusValues = new TextMeshProUGUI[9];
+    RectTransform statusStrip;
+    readonly RectTransform[] statusCells = new RectTransform[9];
+    float lastStatusWidth;
     Button captureButton, retreatButton, missionButton, talkButton, actionsButton;
     GameObject moveGo, attackGo, authoredRetreat;
     GameplayHudSideToggle sideToggle;
@@ -25,45 +28,48 @@ public sealed class CityMissionHUD : MonoBehaviour
         var hud = frame.Find("BattleHUD");
         if (hud)
         {
-            Place(hud, "TopBar", 10, 8, 1580, 126);
+            Place(hud, "TopBar", 8, 6, 1584, 128);
             Place(hud, "SquadRail", 16, 150, 286, 334);
             Place(hud, "SquadTitle", 30, 160, 258, 26);
             Place(hud, "MemberCount", 30, 190, 258, 22);
             Place(hud, "PortraitScroll", 24, 220, 268, 252);
 
             // Firm name — white so every HUD label stays readable on the dark bar.
-            Place(hud, "Heading", 24, 17, 310, 36);
+            Place(hud, "Heading", 20, 16, 340, 40);
             var heading = hud.Find("Heading")?.GetComponent<TextMeshProUGUI>();
             if (heading)
             {
                 heading.text = GameManager.Data?.FirmName.ToUpperInvariant() ?? "YOUR FIRM";
-                heading.fontSize = 29;
+                heading.fontSize = 28;
                 heading.color = Color.white;
                 heading.fontStyle = FontStyles.Bold;
+                LandscapeUI.FitBoxed(heading, 16f);
             }
 
             var squadTitle = hud.Find("SquadTitle")?.GetComponent<TextMeshProUGUI>();
             if (squadTitle) { squadTitle.text = "SQUAD"; squadTitle.fontSize = 18; squadTitle.color = Color.white; }
 
             // Restore classic cash / reputation.
-            Place(hud, "Cash", 1232, 18, 172, 32);
-            Place(hud, "Reputation", 1228, 52, 176, 22);
-            Place(hud, "Pause", 1410, 16, 168, 60);
+            Place(hud, "Cash", 1210, 16, 196, 36);
+            Place(hud, "Reputation", 1210, 52, 196, 24);
+            Place(hud, "Pause", 1414, 14, 172, 64);
             var cash = hud.Find("Cash")?.GetComponent<TextMeshProUGUI>();
             if (cash)
             {
                 cash.gameObject.SetActive(true);
                 cash.color = Color.white;
-                cash.fontSize = 26;
+                cash.fontSize = 24;
                 cash.alignment = TextAlignmentOptions.Right;
+                LandscapeUI.FitBoxed(cash, 16f);
             }
             var rep = hud.Find("Reputation")?.GetComponent<TextMeshProUGUI>();
             if (rep)
             {
                 rep.gameObject.SetActive(true);
                 rep.color = Color.white;
-                rep.fontSize = 16;
+                rep.fontSize = 15;
                 rep.alignment = TextAlignmentOptions.Right;
+                LandscapeUI.FitBoxed(rep, 11f);
             }
 
             foreach (var name in new[] { "Timer", "Round", "Controls" })
@@ -144,24 +150,55 @@ public sealed class CityMissionHUD : MonoBehaviour
 
     void BuildStatusStrip()
     {
-        var strip = LandscapeUI.Panel("StatusStrip", frame, 22, 75, 902, 34, false);
-        strip.color = Color.white;
-        string[] labels={"CREW","REPUTATION","POLICE HEAT","MISSION","INTEL"};
-        Color[] colors={LandscapeUI.Green,LandscapeUI.Gold,new Color(1f,.48f,.25f),new Color(.22f,.90f,.88f),new Color(.45f,.78f,1f)};
+        statusStrip = LandscapeUI.Panel("StatusStrip", frame, 16, 70, 1568, 52, false).rectTransform;
+        statusStrip.GetComponent<Image>().color = Color.white;
+        string[] labels={"CREW","REPUTATION","HEAT","MISSION","INTEL","SUPPLIES","TICKETS","SOCIAL","TAXI"};
+        Color[] colors={LandscapeUI.Green,LandscapeUI.Gold,new Color(1f,.48f,.25f),new Color(.22f,.90f,.88f),new Color(.45f,.78f,1f),new Color(.39f,.90f,1f),LandscapeUI.Gold,LandscapeUI.Green,new Color(.12f,1f,.55f)};
+        Sprite[] icons=StatusSprites();
         for(int i=0;i<labels.Length;i++)
         {
-            float x=8+i*178;
-            if(i>0)LandscapeUI.Image("Divider"+i,strip.transform,x-5,5,1,27,null,new Color(.22f,.72f,.75f,.32f));
-            if(statusIcons!=null&&statusIcons.Length>i)
+            var cell=LandscapeUI.Rect("Stat"+i,statusStrip,0,4,160,44);
+            statusCells[i]=cell;
+            cell.gameObject.AddComponent<RectMask2D>();
+            if(i>0)LandscapeUI.Image("Divider",cell,0,8,2,28,null,new Color(.22f,.72f,.75f,.38f));
+            if(icons!=null&&i<icons.Length&&icons[i])
             {
-                var icon=LandscapeUI.Image("Icon"+i,strip.transform,x+4,7,22,22,statusIcons[i],colors[i],true);icon.preserveAspect=true;
+                var icon=LandscapeUI.Image("Icon",cell,8,12,20,20,icons[i],colors[i],true);
+                icon.preserveAspect=true;
             }
-            LandscapeUI.Text("Label"+i,strip.transform,labels[i],x+32,3,138,13,10,LandscapeUI.Muted,true);
-            statusValues[i]=LandscapeUI.Text("Value"+i,strip.transform,"--",x+32,16,138,19,16,colors[i],true);
+            var label=LandscapeUI.Text("Label",cell,labels[i],32,4,120,16,11,LandscapeUI.Muted,true);
+            LandscapeUI.FitBoxed(label,9f);
+            statusValues[i]=LandscapeUI.Text("Value",cell,"--",32,22,120,20,16,colors[i],true);
+            LandscapeUI.FitBoxed(statusValues[i],11f);
         }
-        var resourceBand=LandscapeUI.Panel("ResourceBand",frame,22,112,902,22,false);
-        resourceBand.color=new Color(.02f,.06f,.08f,.96f);
-        resources=LandscapeUI.Text("LiveResources",resourceBand.transform,"",12,1,878,20,15,LandscapeUI.White,true,TextAlignmentOptions.Center);
+        LayoutStatusStrip(1568f);
+    }
+
+    Sprite[] StatusSprites()
+    {
+        var theme=LandscapeTheme.Current;
+        if(theme)return new[]{theme.crew,theme.star,theme.lootBattery,theme.shield,theme.medkit,theme.lootBat,theme.star,theme.crew,theme.energy};
+        LoadStatusIcons();
+        if(statusIcons==null||statusIcons.Length==0)return System.Array.Empty<Sprite>();
+        return new[]{statusIcons[0],statusIcons[1],statusIcons[2],statusIcons[3],statusIcons[4],statusIcons.Length>2?statusIcons[2]:null,statusIcons[1],statusIcons[0],statusIcons.Length>1?statusIcons[1]:null};
+    }
+
+    void LayoutStatusStrip(float width)
+    {
+        if(!statusStrip)return;
+        LandscapeUI.Place(statusStrip,16,70,width,52);
+        float col=width/statusCells.Length;
+        for(int i=0;i<statusCells.Length;i++)
+        {
+            if(!statusCells[i])continue;
+            LandscapeUI.Place(statusCells[i],i*col,4,col,44);
+            var label=statusCells[i].Find("Label") as RectTransform;
+            var value=statusCells[i].Find("Value") as RectTransform;
+            float textW=Mathf.Max(48f,col-40f);
+            if(label)LandscapeUI.Place(label,32,4,textW,16);
+            if(value)LandscapeUI.Place(value,32,22,textW,20);
+        }
+        lastStatusWidth=width;
     }
 
     void BuildTopNavigation(Transform hud)
@@ -170,37 +207,43 @@ public sealed class CityMissionHUD : MonoBehaviour
         {
             var home=hud.Find("../CityDistrict") as RectTransform;
             if(!home)home=frame.Find("CityDistrict") as RectTransform;
-            if(home){LandscapeUI.Place(home,350,22,130,50);AddIcon(home.GetComponent<Button>(),LandscapeTheme.Current?.shield);}
+            if(home){LandscapeUI.Place(home,368,18,128,50);FitNavButton(home.GetComponent<Button>(),LandscapeTheme.Current?.shield);}
         }
-        var mission=LandscapeUI.Button("TopMission",frame,"MISSION",646,22,150,50,"dark");
+        var leftover=frame.Find("TopSettings");
+        if(leftover)leftover.gameObject.SetActive(false);
+        var mission=LandscapeUI.Button("TopMission",frame,"MISSION",680,18,140,50,"dark");
         mission.onClick.AddListener(()=>{missionPanel.SetActive(true);RefreshMissions();});
-        var intel=LandscapeUI.Button("TopIntel",frame,"INTEL",804,22,120,50,"dark");
+        var intel=LandscapeUI.Button("TopIntel",frame,"INTEL",828,18,118,50,"dark");
         intel.onClick.AddListener(()=>CityGameplay.Instance?.ShowIntelReport());
-        var vehicles=LandscapeUI.Button("TopVehicles",frame,"VEHICLES",932,22,140,50,"dark");
+        var vehicles=LandscapeUI.Button("TopVehicles",frame,"VEHICLES",954,18,148,50,"dark");
         vehicles.onClick.AddListener(()=>CityActionSystem.Instance?.FocusNearestTaxi());
-        var settings=LandscapeUI.Button("TopSettings",frame,"SETTINGS",1080,22,140,50,"dark");
-        settings.onClick.AddListener(()=>CityGameplay.Instance?.ToggleCameraSettings());
-        AddIcon(mission,LandscapeTheme.Current?.star);
-        AddIcon(intel,LandscapeTheme.Current?.medkit);
-        AddIcon(vehicles,LandscapeTheme.Current?.energy);
-        AddIcon(settings,LandscapeTheme.Current?.settings);
+        FitNavButton(mission,LandscapeTheme.Current?.star);
+        FitNavButton(intel,LandscapeTheme.Current?.medkit);
+        FitNavButton(vehicles,LandscapeTheme.Current?.energy);
     }
 
-    static void AddIcon(Button button,Sprite sprite)
+    static void FitNavButton(Button button,Sprite sprite)
     {
-        if(!button||!sprite)return;
+        if(!button)return;
         var buttonRect=button.transform as RectTransform;
         float width=buttonRect?buttonRect.rect.width:130f;
         float height=buttonRect?buttonRect.rect.height:50f;
-        var image=LandscapeUI.Image("Icon",button.transform,9,(height-20f)*.5f,20,20,sprite,Color.white,true);
-        image.raycastTarget=false;
+        if(sprite)
+        {
+            var existing=button.transform.Find("Icon")?.GetComponent<Image>();
+            if(existing)existing.sprite=sprite;
+            else
+            {
+                var image=LandscapeUI.Image("Icon",button.transform,8,(height-20f)*.5f,20,20,sprite,Color.white,true);
+                image.raycastTarget=false;
+            }
+        }
         var label=button.transform.Find("Label")?.GetComponent<TextMeshProUGUI>();
         if(label)
         {
-            LandscapeUI.Place(label.rectTransform,30,4,Mathf.Max(50,width-34),height-8);
+            LandscapeUI.Place(label.rectTransform,sprite?30:8,6,Mathf.Max(48,width-(sprite?38:16)),height-12);
             label.color=Color.white;
-            label.fontSizeMin=13;
-            label.fontSize=Mathf.Max(label.fontSize,18f);
+            LandscapeUI.FitBoxed(label,11f);
         }
     }
 
@@ -260,9 +303,16 @@ public sealed class CityMissionHUD : MonoBehaviour
         if (r) LandscapeUI.Place(r, x, y, w, h);
     }
 
+    void LateUpdate()
+    {
+        if(!frame||!statusStrip)return;
+        float width=Mathf.Max(1568f,frame.rect.width-32f);
+        if(Mathf.Abs(width-lastStatusWidth)>1f)LayoutStatusStrip(width);
+    }
+
     void Update()
     {
-        if (!resources || Time.unscaledTime < nextRefresh) return;
+        if (statusValues[0] == null || Time.unscaledTime < nextRefresh) return;
         nextRefresh = Time.unscaledTime + .25f;
         var d = GameManager.Data;
         if (d == null) return;
@@ -271,9 +321,18 @@ public sealed class CityMissionHUD : MonoBehaviour
 
         var progress=CampaignMissions.Progress(d);var mission=CampaignMissions.Active(d);
         int activeCrew=BattleManager.instance?.PlayerAgents.Count(a=>a&&a.IsAlive)??d.RecruitedAgents?.Count(a=>a!=null&&a.IsAlive)??0;
-        string[] values={activeCrew.ToString(),d.Reputation.ToString(),$"{d.PoliceHeat}/10",$"{mission.number:00}  {progress.complete}/{progress.total}",$"{d.CityIntel}/10"};
+        string[] values={
+            activeCrew.ToString(),
+            d.Reputation.ToString(),
+            $"{d.PoliceHeat}/10",
+            $"{mission.number:00}  {progress.complete}/{progress.total}",
+            $"{d.CityIntel}/10",
+            d.CitySupplies.ToString(),
+            d.MatchTickets.ToString(),
+            d.SocialMomentum.ToString(),
+            "READY"
+        };
         for(int i=0;i<statusValues.Length;i++)if(statusValues[i])statusValues[i].text=values[i];
-        resources.text=$"SUPPLIES  <color=#65E5FF>{d.CitySupplies}</color>     TICKETS  <color=#FFD36A>{d.MatchTickets}</color>     SOCIAL  <color=#70F2A0>{d.SocialMomentum}</color>     TAXI  <color=#70F2A0>READY</color>";
         if(missionButton)
         {
             var label=missionButton.transform.Find("Label")?.GetComponent<TextMeshProUGUI>();
@@ -413,7 +472,7 @@ public sealed class CityMissionHUD : MonoBehaviour
         var button=LandscapeUI.Button("TopHudToggle",frame,"^",782,0,36,30,"dark");
         var toggle=button.gameObject.AddComponent<GameplayHudSideToggle>();toggle.label=button.GetComponentInChildren<TextMeshProUGUI>();
         toggle.shownGlyph="^";toggle.hiddenGlyph="v";toggle.root=frame;
-        toggle.targetNames=new[]{"TopBar","Heading","Cash","Reputation","StatusStrip","ResourceBand","LiveResources","CityDistrict","CityOperations","TopMission","TopIntel","TopVehicles","TopSettings"};
+        toggle.targetNames=new[]{"TopBar","Heading","Cash","Reputation","StatusStrip","CityDistrict","CityOperations","TopMission","TopIntel","TopVehicles"};
         if(toggle.label){toggle.label.fontSize=21;toggle.label.color=Color.white;}
         button.onClick.AddListener(toggle.Toggle);
     }
