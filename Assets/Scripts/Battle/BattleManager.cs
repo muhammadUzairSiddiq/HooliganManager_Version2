@@ -13,6 +13,7 @@ using UnityEngine.AI;
 /// </summary>
 public class BattleManager : MonoBehaviour
 {
+    public const int RivalFightHeatGain = 4;
     // ── Battle Mode ───────────────────────────────────────────────────────
     public enum BattleMode { RivalFight, PoliceRaid }
 
@@ -209,7 +210,8 @@ public class BattleManager : MonoBehaviour
         // Baseline rewards for the strategic free-roam session
         sessionMoneyEarned     = _battleReward;
         sessionReputationGained = 2; 
-        sessionHeatGained       = 2;
+        // A resolved rival fight adds one clear, predictable four-bar heat spike.
+        sessionHeatGained       = RivalFightHeatGain;
         sessionFansRecruited   = 0;
 
         StartCoroutine(StartGame());
@@ -220,8 +222,10 @@ public class BattleManager : MonoBehaviour
     {
         yield return StartCoroutine(mapController.SpawnMap(GetMapIdForSelectedTrip()));
         OnMapSpawnedIn?.Invoke();
+        _spawnGeometry = null;
         loadSpawnPoint();
         ApplyCityModeSpawnProfile();
+        ClearTallBlockersNearGameplayAnchors();
         if(gameObject.scene.name=="Gameplay") CityGameplay.EnsureExists();
 
         // Subtle, clean lighting + solid city materials (no post FX).
@@ -236,7 +240,15 @@ public class BattleManager : MonoBehaviour
         // that could fill the screen yellow/white when the camera pans into them.
         foreach (var mr in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
         {
-            if (mr != null && mr.gameObject.name == "ZoneVolume")
+            if (mr == null) continue;
+            string n = mr.gameObject.name;
+            if (n == "ZoneVolume" || n == "LowReplacementBuilding" || n == "Vendor Counter" || n == "Striped Awning"
+                || n == "Stadium Queue Rail" || n == "Matchday Approach Light" || n == "Banner Pole" || n == "Club Colour Flag"
+                || n == "Market Counter" || n == "Market Awning" || n == "Market Crate" || n == "Park Seat"
+                || n == "Community Table" || n == "Community Noticeboard" || n == "Transit Shelter" || n == "Queue Marker"
+                || n == "Travel Bag" || n == "Food Stall" || n == "Stall Canopy" || n == "Street Performer Stage"
+                || n == "Outdoor Pub Table" || n == "Pub Stool" || n == "Pub Activity Canopy"
+                || n == "Arrival Bollard" || n == "Arrival Cargo" || n == "Arrival Shelter")
                 Destroy(mr.gameObject);
         }
 
@@ -260,9 +272,8 @@ public class BattleManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Spawns recruitment centers that stay for the battle.
-    /// Level 1 → 1 center, Level 2 → 2, Level 3+ → 3.
-    /// Each center has matching civilian visuals for its recruit slots.
+    /// Extra A/B/C recruitment pads are disabled. City recruitment stays on the
+    /// single RECRUITMENT district location.
     /// </summary>
     private void SpawnRecruitAreas()
     {
@@ -273,73 +284,6 @@ public class BattleManager : MonoBehaviour
     {
         foreach (var old in FindObjectsByType<RecruitArea>(FindObjectsSortMode.None))
             if (old != null) Destroy(old.gameObject);
-
-        Vector3 playerPos = playerSpawnRoot != null ? playerSpawnRoot.position : Vector3.zero;
-        float minSep = Mathf.Max(22f, gangPatrolRadius * 3.2f);
-        var avoid = avoidCenters ?? new System.Collections.Generic.List<Vector3>();
-
-        foreach (var g in FindObjectsByType<GangArea>(FindObjectsSortMode.None))
-            if (g != null) avoid.Add(g.transform.position);
-
-        int level = LevelSystem.Instance != null ? LevelSystem.Instance.CurrentLevel : 1;
-        // Unlock centers gradually with level.
-        int centerCount = Mathf.Clamp(level, 1, 3);
-        // Slots per center: 2 early, 3 from level 3.
-        int maxPerCenter = level <= 2 ? 2 : 3;
-        int cost = 700 + Mathf.Max(0, level - 1) * 150;
-
-        string[] names =
-        {
-            "RECRUITMENT CENTER A",
-            "RECRUITMENT CENTER B",
-            "RECRUITMENT CENTER C"
-        };
-
-        Vector3[] preferred =
-        {
-            playerPos + new Vector3( 22f, 0f,  16f),
-            playerPos + new Vector3(-24f, 0f,  14f),
-            playerPos + new Vector3(  6f, 0f, -26f)
-        };
-
-        for (int i = 0; i < centerCount; i++)
-        {
-            Vector3 pos = preferred[i];
-            if (!TryFindRecruitSpot(preferred[i], playerPos, avoid, minSep, out pos))
-            {
-                bool found = false;
-                for (int attempt = 0; attempt < 50 && !found; attempt++)
-                {
-                    float ring = 14f + attempt * 2.5f;
-                    float ang = (i * 2.1f) + attempt * 0.7f;
-                    Vector3 guess = playerPos + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * ring;
-                    if (TryFindRecruitSpot(guess, playerPos, avoid, minSep, out pos))
-                        found = true;
-                }
-                if (!found && UnityEngine.AI.NavMesh.SamplePosition(preferred[i], out var fb, 30f, UnityEngine.AI.NavMesh.AllAreas))
-                    pos = fb.position;
-            }
-
-            avoid.Add(pos);
-            var go = new GameObject(names[i]);
-            var area = go.AddComponent<RecruitArea>();
-            area.Setup(pos, 6f, cost, names[i], maxPerCenter, centerIndex: i);
-            Debug.Log($"[BattleManager] {names[i]} at {pos} (slots {maxPerCenter}, centers {centerCount})");
-        }
-    }
-
-    private static bool TryFindRecruitSpot(
-        Vector3 guess, Vector3 playerPos,
-        System.Collections.Generic.List<Vector3> avoid, float minSep, out Vector3 pos)
-    {
-        pos = guess;
-        if (!UnityEngine.AI.NavMesh.SamplePosition(guess, out var hit, 14f, UnityEngine.AI.NavMesh.AllAreas))
-            return false;
-        if ((hit.position - playerPos).sqrMagnitude < 10f * 10f) return false;
-        foreach (var a in avoid)
-            if ((hit.position - a).sqrMagnitude < minSep * minSep) return false;
-        pos = hit.position;
-        return true;
     }
 
     private void SpawnAmbientControlPoints()
@@ -424,8 +368,8 @@ public class BattleManager : MonoBehaviour
         Vector3 playerTarget = CityGameplay.HomeMode ? new Vector3(120, 0, 90) : GetAwayPlayerSpawn(dest);
         Vector3 enemyTarget = CityGameplay.HomeMode ? new Vector3(195, 0, 60) : GetAwayEnemySpawn(dest);
 
-        playerSpawnRoot.position = FindReachableSpawn(playerTarget, playerSpawnRoot.position);
-        enemySpawnRoot.position = FindReachableSpawn(enemyTarget, enemySpawnRoot.position);
+        playerSpawnRoot.position = FindOpenReachableSpawn(GetAwaySpawnCandidates(dest, true, playerTarget), playerSpawnRoot.position);
+        enemySpawnRoot.position = FindOpenReachableSpawn(GetAwaySpawnCandidates(dest, false, enemyTarget), enemySpawnRoot.position);
 
         Vector3 facing = enemySpawnRoot.position - playerSpawnRoot.position;
         facing.y = 0f;
@@ -440,7 +384,7 @@ public class BattleManager : MonoBehaviour
         {
             Transform child = enemySpawnRoot.GetChild(i);
             Vector3 target = enemySpawnRoot.position + enemyOffsets[i % enemyOffsets.Length];
-            child.position = FindReachableSpawn(target, enemySpawnRoot.position);
+            child.position = FindOpenReachableSpawn(target, enemySpawnRoot.position);
             child.rotation = enemySpawnRoot.rotation;
         }
     }
@@ -452,7 +396,8 @@ public class BattleManager : MonoBehaviour
             "North End" => new Vector3(50, 0, 55),
             "Riverside" => new Vector3(118, 0, 218),
             "Old Town" => new Vector3(-130, 0, 88),
-            _ => new Vector3(210, 0, -132),
+            "East Docks" => new Vector3(120, 0, -168),
+            _ => new Vector3(120, 0, -168),
         };
     }
 
@@ -463,8 +408,35 @@ public class BattleManager : MonoBehaviour
             "North End" => new Vector3(88, 0, 116),
             "Riverside" => new Vector3(170, 0, 178),
             "Old Town" => new Vector3(-76, 0, 128),
-            _ => new Vector3(250, 0, -70),
+            "East Docks" => new Vector3(238, 0, -156),
+            _ => new Vector3(238, 0, -156),
         };
+    }
+
+    private static Vector3[] GetAwaySpawnCandidates(string destination, bool playerSide, Vector3 primary)
+    {
+        if (CityGameplay.HomeMode || destination != "East Docks")
+            return new[] { primary };
+
+        return playerSide
+            ? new[]
+            {
+                primary,
+                new Vector3(96, 0, -184),
+                new Vector3(132, 0, -208),
+                new Vector3(78, 0, -142),
+                new Vector3(154, 0, -170),
+                new Vector3(110, 0, -118)
+            }
+            : new[]
+            {
+                primary,
+                new Vector3(260, 0, -176),
+                new Vector3(224, 0, -204),
+                new Vector3(286, 0, -124),
+                new Vector3(212, 0, -122),
+                new Vector3(248, 0, -84)
+            };
     }
 
     private static Vector3[] GetAwayEnemyOffsets(string destination)
@@ -476,8 +448,62 @@ public class BattleManager : MonoBehaviour
             "North End" => new[] { new Vector3(0, 0, 0), new Vector3(34, 0, -12), new Vector3(-28, 0, 20), new Vector3(10, 0, 46), new Vector3(48, 0, 38) },
             "Riverside" => new[] { new Vector3(0, 0, 0), new Vector3(30, 0, 18), new Vector3(-24, 0, 26), new Vector3(42, 0, -28), new Vector3(-38, 0, -16) },
             "Old Town" => new[] { new Vector3(0, 0, 0), new Vector3(26, 0, 30), new Vector3(-32, 0, 12), new Vector3(16, 0, -42), new Vector3(-46, 0, -24) },
-            _ => new[] { new Vector3(0, 0, 0), new Vector3(36, 0, 10), new Vector3(-22, 0, 32), new Vector3(18, 0, -38), new Vector3(-46, 0, -12) },
+            _ => new[] { new Vector3(0, 0, 0), new Vector3(34, 0, 22), new Vector3(-30, 0, 30), new Vector3(22, 0, -34), new Vector3(-42, 0, -20) },
         };
+    }
+
+    private static Vector3 FindOpenReachableSpawn(Vector3 preferred, Vector3 fallback)
+    {
+        if (TryFindOpenNavPoint(preferred, fallback, out Vector3 open))
+            return open;
+        return FindReachableSpawn(preferred, fallback);
+    }
+
+    private static Vector3 FindOpenReachableSpawn(Vector3[] preferredCandidates, Vector3 fallback)
+    {
+        if (preferredCandidates != null)
+        {
+            foreach (Vector3 candidate in preferredCandidates)
+                if (TryFindOpenNavPoint(candidate, fallback, out Vector3 open))
+                    return open;
+        }
+        return preferredCandidates != null && preferredCandidates.Length > 0
+            ? FindOpenReachableSpawn(preferredCandidates[0], fallback)
+            : FindReachableSpawn(fallback, fallback);
+    }
+
+    private static bool TryFindOpenNavPoint(Vector3 preferred, Vector3 origin, out Vector3 result)
+    {
+        result = preferred;
+        var path = new NavMeshPath();
+
+        bool Accept(Vector3 sample, out Vector3 accepted)
+        {
+            accepted = sample;
+            if (!NavMesh.SamplePosition(sample, out var hit, 18f, NavMesh.AllAreas)) return false;
+            if (!IsOpenGameplayPoint(hit.position, 8f)) return false;
+
+            if (NavMesh.SamplePosition(origin, out var originHit, 24f, NavMesh.AllAreas) &&
+                (!NavMesh.CalculatePath(originHit.position, hit.position, NavMesh.AllAreas, path) ||
+                path.status != NavMeshPathStatus.PathComplete))
+                return false;
+
+            accepted = hit.position;
+            return true;
+        }
+
+        if (Accept(preferred, out result)) return true;
+        for (int ring = 1; ring <= 18; ring++)
+        {
+            float radius = ring * 9f;
+            for (int i = 0; i < 24; i++)
+            {
+                float angle = i * Mathf.PI * 2f / 24f;
+                Vector3 sample = preferred + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
+                if (Accept(sample, out result)) return true;
+            }
+        }
+        return false;
     }
 
     private static Vector3 FindReachableSpawn(Vector3 preferred, Vector3 fallback)
@@ -487,6 +513,76 @@ public class BattleManager : MonoBehaviour
         if (NavMesh.SamplePosition(fallback, out hit, 24f, NavMesh.AllAreas))
             return hit.position;
         return preferred;
+    }
+
+    private void ClearTallBlockersNearGameplayAnchors()
+    {
+        var anchors = new List<Vector3>();
+        if (playerSpawnRoot != null) anchors.Add(playerSpawnRoot.position);
+        if (enemySpawnRoot != null)
+        {
+            anchors.Add(enemySpawnRoot.position);
+            for (int i = 0; i < enemySpawnRoot.childCount; i++)
+                anchors.Add(enemySpawnRoot.GetChild(i).position);
+        }
+
+        if (anchors.Count == 0) return;
+        foreach (var mr in FindObjectsByType<MeshRenderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+        {
+            if (!IsGameplayBlocker(mr)) continue;
+            foreach (Vector3 anchor in anchors)
+            {
+                if (HorizontalDistanceToBounds(mr.bounds, anchor) > 18f) continue;
+                mr.enabled = false;
+                foreach (var col in mr.GetComponentsInChildren<Collider>())
+                    if (col != null) col.enabled = false;
+                break;
+            }
+        }
+    }
+
+    private static Renderer[] _spawnGeometry;
+    private static bool IsOpenGameplayPoint(Vector3 point, float clearRadius)
+    {
+        if (Physics.Raycast(point + Vector3.up * 1.2f, Vector3.up, out var overhead, 80f, ~0, QueryTriggerInteraction.Ignore))
+        {
+            string n = overhead.transform.name.ToLowerInvariant();
+            if (!n.Contains("agent") && !n.Contains("zone"))
+                return false;
+        }
+
+        if (_spawnGeometry == null) _spawnGeometry = FindObjectsByType<Renderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        foreach (var renderer in _spawnGeometry)
+        {
+            if (!IsGameplayBlocker(renderer)) continue;
+            if (HorizontalDistanceToBounds(renderer.bounds, point) <= clearRadius)
+                return false;
+        }
+        return true;
+    }
+
+    private static bool IsGameplayBlocker(Renderer renderer)
+    {
+        if (renderer == null || renderer is SkinnedMeshRenderer) return false;
+        var go = renderer.gameObject;
+        if (go == null || !go.activeInHierarchy) return false;
+        string n = go.name.ToLowerInvariant();
+        if (n.Contains("road") || n.Contains("street") || n.Contains("ground") ||
+            n.Contains("floor") || n.Contains("pavement") || n.Contains("sidewalk") ||
+            n.Contains("grass") || n.Contains("water") || n.Contains("pitch") ||
+            n.Contains("court") || n.Contains("zone") || n.Contains("agent"))
+            return false;
+
+        Bounds b = renderer.bounds;
+        float horizontal = Mathf.Max(b.size.x, b.size.z);
+        return b.size.y >= 7f && horizontal >= 5f;
+    }
+
+    private static float HorizontalDistanceToBounds(Bounds bounds, Vector3 point)
+    {
+        float x = Mathf.Max(bounds.min.x - point.x, 0f, point.x - bounds.max.x);
+        float z = Mathf.Max(bounds.min.z - point.z, 0f, point.z - bounds.max.z);
+        return Mathf.Sqrt(x * x + z * z);
     }
 
     // ── Police Raid setup coroutine ───────────────────────────────────────
@@ -758,7 +854,7 @@ public class BattleManager : MonoBehaviour
             if (spawnIdx >= maxPlayerAgents) break;
 
             Vector3 pos = GetSpawnPosition(playerSpawnRoot, spawnIdx);
-            if (NavMesh.SamplePosition(pos,out var spawnHit,5f,NavMesh.AllAreas))pos=spawnHit.position;
+            pos = FindOpenReachableSpawn(pos, playerSpawnRoot.position);
             var go      = Instantiate(playerAgentPrefab, pos, Quaternion.identity);
             var ac      = go.GetComponent<AgentController>();
 
@@ -766,7 +862,10 @@ public class BattleManager : MonoBehaviour
                 ? retreatPoint.position
                 : pos - Vector3.right * 3f;
 
-            ac?.Initialise(data, retreat);
+            CharacterPortraitRegistry playerVisuals = GameManager.IsPolicePlayer
+                ? PoliceManager.instance?.policeRegistry?.officerTypes
+                : null;
+            ac?.Initialise(data, retreat, playerVisuals);
 
             ac.transform.forward = playerSpawnRoot.forward;
 
@@ -882,8 +981,8 @@ public class BattleManager : MonoBehaviour
     {
         LevelSystem.EnsureExists();
         int gangsWanted = LevelSystem.Instance != null ? LevelSystem.Instance.GangsRequired : 2;
-        float hpMul = LevelSystem.Instance != null ? LevelSystem.Instance.EnemyHealthMultiplier : 0.30f;
-        float dmgMul = LevelSystem.Instance != null ? LevelSystem.Instance.EnemyDamageMultiplier : 0.35f;
+        float hpMul = LevelSystem.Instance != null ? LevelSystem.Instance.EnemyHealthMultiplier : .85f;
+        float dmgMul = LevelSystem.Instance != null ? LevelSystem.Instance.EnemyDamageMultiplier : .75f;
         SpawnRivalAgentsInternal(gangsWanted, hpMul, dmgMul, startNodeOffset: 0);
     }
 
@@ -1022,6 +1121,7 @@ public class BattleManager : MonoBehaviour
             gangArea.Setup(gangName, center, gangPatrolRadius, gangColor);
         }
 
+        CityZoneClearance.Resolve();
         // Recruitment Center after gangs so it can avoid their turf.
         SpawnRecruitAreas(usedCenters);
     }
@@ -1048,6 +1148,7 @@ public class BattleManager : MonoBehaviour
             if ((p - playerPos).sqrMagnitude < playerSepSqr) return false;
             foreach (var u in used)
                 if ((p - u).sqrMagnitude < minSepSqr) return false;
+            if (CityZoneClearance.OverlapsExisting(p, gangPatrolRadius)) return false;
             return true;
         }
 
@@ -1063,6 +1164,7 @@ public class BattleManager : MonoBehaviour
                 if (UnityEngine.AI.NavMesh.SamplePosition(p, out var hit, 10f, UnityEngine.AI.NavMesh.AllAreas))
                     p = hit.position;
                 if (!FarEnough(p)) continue;
+                if (!IsOpenGameplayPoint(p, 9f)) continue;
                 center = p;
                 facing = node.forward;
                 return true;
@@ -1078,6 +1180,7 @@ public class BattleManager : MonoBehaviour
             if (!UnityEngine.AI.NavMesh.SamplePosition(guess, out var hit, 14f, UnityEngine.AI.NavMesh.AllAreas))
                 continue;
             if (!FarEnough(hit.position)) continue;
+            if (!IsOpenGameplayPoint(hit.position, 9f)) continue;
             center = hit.position;
             facing = (playerPos - center).normalized;
             facing.y = 0f;
@@ -1264,14 +1367,16 @@ public class BattleManager : MonoBehaviour
 
     private Vector3 GetSpawnPosition(Transform root, int index)
     {
-        if (root != null && index < root.childCount)
-            return root.GetChild(index).position;
-
-        // Fallback grid if not enough spawn points defined in Inspector
-        float x = (index % 5) * 1.0f;
-        float z = (index / 5) * 1.0f;
+        // Use a consistent roomy grid instead of legacy authored points, which
+        // were close enough for unit rings and tap targets to overlap.
+        const float spacing = 3.2f;
+        float x = ((index % 4) - 1.5f) * spacing;
+        float z = (index / 4) * spacing;
         Vector3 basePos = root != null ? root.position : Vector3.zero;
-        return basePos + new Vector3(x, 0, z);
+        Vector3 right = root != null ? root.right : Vector3.right;
+        Vector3 forward = root != null ? root.forward : Vector3.forward;
+        right.y = 0f; forward.y = 0f;
+        return basePos + right.normalized * x + forward.normalized * z;
     }
 
     // ── Public helpers (called by AgentController / EnemyController) ──────
@@ -1279,6 +1384,9 @@ public class BattleManager : MonoBehaviour
     public void OnAgentDied(AgentController agent)
     {
         _playerAgentsKilled++;
+        GameManager.Save();
+        GameAudio.Play("injury");
+        InjuryNotifications.Report(agent.Data);
         BroadcastCounts();
         // Wipe detection is handled inside RunRound's per-frame check.
         // Do NOT set BattleActive = false here; doing so would bypass _roundEndedByWipe.
@@ -1464,6 +1572,22 @@ public class BattleManager : MonoBehaviour
     /// Spawns a new player agent at runtime and adds them to the active player list.
     /// Also saves the new agent to the PlayerData roster so they stay in the player's gang.
     /// </summary>
+    public void RestoreRecoveredAgent(AgentData data)
+    {
+        var existing = _playerAgents.Find(a => a && a.Data != null && data != null &&
+            (a.Data == data || a.Data.AgentId == data.AgentId));
+        if (existing) { existing.RestoreFromData(data); BroadcastCounts(); return; }
+        if (_playerAgents.Count(a => a && a.IsAlive) >= maxPlayerAgents || !playerAgentPrefab) return;
+        Vector3 center = playerSpawnRoot ? playerSpawnRoot.position : Vector3.zero;
+        Vector3 position = FindOpenReachableSpawn(center + Vector3.right * _playerAgents.Count, center);
+        position = FindOpenReachableSpawn(position, playerSpawnRoot ? playerSpawnRoot.position : position);
+        var go = Instantiate(playerAgentPrefab, position, Quaternion.identity);
+        var agent = go.GetComponent<AgentController>();
+        if (!agent) { Destroy(go); return; }
+        agent.Initialise(data, retreatPoint ? retreatPoint.position : center);
+        agent.SetCinematicIdle(false); _playerAgents.Add(agent); BroadcastCounts();
+    }
+
     public AgentController SpawnRecruitedAgentAt(Vector3 position, string name)
     {
         if (_playerAgents.Count(a=>a && a.IsAlive) >= maxPlayerAgents)
@@ -1481,13 +1605,14 @@ public class BattleManager : MonoBehaviour
         roster?.Add(data);
         if (GameData.instance?.PlayerData != null)
         {
-            GameData.instance.PlayerData.Fans = Mathf.Max(
-                GameData.instance.PlayerData.Fans,
-                roster != null ? roster.Count : 1);
+            if (!GameData.instance.PlayerData.DeploymentSelectionCustomized)
+                GameData.instance.AddAgentToAwaySelection(data, maxPlayerAgents);
+            GameData.instance.SyncFanCountWithAgents();
             GameData.instance.SaveData();
         }
 
         // 2. Instantiate 3D agent GameObject
+        position = FindOpenReachableSpawn(position, playerSpawnRoot ? playerSpawnRoot.position : position);
         var go = Instantiate(playerAgentPrefab, position, Quaternion.identity);
         var ac = go.GetComponent<AgentController>();
 
@@ -1602,7 +1727,7 @@ public class BattleManager : MonoBehaviour
         }
 
         Debug.Log($"[BattleManager] AttackGang '{gangName}': {gangMembers.Count} hostiles, {_playerAgents.Count} players ordered in.");
-        BattleUIController.instance?.ShowAlert($"FIGHTING {gangName.ToUpper()}!", 3f);
+        BattleUIController.instance?.ShowAlert($"FIGHTING <color=#FF6B4A>{gangName.ToUpper()}</color>", 2.4f);
     }
 
     public void RecruitGang(string gangName, bool success)

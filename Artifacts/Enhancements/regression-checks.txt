@@ -1,0 +1,27 @@
+PASS Cleared PlayerPrefs leaves no saved campaign
+PASS Explicit save creates a campaign
+PASS Stable roster identity survives save/load
+PASS Downed members remain in saved roster
+PASS Recruitment usage persists
+PASS Captured territory persists
+PASS Upgrade purchase limit persists
+PASS Destination dictionary survives JSON serialization
+PASS Police heat clamps consistently to 0-10
+PASS Fan count follows living roster
+PASS Default away deployment includes all living members
+PASS Custom away deployment is preserved
+PASS Corrupt save fails safely
+PASS Fresh campaign has unused recruitment slots
+PASS Shared character scale is 1.5
+PASS Impact timing and fight framing constraints
+PASS Audio present: click
+PASS Audio present: popup
+PASS Audio present: impact
+PASS Audio present: capture
+PASS Audio present: recovery
+PASS Audio present: injury
+PASS Audio present: loading
+PASS Audio present: move
+PASS Audio present: menu_music
+PASS Audio present: gameplay_music
+PASS Editable tuning asset ships in Resources

@@ -1,2 +1,1 @@
-System.InvalidOperationException: Android build did not succeed.
-  at LandscapeEditorBridge.Tick () [0x002a9] in D:\Holligan Manager Version 2\HooliganManager_Version2\Assets\Scripts\Editor\Landscape\LandscapeEditorBridge.cs:42 
+2026-09-19T19:51:19 OK stop

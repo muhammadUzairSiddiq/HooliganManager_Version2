@@ -118,6 +118,7 @@ public class PoliceManager : MonoBehaviour
     public void SpawnPolice()
     {
         Debug.LogWarning($"[PoliceManager] SpawnPolice started");
+        if (GameManager.IsPolicePlayer) return;
         if (policePrefab == null)
         {
             Debug.LogWarning("PoliceManager: No police prefab assigned! Please assign the police character prefab.");

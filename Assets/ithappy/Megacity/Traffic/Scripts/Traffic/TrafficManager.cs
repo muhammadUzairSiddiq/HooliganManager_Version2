@@ -71,7 +71,7 @@ namespace ITHappy
 
         private void Start()
         {
-            if (m_Compute == null)
+            if (m_Compute == null || !SystemInfo.supportsComputeShaders || !SystemInfo.supportsAsyncGPUReadback)
             {
                 m_IsValid = false;
                 return;
@@ -93,6 +93,7 @@ namespace ITHappy
             SetUpCompute();
 
             m_IsValid = true;
+            m_MovedTime = Time.time;
             Move();
         }
 

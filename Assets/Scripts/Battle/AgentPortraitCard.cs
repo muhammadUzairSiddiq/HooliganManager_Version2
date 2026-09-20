@@ -111,7 +111,10 @@ public class AgentPortraitCard : MonoBehaviour
 
         // ── Name label ────────────────────────────────────────────────────
         if (nameLabel != null && agent.Data != null)
-            nameLabel.text = agent.Data.AgentName.ToUpper();
+        {
+            agent.Data.EnsureManagementProfile();
+            nameLabel.text = agent.Data.AgentName.ToUpper()+" · "+agent.Data.ManagementRole;
+        }
 
         // ── Initial HP ────────────────────────────────────────────────────
         if (agent.Data != null)
@@ -143,7 +146,9 @@ public class AgentPortraitCard : MonoBehaviour
         }
 
         if (hpLabel != null)
-            hpLabel.text = $"{Mathf.CeilToInt(current)} / {Mathf.CeilToInt(max)}";
+            hpLabel.text = _agent?.Data!=null
+                ? $"HP {Mathf.CeilToInt(current)}/{Mathf.CeilToInt(max)} · STA {Mathf.CeilToInt(_agent.Data.Stamina)}"
+                : $"HP {Mathf.CeilToInt(current)}/{Mathf.CeilToInt(max)}";
 
         _isPulsing = ratio <= lowHpThreshold && ratio > 0f;
     }

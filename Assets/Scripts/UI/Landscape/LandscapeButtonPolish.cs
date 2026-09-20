@@ -74,6 +74,14 @@ public sealed class LandscapeButtonPolish : MonoBehaviour, IPointerEnterHandler,
 
     public void OnPointerEnter(PointerEventData eventData) { if (selectable == null || selectable.IsInteractable()) hover = 1f; }
     public void OnPointerExit(PointerEventData eventData) { hover = selected ? .55f : 0; }
-    public void OnPointerDown(PointerEventData eventData) { if (selectable == null || selectable.IsInteractable()) press = 1f; }
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        if (selectable == null || selectable.IsInteractable())
+        {
+            press = 1f;
+            GameAudio.Play("click");
+        }
+        AgentSelectionManager.ConsumeUiPointer();
+    }
     public void OnPointerUp(PointerEventData eventData) { press = 0; }
 }

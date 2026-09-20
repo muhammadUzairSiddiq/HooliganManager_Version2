@@ -26,9 +26,106 @@ public static class LandscapeEditorBridge
                     .Where(c=>c && c.gameObject.scene.IsValid()).Select(c=>c.GetType().Name+" @ "+PathOf(c.transform));
                 File.WriteAllLines(OutputPath,lines); return;
             }
-            if (command=="city-build") CityGameplayBuilder.Build();
+            if (command=="enhancement-configure") EnhancementChecks.Configure();
+            else if (command=="enhancement-play") EnhancementPlaytest.Begin();
+            else if (command=="enhancement-checks") EnhancementChecks.Run();
+            else if (command=="enhancement-build") EnhancementChecks.Build();
+            else if (command=="refresh") AssetDatabase.Refresh();
+            else if (command=="refresh-theme") { AssetDatabase.Refresh(); LandscapeThemeImporter.Import(); }
+            else if (command=="city-build") CityGameplayBuilder.Build();
             else if(command=="milestone-checks") MilestoneChecks.Run();
+            else if(command=="milestone4-playtest")
+            {
+                if(!EditorApplication.isPlaying)throw new InvalidOperationException("Enter play mode first.");
+                var actions=UnityEngine.Object.FindFirstObjectByType<CityActionSystem>();
+                if(!actions)throw new InvalidOperationException("City action system is unavailable.");
+                actions.BeginAutomatedPlaytest("Artifacts/CityQA/milestone4-interactive-playtest.txt");
+            }
+            else if(command=="npc-preview")
+            {
+                if(!EditorApplication.isPlaying)throw new InvalidOperationException("Enter play mode first.");
+                var agent=BattleManager.instance?.PlayerAgents.FirstOrDefault(a=>a&&a.IsAlive);
+                var npc=UnityEngine.Object.FindObjectsByType<SocialNpc>(FindObjectsSortMode.None).FirstOrDefault(n=>n&&!n.JoinedCrew);
+                if(!agent||!npc)throw new InvalidOperationException("A living crew member and pedestrian are required.");
+                Vector3 target=agent.transform.position+Vector3.right*3f;
+                if(UnityEngine.AI.NavMesh.SamplePosition(target,out var hit,5f,UnityEngine.AI.NavMesh.AllAreas))
+                {
+                    var nav=npc.GetComponent<UnityEngine.AI.NavMeshAgent>();
+                    if(nav&&nav.isOnNavMesh)nav.Warp(hit.position);else npc.transform.position=hit.position;
+                }
+                npc.Talk();
+                if(!NpcConversationUI.Instance||!NpcConversationUI.Instance.IsConversationOpen)throw new InvalidOperationException("Conversation panel did not open.");
+            }
             else if(command=="service-checks") CityServiceChecks.Run();
+            else if(command=="stadium-preview")
+            {
+                var city=UnityEngine.Object.FindFirstObjectByType<CityGameplay>();
+                if(!city || city.Locations==null || city.Locations.Length<=5)throw new InvalidOperationException("Live home stadium is unavailable.");
+                if(GamePopup.AnyOpen)GamePopup.Instance.Hide();
+                CameraPanTouchOnly.Instance?.FocusOn(city.Locations[5]);
+            }
+            else if(command=="operations-preview")
+            {
+                if(!EditorApplication.isPlaying)throw new InvalidOperationException("Enter play mode first.");
+                if(GamePopup.AnyOpen)GamePopup.Instance.Hide();
+                var operations=UnityEngine.Object.FindFirstObjectByType<CityOperationsSystem>();
+                if(!operations)throw new InvalidOperationException("City operations are unavailable.");
+                operations.OpenBoard();
+                if(!operations.IsBoardOpen)throw new InvalidOperationException("City operations board did not open.");
+            }
+            else if(command=="matchday-preview")
+            {
+                if(!EditorApplication.isPlaying)throw new InvalidOperationException("Enter play mode first.");
+                CityOperationsSystem.Instance?.CloseBoard();
+                var matchday=UnityEngine.Object.FindFirstObjectByType<StadiumMatchdayActivity>();
+                if(!matchday)throw new InvalidOperationException("Home matchday activity is unavailable.");
+                CameraPanTouchOnly.Instance?.FocusOn(matchday.transform.position);
+                matchday.OpenBriefing();
+            }
+            else if(command=="operations-debug")
+            {
+                var operations=UnityEngine.Object.FindFirstObjectByType<CityOperationsSystem>();
+                if(!operations)throw new InvalidOperationException("City operations are unavailable.");
+                var lines=operations.GetComponentsInChildren<Transform>(true).Select(t=>
+                {
+                    var rt=t as RectTransform;var canvas=t.GetComponent<Canvas>();var graphic=t.GetComponent<UnityEngine.UI.Graphic>();
+                    return PathOf(t)+" | active="+t.gameObject.activeInHierarchy+
+                        (rt?" rect="+rt.rect+" pos="+rt.anchoredPosition+" scale="+rt.lossyScale:"")+
+                        (canvas?" canvas="+canvas.renderMode+" order="+canvas.sortingOrder+" enabled="+canvas.enabled:"")+
+                        (graphic?" color="+graphic.color+" enabled="+graphic.enabled:"");
+                });
+                File.WriteAllLines(OutputPath,lines);return;
+            }
+            else if(command=="operations-playtest")
+            {
+                if(!EditorApplication.isPlaying)throw new InvalidOperationException("Enter play mode first.");
+                var operations=UnityEngine.Object.FindFirstObjectByType<CityOperationsSystem>();
+                if(!operations)throw new InvalidOperationException("City operations are unavailable.");
+                operations.CloseBoard();
+                operations.BeginAutomatedPlaytest("Artifacts/CityQA/city-operations-playtest.txt");
+            }
+            else if(command.StartsWith("activity-preview:"))
+            {
+                if(!EditorApplication.isPlaying)throw new InvalidOperationException("Enter play mode first.");
+                string activityName=command.Substring("activity-preview:".Length);
+                var activity=UnityEngine.Object.FindObjectsByType<CityLifeActivity>(FindObjectsSortMode.None)
+                    .FirstOrDefault(a=>a.ActivityType.IndexOf(activityName,StringComparison.OrdinalIgnoreCase)>=0);
+                if(!activity)throw new InvalidOperationException("Social activity not found: "+activityName);
+                CameraPanTouchOnly.Instance?.FocusOn(activity.transform.position);
+            }
+            else if(command=="away-preview")
+            {
+                if(!EditorApplication.isPlaying)throw new InvalidOperationException("Enter play mode first.");
+                CityGameplay.HomeMode=false;
+                if(GameManager.Data!=null)GameManager.Data.LastSelectedDestination="East Docks";
+                UnityEngine.SceneManagement.SceneManager.LoadScene("Gameplay");
+            }
+            else if(command=="home-preview")
+            {
+                if(!EditorApplication.isPlaying)throw new InvalidOperationException("Enter play mode first.");
+                CityGameplay.HomeMode=true;
+                UnityEngine.SceneManagement.SceneManager.LoadScene("Gameplay");
+            }
             else if(command=="android-review-build")
             {
                 if(EditorApplication.isPlaying)throw new InvalidOperationException("Stop play mode before building.");
@@ -36,7 +133,7 @@ public static class LandscapeEditorBridge
                 File.WriteAllText("Artifacts/Builds/android-build.txt","BUILDING "+DateTime.Now.ToString("s"));
                 var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                     scenes=EditorBuildSettings.scenes.Where(s=>s.enabled).Select(s=>s.path).ToArray(),
-                    locationPathName="Artifacts/Builds/Hooligan-Milestones-1-2-Review.apk",target=BuildTarget.Android,options=BuildOptions.None
+                    locationPathName="Artifacts/Builds/Hooligan-Milestone-3-Campaign-Review.apk",target=BuildTarget.Android,options=BuildOptions.None
                 });
                 File.WriteAllText("Artifacts/Builds/android-build.txt",report.summary.result+"\nErrors: "+report.summary.totalErrors+"\nWarnings: "+report.summary.totalWarnings+"\nSize: "+report.summary.totalSize+"\nDuration: "+report.summary.totalTime);
                 if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)throw new InvalidOperationException("Android build did not succeed.");

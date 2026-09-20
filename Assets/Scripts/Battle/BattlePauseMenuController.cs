@@ -99,18 +99,13 @@ public class BattlePauseMenuController : MonoBehaviour
         // Ensure time is running again before loading a new scene
         Time.timeScale = 1f;
 
-        // Trigger matchday end so all strategy systems fire (heat cool, morale,
-        // rival simulation, ranking, advisor tips) even on a retreat.
-        GameData.instance?.EndMatchDay();
-
-        // Use GameManager to return to the dashboard cleanly
+        // Aborting is navigation, not a completed matchday. Persist the current
+        // session, then always return to the actual menu from home or away play.
+        BattleManager.instance?.PersistBattleProgress();
         if (GameManager.instance != null)
-            GameManager.instance.ReturnToDashboard();
+            GameManager.instance.OnReturnToMainMenu();
         else
-        {
-            // Fallback — still use the faded loading transition.
-            GameManager.LoadScene(GameManager.SCENE_DASHBOARD);
-        }
+            GameManager.LoadScene(GameManager.SCENE_MAIN_MENU);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

@@ -38,6 +38,9 @@ public class GameData : MonoBehaviour
             Debug.Log("local data found");
             PlayerData = Player;
 
+            if (MigrateDisabledPoliceCampaign())
+                SaveData();
+
             // Ensure new fields are initialised for existing saves
             if (PlayerData.DestinationVisitCounts == null)
                 PlayerData.DestinationVisitCounts = new SerializableDictionary<string, int>();
@@ -68,14 +71,45 @@ public class GameData : MonoBehaviour
         {
             Debug.Log("No local data found. So creating new data");
             NewGamePlayerData();
-            SaveData();
         }
 
-        // Ensure Fans count always reflects alive agents on load
-        SyncFanCountWithAgents();
+        NormalizeCampaignData(save: Player != null);
     }
 
-    // ── New Game ──────────────────────────────────────────────────────────
+    private bool MigrateDisabledPoliceCampaign()
+    {
+        if (PlayerData == null) return false;
+        bool isPoliceSave =
+            string.Equals(PlayerData.PlayerFaction, "Police", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(PlayerData.ClubName, "City Police", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(PlayerData.FirmName, "CITY POLICE", StringComparison.OrdinalIgnoreCase);
+        if (!isPoliceSave) return false;
+
+        PlayerData.PlayerFaction = "Firm";
+        PlayerData.ClubName = "North City FC";
+        PlayerData.ClubShortName = "NCFC";
+        PlayerData.PrimaryColor = "#D71920";
+        PlayerData.SecondaryColor = "#FFFFFF";
+        PlayerData.FirmName = "North City Crew";
+        PlayerData.RivalClubName = "East Town FC";
+
+        if (PlayerData.RecruitedAgents != null)
+        {
+            for (int i = 0; i < PlayerData.RecruitedAgents.Count; i++)
+            {
+                var agent = PlayerData.RecruitedAgents[i];
+                if (agent == null) continue;
+                if (string.IsNullOrEmpty(agent.AgentName) ||
+                    agent.AgentName.StartsWith("Officer", StringComparison.OrdinalIgnoreCase))
+                    agent.AgentName = $"Member {i + 1:00}";
+            }
+        }
+
+        AddEventLog("Police side is scheduled for Milestone 3. Save migrated back to the firm campaign.");
+        return true;
+    }
+
+    // â”€â”€ New Game â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Resets to chosen club stats, generates starting agent roster, and saves.
@@ -92,6 +126,8 @@ public class GameData : MonoBehaviour
         PlayerData.SecondaryColor = secondaryColor;
         PlayerData.FirmName       = firmName;
         PlayerData.RivalClubName  = rivalClubName;
+        // Default keeps old entry points and existing campaign creation compatible.
+        PlayerData.PlayerFaction  = "Firm";
 
         PlayerData.Fans       = fans;
         PlayerData.Strength   = strength;
@@ -118,6 +154,14 @@ public class GameData : MonoBehaviour
         PlayerData.PoliceWatchlisted = false;
         PlayerData.DestinationVisitCounts = new SerializableDictionary<string, int>();
         PlayerData.CurrentLevel = 1;
+        PlayerData.BattleSessionActive = false;
+        PlayerData.BattleStartAgentIds = new List<string>();
+        PlayerData.BattleRecruitSlotsUsed = new int[3];
+        PlayerData.CityCapturedZones = new List<string>();
+        PlayerData.HomeDefenceCompleted = false;
+        PlayerData.HomeTrainingLevel = 0;
+        PlayerData.PowerPackagesPurchased = 0;
+        PlayerData.DeploymentSelectionCustomized = false;
 
         // Initialize rival bots
         InitializeRivalBots();
@@ -133,7 +177,7 @@ public class GameData : MonoBehaviour
         SaveData();
     }
 
-    // ── Agent Generation ──────────────────────────────────────────────────
+    // â”€â”€ Agent Generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static readonly string[] AgentFirstNames =
     {
@@ -160,12 +204,14 @@ public class GameData : MonoBehaviour
             float strength = UnityEngine.Random.Range(7f, 14f);
             float speed    = UnityEngine.Random.Range(2.0f, 3.2f);
 
-            PlayerData.RecruitedAgents.Add(
-                new AgentData(name, portrait, hp, strength, speed));
+            var agent = new AgentData(name, portrait, hp, strength, speed);
+            PlayerData.RecruitedAgents.Add(agent);
+            if (!PlayerData.DeploymentSelectionCustomized)
+                AddAgentToAwaySelection(agent);
         }
     }
 
-    // ── Matchday End ──────────────────────────────────────────────────────
+    // â”€â”€ Matchday End â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Advances matchday: applies all pending effects, runs all strategy systems, saves.
@@ -176,50 +222,50 @@ public class GameData : MonoBehaviour
         var d = PlayerData;
         var events = new List<string>(d.RecentEvents ?? new string[0]);
 
-        // ── 1. Apply pending fan gains → generate AgentData ───────────────
+        // â”€â”€ 1. Apply pending fan gains â†’ generate AgentData â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (d.PendingFansGain > 0)
         {
             GenerateAgentsForFans(d.PendingFansGain);
             d.Fans += d.PendingFansGain;
-            events.Insert(0, $"🟢 +{d.PendingFansGain} new lads joined the firm.");
+            events.Insert(0, $"ðŸŸ¢ +{d.PendingFansGain} new lads joined the firm.");
             d.PendingFansGain = 0;
         }
 
-        // ── 2. Apply pending money ────────────────────────────────────────
+        // â”€â”€ 2. Apply pending money â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (d.PendingMoneyGain != 0)
         {
             d.Money += d.PendingMoneyGain;
             events.Insert(0, d.PendingMoneyGain > 0
-                ? $"🟢 +£{d.PendingMoneyGain:N0} earned from away trip."
-                : $"🔴 -£{Mathf.Abs(d.PendingMoneyGain):N0} lost.");
+                ? $"ðŸŸ¢ +Â£{d.PendingMoneyGain:N0} earned from away trip."
+                : $"ðŸ”´ -Â£{Mathf.Abs(d.PendingMoneyGain):N0} lost.");
             d.PendingMoneyGain = 0;
         }
 
-        // ── 3. Apply pending heat ─────────────────────────────────────────
+        // â”€â”€ 3. Apply pending heat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (d.PendingHeatGain != 0)
         {
             d.PoliceHeat = Mathf.Clamp(d.PoliceHeat + d.PendingHeatGain, 0, 10);
             events.Insert(0, d.PendingHeatGain > 0
-                ? $"🔴 Police spotted near the pub. Heat is now {d.PoliceHeat}/10."
-                : $"🟢 Heat cooled down to {d.PoliceHeat}/10.");
+                ? $"ðŸ”´ Police spotted near the pub. Heat is now {d.PoliceHeat}/10."
+                : $"ðŸŸ¢ Heat cooled down to {d.PoliceHeat}/10.");
             d.PendingHeatGain = 0;
         }
 
-        // ── 4. Gradual heat cool-down ─────────────────────────────────────
+        // â”€â”€ 4. Gradual heat cool-down â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (d.PoliceHeat > 0)
             d.PoliceHeat = Mathf.Max(0, d.PoliceHeat - 1);
 
-        // ── 5. Update police watchlist + heat cooldown cost ───────────────
+        // â”€â”€ 5. Update police watchlist + heat cooldown cost â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         bool watchlistChanged = PoliceHeatSystem.EvaluateWatchlist(d);
         d.HeatCooldownCost    = PoliceHeatSystem.GetLayLowCost(d.PoliceHeat);
         if (watchlistChanged)
         {
             events.Insert(0, d.PoliceWatchlisted
-                ? "🔴 POLICE WATCHLIST — firm is under surveillance. Recruiting is harder."
-                : "🟢 Off the watchlist. Police pressure easing.");
+                ? "ðŸ”´ POLICE WATCHLIST â€” firm is under surveillance. Recruiting is harder."
+                : "ðŸŸ¢ Off the watchlist. Police pressure easing.");
         }
 
-        // ── 6. Fan morale decay / recovery passively ──────────────────────
+        // â”€â”€ 6. Fan morale decay / recovery passively â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Morale drifts toward 50 naturally each matchday (+1 if below, -1 if well above)
         if (d.FanMorale < 50)      d.FanMorale = Mathf.Min(50, d.FanMorale + 1);
         else if (d.FanMorale > 75) d.FanMorale = Mathf.Max(75, d.FanMorale - 1);
@@ -229,34 +275,33 @@ public class GameData : MonoBehaviour
         if (deserters > 0)
         {
             d.Fans = Mathf.Max(1, d.Fans - deserters);
-            events.Insert(0, $"🔴 LADS WALKING OUT — {deserters} fan(s) left the firm. Morale is rock bottom.");
+            events.Insert(0, $"ðŸ”´ LADS WALKING OUT â€” {deserters} fan(s) left the firm. Morale is rock bottom.");
         }
 
-        // ── 7. Heal agents ────────────────────────────────────────────────
+        // â”€â”€ 7. Heal agents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         HealAgentsOnMatchDay(0.30f);
 
-        // ── 8. Simulate rival matches for non-fought bots ─────────────────
+        // â”€â”€ 8. Simulate rival matches for non-fought bots â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         SimulateRivalMatches(d.LastOpponentFought);
 
-        // ── 9. Recalculate ranking from live leaderboard data ─────────────
+        // â”€â”€ 9. Recalculate ranking from live leaderboard data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         int newRanking = RecalculateRanking(d);
         d.Ranking = newRanking;
 
-        // ── 10. Ranking progression system ────────────────────────────────
+        // â”€â”€ 10. Ranking progression system â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var rankEvents = RankingProgressionSystem.Evaluate(d, newRanking);
         foreach (var e in rankEvents)
             events.Insert(0, e);
 
-        // ── 11. Advisor tips ──────────────────────────────────────────────
+        // â”€â”€ 11. Advisor tips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         var tips = MatchdayAdvisorSystem.GenerateTips(d, d.MatchDay);
         foreach (var tip in tips)
             events.Insert(0, tip);
 
-        // ── 12. Advance matchday ──────────────────────────────────────────
+        // â”€â”€ 12. Advance matchday â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         d.MatchDay++;
 
-        // Keep fans in sync with alive agents before saving
-        SyncFanCountWithAgents();
+        NormalizeCampaignData(save: false);
 
         // Keep last 8 events (expanded from 5 to accommodate new system entries)
         if (events.Count > 8) events = events.GetRange(0, 8);
@@ -278,10 +323,10 @@ public class GameData : MonoBehaviour
                 agent.HealPercent(percent);
     }
 
-    // ── Fan / Agent sync ───────────────────────────────────────────────────
+    // â”€â”€ Fan / Agent sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
-    /// Rebuilds Fans from the live agent roster — Fans == number of alive agents.
+    /// Rebuilds Fans from the live agent roster â€” Fans == number of alive agents.
     /// Call this whenever agents can die or be revived to keep data consistent.
     /// </summary>
     public void SyncFanCountWithAgents()
@@ -289,9 +334,76 @@ public class GameData : MonoBehaviour
         if (PlayerData == null || PlayerData.RecruitedAgents == null) return;
         int alive = 0;
         foreach (var a in PlayerData.RecruitedAgents)
-            if (a.IsAlive) alive++;
-        // Clamp to at least 1 so the player is never fully zeroed out
-        PlayerData.Fans = Mathf.Max(1, alive);
+            if (a != null && a.IsAlive) alive++;
+        PlayerData.Fans = alive;
+    }
+
+    public void NormalizeCampaignData(bool save = true)
+    {
+        if (PlayerData == null) return;
+        PlayerData.PoliceHeat = Mathf.Clamp(PlayerData.PoliceHeat, 0, 10);
+        if (PlayerData.RecruitedAgents == null)
+            PlayerData.RecruitedAgents = new List<AgentData>();
+        if (PlayerData.SelectedAwayAgentIds == null)
+            PlayerData.SelectedAwayAgentIds = new List<string>();
+        if (PlayerData.DestinationVisitCounts == null)
+            PlayerData.DestinationVisitCounts = new SerializableDictionary<string, int>();
+        if (PlayerData.BattleStartAgentIds == null)
+            PlayerData.BattleStartAgentIds = new List<string>();
+        if (PlayerData.BattleRecruitSlotsUsed == null || PlayerData.BattleRecruitSlotsUsed.Length < 3)
+            PlayerData.BattleRecruitSlotsUsed = new int[3];
+        if (PlayerData.CityCapturedZones == null)
+            PlayerData.CityCapturedZones = new List<string>();
+        if (PlayerData.LandscapeClaimedMissions == null)
+            PlayerData.LandscapeClaimedMissions = new List<string>();
+        if (PlayerData.CompletedCityOperations == null)
+            PlayerData.CompletedCityOperations = new List<string>();
+        for (int i = 0; i < PlayerData.RecruitedAgents.Count; i++)
+            PlayerData.RecruitedAgents[i]?.EnsureManagementProfile(i);
+
+        SyncFanCountWithAgents();
+        SyncAwaySelectionWithRoster();
+        if (save) SaveData();
+    }
+
+    public void AddAgentToAwaySelection(AgentData agent, int maxSelected = 12)
+    {
+        if (PlayerData == null || agent == null || !agent.IsAlive || string.IsNullOrEmpty(agent.AgentId)) return;
+        if (PlayerData.SelectedAwayAgentIds == null)
+            PlayerData.SelectedAwayAgentIds = new List<string>();
+        if (PlayerData.SelectedAwayAgentIds.Contains(agent.AgentId)) return;
+        if (PlayerData.SelectedAwayAgentIds.Count >= maxSelected) return;
+        PlayerData.SelectedAwayAgentIds.Add(agent.AgentId);
+    }
+
+    public void SyncAwaySelectionWithRoster(int maxSelected = 12)
+    {
+        if (PlayerData == null) return;
+        if (PlayerData.SelectedAwayAgentIds == null)
+            PlayerData.SelectedAwayAgentIds = new List<string>();
+
+        for (int i = PlayerData.SelectedAwayAgentIds.Count - 1; i >= 0; i--)
+            if (!IsLivingAgentId(PlayerData.SelectedAwayAgentIds[i]))
+                PlayerData.SelectedAwayAgentIds.RemoveAt(i);
+
+        if (PlayerData.DeploymentSelectionCustomized) return;
+
+        PlayerData.SelectedAwayAgentIds.Clear();
+        foreach (var agent in PlayerData.RecruitedAgents)
+        {
+            if (agent == null || !agent.IsAlive) continue;
+            if (PlayerData.SelectedAwayAgentIds.Count >= maxSelected) break;
+            PlayerData.SelectedAwayAgentIds.Add(agent.AgentId);
+        }
+    }
+
+    private bool IsLivingAgentId(string agentId)
+    {
+        if (PlayerData?.RecruitedAgents == null || string.IsNullOrEmpty(agentId)) return false;
+        foreach (var agent in PlayerData.RecruitedAgents)
+            if (agent != null && agent.IsAlive && agent.AgentId == agentId)
+                return true;
+        return false;
     }
 
     /// <summary>
@@ -301,27 +413,10 @@ public class GameData : MonoBehaviour
     /// </summary>
     public bool ReviveFan(AgentData agent, int cost)
     {
-        var d = PlayerData;
-        if (d == null || agent == null) return false;
-        if (agent.IsAlive) return false;       // already alive
-        if (d.Money < cost) return false;      // can't afford
-
-        d.Money     -= cost;
-        agent.CurrentHp = agent.MaxHp * 0.5f; // revive at 50 % HP
-        SyncFanCountWithAgents();
-
-        var events = new System.Collections.Generic.List<string>(d.RecentEvents ?? new string[0]);
-        events.Insert(0, $"🟢 {agent.AgentName} patched up and back in the firm. (£{cost:N0} spent)");
-        if (events.Count > 8) events = events.GetRange(0, 8);
-        d.RecentEvents = events.ToArray();
-
-        SaveData();
-        OnSavingData?.Invoke();
-        Debug.Log($"[GameData] Revived {agent.AgentName} for £{cost:N0}. Fans now {d.Fans}.");
-        return true;
+        return SquadCare.Recover(agent, cost);
     }
 
-    // ── Ranking calculation ───────────────────────────────────────────────
+    // â”€â”€ Ranking calculation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Recalculates the player's ranking among all bots based on reputation.
@@ -340,7 +435,7 @@ public class GameData : MonoBehaviour
         return rank;
     }
 
-    // ── Reputation Helpers ────────────────────────────────────────────────
+    // â”€â”€ Reputation Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Adds street reputation (e.g. wiping a rival gang) and refreshes ranking.
@@ -359,7 +454,7 @@ public class GameData : MonoBehaviour
 
     private void RecalculatePlayerReputation()
     {
-        // Keep additive street reputation — do not overwrite with win-rate %.
+        // Keep additive street reputation â€” do not overwrite with win-rate %.
         if (PlayerData == null) return;
         PlayerData.Ranking = RecalculateRanking(PlayerData);
     }
@@ -398,8 +493,13 @@ public class GameData : MonoBehaviour
         }
 
         d.BattleRecruitSlotsUsed = new int[3];
-        d.CurrentLevel = 1;
-        d.Fans = Mathf.Max(1, d.RecruitedAgents?.Count ?? 1);
+        // Keep the level the player was actually on (set before restore on Try Again).
+        if (d.BattleStartLevel > 0)
+            d.CurrentLevel = Mathf.Clamp(d.BattleStartLevel, 1, 5);
+        d.PoliceHeat = Mathf.Clamp(d.BattleStartPoliceHeat > 0 ? d.BattleStartPoliceHeat : 7, 0, 10);
+        SyncFanCountWithAgents();
+        d.DeploymentSelectionCustomized = false;
+        SyncAwaySelectionWithRoster();
         d.BattleSessionActive = true; // keep start IDs so Ensure won't re-snapshot mid Try Again
         SaveData();
     }
@@ -413,8 +513,15 @@ public class GameData : MonoBehaviour
         var d = PlayerData;
         if (d == null) return;
 
+        // Always keep mode/level in sync — home→away must not keep a stale HQ flag.
+        d.BattleStartLevel = Mathf.Clamp(d.CurrentLevel, 1, 5);
+        d.BattleStartHomeMode = CityGameplay.HomeMode;
+
         if (d.BattleSessionActive && d.BattleStartAgentIds != null && d.BattleStartAgentIds.Count > 0)
+        {
+            SaveData();
             return;
+        }
 
         d.BattleStartAgentIds = new List<string>();
         if (d.RecruitedAgents != null)
@@ -428,6 +535,25 @@ public class GameData : MonoBehaviour
             d.BattleRecruitSlotsUsed = new int[3];
 
         d.BattleSessionActive = true;
+        d.BattleStartPoliceHeat = 7;
+        SaveData();
+    }
+
+    /// <summary>Update home/away + level context without wiping the agent snapshot.</summary>
+    public void RefreshBattleSessionContext(bool homeMode)
+    {
+        var d = PlayerData;
+        if (d == null) return;
+        d.BattleStartHomeMode = homeMode;
+        d.BattleStartLevel = Mathf.Clamp(d.CurrentLevel, 1, 5);
+        d.BattleStartPoliceHeat = 7;
+        // Starting a fresh away trip from HQ should take a new roster snapshot.
+        if (!homeMode)
+        {
+            d.BattleSessionActive = false;
+            d.BattleStartAgentIds = new List<string>();
+            d.BattleRecruitSlotsUsed = new int[3];
+        }
         SaveData();
     }
 
@@ -438,10 +564,11 @@ public class GameData : MonoBehaviour
         d.BattleSessionActive = false;
         d.BattleStartAgentIds = new List<string>();
         d.BattleRecruitSlotsUsed = new int[3];
+        d.BattleStartLevel = Mathf.Clamp(d.CurrentLevel, 1, 5);
         SaveData();
     }
 
-    // ── Battle Result ─────────────────────────────────────────────────────
+    // â”€â”€ Battle Result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public enum BattleResult { Victory, Defeat, TimerExpired }
 
@@ -467,14 +594,14 @@ public class GameData : MonoBehaviour
 
         d.LastOpponentFought = enemyFirmName;
 
-        // ── 1. Sync surviving agent HP ────────────────────────────────────
+        // â”€â”€ 1. Sync surviving agent HP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         foreach (var battleAgent in survivingAgents)
         {
             var stored = d.RecruitedAgents.Find(a => a.AgentId == battleAgent.AgentId);
             if (stored != null) stored.CurrentHp = battleAgent.CurrentHp;
         }
 
-        // ── 2. Mark dead agents ───────────────────────────────────────────
+        // â”€â”€ 2. Mark dead agents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         int agentsLost = 0;
         int maxDeathsAllowed = Mathf.Max(0, d.Fans - 1);
         foreach (var battleAgent in deadAgents)
@@ -498,16 +625,16 @@ public class GameData : MonoBehaviour
         {
             d.Fans = Mathf.Max(1, d.Fans - agentsLost);
             d.TotalAgentsLostAllTime += agentsLost;
-            Debug.Log($"[GameData] {agentsLost} agent(s) lost — Fans now {d.Fans}.");
+            Debug.Log($"[GameData] {agentsLost} agent(s) lost â€” Fans now {d.Fans}.");
         }
 
-        // ── 3. Calculate morale delta ─────────────────────────────────────
+        // â”€â”€ 3. Calculate morale delta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         int totalAgents = survivingAgents.Count + deadAgents.Count;
         bool isVictory  = result == BattleResult.Victory;
         int moraleDelta = ReputationUnlockSystem.GetMoraleDeltaForBattle(isVictory, agentsLost, totalAgents);
         d.FanMorale = Mathf.Clamp(d.FanMorale + moraleDelta, 0, 100);
 
-        // ── 4. Apply result-dependent stat changes ────────────────────────
+        // â”€â”€ 4. Apply result-dependent stat changes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         bool wasPoliceRaid = (GameManager.PendingBattleMode == BattleManager.BattleMode.PoliceRaid)
                            || (heatGain == 3);
 
@@ -520,18 +647,18 @@ public class GameData : MonoBehaviour
 
                 if (wasPoliceRaid)
                 {
-                    d.PoliceHeat = 0;
-                    Debug.Log("[GameData] Police Raid victory — PoliceHeat reset to 0.");
+                    d.PoliceHeat = Mathf.Max(5, d.PoliceHeat - 2);
+                    Debug.Log("[GameData] Police Raid victory â€” PoliceHeat reduced, not cleared.");
                     events.Insert(0, agentsLost > 0
-                        ? $"🟢 Police raid beaten! Heat cleared. {agentsLost} lad(s) down."
-                        : "🟢 Police raid beaten! Heat cleared. The firm escaped clean.");
+                        ? $"ðŸŸ¢ Police raid beaten! Heat cooled to {d.PoliceHeat}/10. {agentsLost} lad(s) down."
+                        : $"ðŸŸ¢ Police raid beaten! Heat cooled to {d.PoliceHeat}/10. The firm escaped clean.");
                 }
                 else
                 {
                     d.PoliceHeat = Mathf.Clamp(d.PoliceHeat + heatGain, 0, 10);
                     string moraleLine = moraleDelta > 0 ? $" Morale +{moraleDelta}." : "";
                     string lossNote   = agentsLost > 0 ? $" {agentsLost} lad(s) lost." : "";
-                    events.Insert(0, $"🟢 Victory! +£{moneyReward:N0} · Rep {d.Reputation}.{lossNote}{moraleLine}");
+                    events.Insert(0, $"ðŸŸ¢ Victory! +Â£{moneyReward:N0} Â· Rep {d.Reputation}.{lossNote}{moraleLine}");
                 }
 
                 RecalculatePlayerReputation();
@@ -550,13 +677,13 @@ public class GameData : MonoBehaviour
                     int lostFans = Mathf.Clamp(fansGained / 2, 1, opponentBot.fans - 1);
                     opponentBot.fans = Mathf.Max(1, opponentBot.fans - lostFans);
 
-                    // Bot rallies and recruits after the loss — grows stronger for next round.
+                    // Bot rallies and recruits after the loss â€” grows stronger for next round.
                     // Recovery = fans the match was worth (fansGained) + 1 per 5 remaining fans.
                     // This means bigger bots bounce back harder, keeping them a real threat.
                     int botRecovery = fansGained + Mathf.Max(1, opponentBot.fans / 5);
                     opponentBot.fans = Mathf.Min(opponentBot.fans + botRecovery, 200);
 
-                    Debug.Log($"[GameData] {opponentBot.firmName} lost {lostFans} fans but rallied +{botRecovery} → now {opponentBot.fans} fans.");
+                    Debug.Log($"[GameData] {opponentBot.firmName} lost {lostFans} fans but rallied +{botRecovery} â†’ now {opponentBot.fans} fans.");
 
                     RecalculateBotReputation(opponentBot);
                 }
@@ -570,18 +697,18 @@ public class GameData : MonoBehaviour
                 if (wasPoliceRaid)
                 {
                     d.PoliceHeat = 10;
-                    Debug.Log("[GameData] Police Raid defeat — PoliceHeat stays at 10.");
+                    Debug.Log("[GameData] Police Raid defeat â€” PoliceHeat stays at 10.");
                     events.Insert(0, agentsLost > 0
-                        ? $"🔴 Raided by the filth! {agentsLost} lad(s) nicked. Heat maxed."
-                        : "🔴 Raided by the filth! The lads scattered. Heat maxed.");
+                        ? $"ðŸ”´ Raided by the filth! {agentsLost} lad(s) nicked. Heat maxed."
+                        : "ðŸ”´ Raided by the filth! The lads scattered. Heat maxed.");
                 }
                 else
                 {
                     d.PoliceHeat = Mathf.Clamp(d.PoliceHeat + heatGain, 0, 10);
                     string moraleLine = $" Morale {moraleDelta}.";
                     events.Insert(0, agentsLost > 0
-                        ? $"🔴 Defeat. {agentsLost} lad(s) didn't make it back.{moraleLine}"
-                        : $"🔴 Defeat. The lads took a hammering.{moraleLine}");
+                        ? $"ðŸ”´ Defeat. {agentsLost} lad(s) didn't make it back.{moraleLine}"
+                        : $"ðŸ”´ Defeat. The lads took a hammering.{moraleLine}");
                 }
 
                 RecalculatePlayerReputation();
@@ -589,7 +716,7 @@ public class GameData : MonoBehaviour
                 if (opponentBot != null)
                 {
                     opponentBot.wins++;
-                    // Bot gains only 1–2 fans from beating the player — keep growth slow
+                    // Bot gains only 1â€“2 fans from beating the player â€” keep growth slow
                     // so the player is motivated to recruit rather than being overwhelmed.
                     int gainedFans = UnityEngine.Random.Range(1, 3);
                     opponentBot.fans = Mathf.Min(opponentBot.fans + gainedFans, 200);
@@ -603,30 +730,29 @@ public class GameData : MonoBehaviour
                 if (wasPoliceRaid)
                 {
                     d.PoliceHeat = Mathf.Max(0, d.PoliceHeat - 3);
-                    Debug.Log($"[GameData] Police Raid draw — PoliceHeat reduced to {d.PoliceHeat}.");
+                    Debug.Log($"[GameData] Police Raid draw â€” PoliceHeat reduced to {d.PoliceHeat}.");
                     events.Insert(0, agentsLost > 0
-                        ? $"🟡 Raid stalemate. Heat cooled. {agentsLost} lad(s) down."
-                        : "🟡 Raid stalemate. Managed to slip away. Heat cooled.");
+                        ? $"ðŸŸ¡ Raid stalemate. Heat cooled. {agentsLost} lad(s) down."
+                        : "ðŸŸ¡ Raid stalemate. Managed to slip away. Heat cooled.");
                 }
                 else
                 {
                     d.PoliceHeat = Mathf.Clamp(d.PoliceHeat + heatGain, 0, 10);
                     events.Insert(0, agentsLost > 0
-                        ? $"🟡 Time ran out — scrappy result. {agentsLost} lad(s) down."
-                        : "🟡 Time ran out — scrappy result.");
+                        ? $"ðŸŸ¡ Time ran out â€” scrappy result. {agentsLost} lad(s) down."
+                        : "ðŸŸ¡ Time ran out â€” scrappy result.");
                 }
                 break;
         }
 
-        // ── Morale critical warning ───────────────────────────────────────
+        // â”€â”€ Morale critical warning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (d.FanMorale < 30 && !events.Exists(e => e.Contains("LADS ARE SHAKEN")))
-            events.Insert(0, "🔴 LADS ARE SHAKEN — morale is dangerously low.");
+            events.Insert(0, "ðŸ”´ LADS ARE SHAKEN â€” morale is dangerously low.");
 
         if (events.Count > 8) events = events.GetRange(0, 8);
         d.RecentEvents = events.ToArray();
 
-        // Sync fan count with alive agents after all HP changes
-        SyncFanCountWithAgents();
+        NormalizeCampaignData(save: false);
 
         // Apply accumulated street reputation from the session (was previously unused).
         if (repGain != 0)
@@ -638,7 +764,7 @@ public class GameData : MonoBehaviour
         OnBattleEnded?.Invoke(result);
     }
 
-    // ── "Lay Low" Action ─────────────────────────────────────────────────
+    // â”€â”€ "Lay Low" Action â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>
     /// Called when the player uses the "Lay Low" action on the dashboard.
@@ -656,7 +782,7 @@ public class GameData : MonoBehaviour
         d.PoliceHeat = Mathf.Max(0, d.PoliceHeat - reduction);
 
         var events = new List<string>(d.RecentEvents ?? new string[0]);
-        events.Insert(0, $"🟢 Firm laid low — spent £{cost:N0}, heat -{reduction} (now {d.PoliceHeat}/10).");
+        events.Insert(0, $"ðŸŸ¢ Firm laid low â€” spent Â£{cost:N0}, heat -{reduction} (now {d.PoliceHeat}/10).");
         if (events.Count > 8) events = events.GetRange(0, 8);
         d.RecentEvents = events.ToArray();
 
@@ -668,7 +794,7 @@ public class GameData : MonoBehaviour
         return true;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private void InitializeRivalBots()
     {
@@ -738,7 +864,7 @@ public class GameData : MonoBehaviour
             if (botWins)
             {
                 bot.wins++;
-                // Simulated wins give a very small fan bump — max +1 per round
+                // Simulated wins give a very small fan bump â€” max +1 per round
                 // so rivals grow slowly and the player always has time to recruit.
                 // Ambitious bots have a 50% chance of gaining 1 fan instead of 0.
                 int fanGain = (bot.archetype == FirmArchetype.Ambitious)
@@ -750,7 +876,7 @@ public class GameData : MonoBehaviour
             else
             {
                 bot.losses++;
-                // Fan loss on defeat is rare — only Slippery bots truly bleed fans
+                // Fan loss on defeat is rare â€” only Slippery bots truly bleed fans
                 bool loseFan = bot.archetype == FirmArchetype.Slippery
                     ? UnityEngine.Random.value > 0.5f
                     : UnityEngine.Random.value > 0.8f;   // ~20% chance otherwise
@@ -767,6 +893,7 @@ public class GameData : MonoBehaviour
         PlayerData = new PlayerData();
         InitializeRivalBots();
         GenerateAgentsForFans(PlayerData.Fans);
+        NormalizeCampaignData(save: false);
     }
 
     public void AddEventLog(string text)
@@ -780,11 +907,12 @@ public class GameData : MonoBehaviour
 
     public void SaveData()
     {
+        NormalizeCampaignData(save: false);
         SaveDataInLocal.DataSave(PlayerData);
         OnSavingData?.Invoke();
     }
 
-    // ── Events ────────────────────────────────────────────────────────────
+    // â”€â”€ Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public static Action OnSavingData;
     public static Action OnMatchDayEnded;
     public static Action<BattleResult> OnBattleEnded;

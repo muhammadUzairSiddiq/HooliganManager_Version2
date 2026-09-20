@@ -105,6 +105,7 @@ public class AgentAnimController
     {
         _anim       = animator;
         _runVariant = Random.Range(0, s_RunStates.Length);
+        if (_anim) { _anim.applyRootMotion = false; _anim.cullingMode = AnimatorCullingMode.CullUpdateTransforms; _anim.speed = 1; }
 
         // Snap to idle immediately — no blend on first frame.
         PlayImmediate(AgentAnimParams.States.Idle);
@@ -125,18 +126,19 @@ public class AgentAnimController
     public void Tick(float speed, bool isFighting = false)
     {
         if (IsLocked) return;
+        speed = Mathf.Clamp01(speed);
 
         if (speed > WalkThreshold)
         {
             // Full combat sprint
-            if (_anim != null) _anim.speed = 1f;
-            SmoothCrossFade(s_RunStates[_runVariant], FadeToRun);
+            if (_anim != null) _anim.speed = Mathf.Lerp(_anim.speed, Mathf.Clamp(speed, .7f, 1.15f), 1 - Mathf.Exp(-12 * Time.deltaTime));
+            SmoothCrossFade(s_RunStates[_runVariant], GameplayTuning.Current.animationBlend);
         }
         else if (speed > IdleThreshold)
         {
             // Casual patrol — use the dedicated walk clip
             if (_anim != null) _anim.speed = 1f;
-            SmoothCrossFade(AgentAnimParams.States.Walking, FadeToRun);
+            SmoothCrossFade(AgentAnimParams.States.Walking, GameplayTuning.Current.animationBlend);
         }
         else
         {
@@ -155,6 +157,7 @@ public class AgentAnimController
     /// </summary>
     public void PlayAttack()
     {
+        if (_anim) _anim.speed = 1;
         Lock(AttackLockDuration);
         ForceCrossFade(s_AttackStates[Random.Range(0, s_AttackStates.Length)], FadeToAttack);
     }
@@ -212,7 +215,7 @@ public class AgentAnimController
 
     /// <summary>Lock Tick() for <paramref name="duration"/> seconds.</summary>
     private void Lock(float duration)
-        => _lockUntil = Time.time + duration;
+        => _lockUntil = Mathf.Max(_lockUntil, Time.time + duration);
 
     /// <summary>
     /// Crossfade only when the target state differs from the current one.

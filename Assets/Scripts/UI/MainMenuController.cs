@@ -27,10 +27,12 @@ public class MainMenuController : MonoBehaviour
     void Start()
     {
         if (versionLabel != null)
-            versionLabel.text = "v0.1 - PROTOTYPE";
+            versionLabel.text = "v0.2 - ENHANCED";
 
-        if (continueBtn != null)
-            continueBtn.interactable = GameManager.HasSaveData();
+        ApplyHomeButtonState();
+
+        SetButtonLabel(newGameBtn ? newGameBtn.gameObject : null, "NEW GAME    >");
+        SetButtonLabel(GameObject.Find("LoadGame"), "OPEN HEADQUARTERS");
 
         // Hide the old in-menu club selection — team change is on the dashboard now.
         if (SelectClubPanel != null)
@@ -42,7 +44,40 @@ public class MainMenuController : MonoBehaviour
         exitBtn?.AfterClickAnimation.AddListener(OnExit);
     }
 
+    void OnEnable() => ApplyHomeButtonState();
+
+    /// <summary>Home Territory must stay clickable even after PlayerPrefs are wiped.</summary>
+    void ApplyHomeButtonState()
+    {
+        if (continueBtn != null)
+        {
+            continueBtn.interactable = true;
+            SetButtonLabel(continueBtn.gameObject, "ENTER HOME TERRITORY");
+        }
+        var home = transform.Find("Continue");
+        if (home)
+        {
+            var selectable = home.GetComponent<UnityEngine.UI.Selectable>();
+            if (selectable) selectable.interactable = true;
+        }
+    }
+
     void OnNewGame()
+    {
+        if (GameManager.HasSaveData())
+        {
+            GamePopup.Instance.Show(
+                "START NEW GAME?",
+                "This will overwrite your saved campaign, including cash, members, recovered injuries, territory and police heat.",
+                new GamePopup.Option("KEEP CURRENT SAVE", new Color(.15f, .18f, .22f), null),
+                new GamePopup.Option("START NEW GAME", new Color(.70f, .08f, .08f), StartNewGameNow));
+            return;
+        }
+
+        StartNewGameNow();
+    }
+
+    void StartNewGameNow()
     {
         GameManager.instance?.StartNewGameWithDefaultClub(clubRegistry);
     }
@@ -50,7 +85,8 @@ public class MainMenuController : MonoBehaviour
     void OnContinue()
     {
         // Continue jumps straight into the streets — no dashboard detour.
-        GameManager.instance?.ContinueIntoGameplay();
+        // Without a save, a default-club campaign is created first.
+        GameManager.instance?.EnterHomeTerritoryOrStartNew(clubRegistry);
     }
 
     void OnSettings() => FindFirstObjectByType<LandscapeFrontEnd>()?.Navigate("settings");
@@ -62,5 +98,12 @@ public class MainMenuController : MonoBehaviour
 #else
         Application.Quit();
 #endif
+    }
+
+    static void SetButtonLabel(GameObject root, string label)
+    {
+        if (!root) return;
+        var text = root.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (text) text.text = label;
     }
 }

@@ -1,0 +1,277 @@
+===== PAGE 1 =====
+CROSS-PLATFORM GAME DEVELOPMENT PROPOSAL
+PHASE 2
+LANDSCAPE RTS & HOME TERRITORY
+Football Firm Management + Street Real-Time Strategy
+PLATFORMS
+ANDROID + iOS
+ORIENTATION
+LANDSCAPE
+BACKEND
+PLAYFAB GAME SERVICES
+DELIVERY
+6-8 WEEKS
+Scope designed around a realistic mobile production target with milestone-by-milestone playable review builds.
+ Confidential - Phase 2
+
+
+===== PAGE 2 =====
+PHASE 2 DEVELOPMENT PROPOSAL
+02
+Football Firm Manager + Street RTS | Phase 2 Development Proposal
+02  |  Confidential
+PROJECT DIRECTION
+Phase 2 Vision & Current Foundation
+Phase 2 keeps the strategy and management systems at the center of the game. Combat remains a tactical consequence
+of planning, territory, squad strength and police pressure - not a separate fighting-game direction.
+TARGET
+A commercial mobile RTS
+PLAY STYLE
+Landscape from launch
+REVIEW
+Playable build per milestone
+Version 1 - Completed Core Foundation
+Firm Management & Progression
+Money, fans, reputation, morale, rankings and police heat.
+Recruitable squad members with health, strength and speed.
+Matchday progression, rival bot progression and local save
+data.
+Away Trips & Campaign
+Five-level away-trip campaign with scaling rival encounters.
+Recruitment centers, capture points, rewards and mission
+results.
+Retry flow with pre-battle roster restoration.
+Real-Time Strategy Gameplay
+Touch selection, movement, attack and retreat commands.
+NavMesh movement, rival gang AI, camera controls and
+minimap.
+Objective HUD, off-screen indicators and battle autosave.
+Police Pressure System
+Heat 0-10, police patrol vehicles and escalation at high heat.
+Bribe or fight response flow after gang encounters.
+Police raid logic already exists as a foundation for playable
+police.
+PHASE 2 OBJECTIVE
+Convert the existing foundation into a cross-platform landscape strategy experience with a meaningful home territory, improved
+city presentation, commercial monetization and a focused playable police mode.
+
+
+===== PAGE 3 =====
+PHASE 2 DEVELOPMENT PROPOSAL
+03
+Football Firm Manager + Street RTS | Phase 2 Development Proposal
+03  |  Confidential
+CORE SCOPE
+Phase 2 - Full Feature List
+The scope below is the recommended Phase 2 delivery. It is intentionally focused on the systems that most clearly move the
+current build toward the agreed commercial RTS vision.
+1. Landscape UI & Strategy Presentation
+Landscape-first gameplay from the opening screen
+onward.
+Responsive HUD for common Android and iPhone aspect
+ratios.
+Enhanced gameplay, base, squad, recruitment and
+trip-planning screens.
+Improved minimap, objective display, police heat and
+resource visibility.
+Better touch selection, camera pan/zoom and command
+feedback.
+2. Home Territory & Base
+A dedicated home district with headquarters as the
+management hub.
+Stadium surroundings, pub/social area, recruitment point,
+training and recovery locations.
+Squad management, healing/revive, selected upgrades
+and away-trip launch from the base.
+Home territory defense/capture activity linked to
+progression.
+3. City & RTS Gameplay Upgrade
+Optimized low-poly/stylized 3D city built for mobile
+performance.
+Pedestrians, basic traffic, police patrols and selected
+ambient transport activity.
+Group movement plus move, attack, capture and retreat
+actions.
+Clear territory markers, rival zones and improved AI
+navigation/targeting.
+Home and away objectives tied to money, reputation and
+police heat.
+4. Playable Police Mode
+A focused police gameplay mode rather than NPC-only
+police.
+Control a small officer squad using the same RTS
+command language.
+Patrol, respond to disorder, secure an area and arrest
+targeted firm members.
+Dedicated objective/result flow connected to the existing
+police systems.
+Recommended Production Boundaries
+One strong home-territory/city experience is prioritized over multiple large new open-world maps in this phase.
+Visual direction targets polished low-poly mobile production quality rather than high-end console realism.
+Advanced police campaign progression, online multiplayer and large-scale simulation remain future expansion items.
+
+
+===== PAGE 4 =====
+PHASE 2 DEVELOPMENT PROPOSAL
+04
+Football Firm Manager + Street RTS | Phase 2 Development Proposal
+04  |  Confidential
+COMMERCIAL DELIVERY
+Android, iOS, Monetization & Cloud
+Both mobile platforms are included in the Phase 2 technical direction. Store-specific services are integrated separately while the
+gameplay codebase remains shared.
+ Android / Google Play
+Android landscape build and device testing.
+Google Play Billing integration for agreed in-app purchase
+products.
+Android ad and rewarded-ad SDK integration.
+Release APK/AAB preparation for Google Play
+submission.
+iOS / Apple App Store
+iOS landscape build and iPhone safe-area validation.
+Apple App Store in-app purchase integration through the
+shared Unity IAP flow.
+iOS ad and rewarded-ad SDK integration.
+Xcode/TestFlight/App Store submission-ready build
+preparation.
+Monetization
+In-app purchases for agreed commercial items/currency
+packs.
+Rewarded ads for optional player rewards at agreed
+gameplay points.
+Standard ad placement at non-disruptive transitions where
+approved.
+Purchase restore / entitlement handling required by the
+target stores.
+Monetization UI integrated into the landscape interface.
+PlayFab Backend / Game Services
+Player profile and cloud progression data.
+Cloud save/sync for key player and firm progress.
+Remote configuration/catalog data for economy and game
+tuning.
+Lightweight backend logic for agreed data validation and
+game-service needs.
+Multiplayer dedicated-server hosting is not part of this
+Phase 2 scope.
+Publishing & Account Assumptions
+The client provides active Google Play Console and Apple Developer Program accounts, including required business, tax, banking
+and legal information.
+Client-owned store accounts, certificates/keys and required access must be available when publishing integration begins.
+Google/Apple account fees, taxes and store charges are paid directly by the client. If account creation, ownership or extended
+publishing management is requested from the development side, it is handled separately and may carry additional charges.
+Store approval timelines are controlled by Google and Apple; the development deliverable is a tested, submission-ready build and
+integration.
+
+
+===== PAGE 5 =====
+PHASE 2 DEVELOPMENT PROPOSAL
+05
+Football Firm Manager + Street RTS | Phase 2 Development Proposal
+05  |  Confidential
+DELIVERY PLAN
+Milestones 1-2
+Each milestone ends with a reviewable build or demonstrable integration. The next milestone proceeds after the delivered
+scope is reviewed and aligned.
+MILESTONE 1
+LANDSCAPE + CROSS-PLATFORM FOUNDATION  |  WEEKS 1-2
+Convert gameplay flow and core scenes to landscape-first presentation.
+Rebuild the main gameplay HUD for landscape: resources, heat, objectives, squad selection, commands and minimap.
+Adapt touch camera, unit selection and RTS controls to the wider layout.
+Prepare shared Android/iOS project configuration and platform-safe UI areas.
+Initial Android and iOS device/test builds for layout and control review.
+DELIVERABLE: PLAYABLE BUILD
+MILESTONE 2
+HOME TERRITORY + RTS GAMEPLAY  |  WEEKS 3-4
+Implement the home district with headquarters, stadium surroundings, pub/social area, recruitment, training and recovery
+locations.
+Connect base management with squad preparation, healing/revive, selected upgrades and away-trip launch.
+Add home territory defense/capture gameplay and clearer territory-control presentation.
+Add optimized city activity: pedestrians, basic vehicle traffic, police patrol presence and selected ambient transport elements.
+Improve AI navigation, group movement, objective markers and RTS mission balancing.
+DELIVERABLE: PLAYABLE BUILD
+Milestone Review Standard
+The milestone build is reviewed against the written checklist above. Any agreed correction inside that milestone is addressed
+before the project advances, keeping progress visible and reducing scope misunderstandings.
+
+
+===== PAGE 6 =====
+PHASE 2 DEVELOPMENT PROPOSAL
+06
+Football Firm Manager + Street RTS | Phase 2 Development Proposal
+06  |  Confidential
+DELIVERY PLAN
+Milestones 3-4 & Final Delivery
+The final half of Phase 2 completes the commercial systems, playable police mode and cross-platform release preparation.
+MILESTONE 3
+POLICE + PLAYFAB + MONETIZATION  |  WEEKS 5-6
+Implement the focused playable police mode with officer squad control, patrol/response and arrest objectives.
+Integrate PlayFab player data, cloud progression and remote configuration needed by Phase 2.
+Integrate Google Play and Apple in-app purchase flows for the agreed product set.
+Integrate standard ads and rewarded ads with landscape UI prompts and reward handling.
+Provide Android/iOS review builds demonstrating police, cloud save and monetization flow.
+DELIVERABLE: INTEGRATED BUILD
+MILESTONE 4
+POLISH + QA + STORE-READY BUILDS  |  WEEKS 7-8
+Cross-platform gameplay balancing, bug fixing and save/integration validation.
+Android performance pass and iOS layout/device compatibility checks.
+Final UI polish, feedback states, loading/transitions and audio/visual integration using agreed assets.
+Google Play release AAB/APK preparation and iOS Xcode/TestFlight/App Store submission-ready build.
+Final Phase 2 handover build and agreed project delivery package.
+DELIVERABLE: FINAL BUILDS
+TOTAL TARGET DELIVERY
+6-8 WEEKS
+Timeline assumes timely milestone feedback and required Google/Apple account access.
+M1
+M2
+M3
+M4
+
+
+===== PAGE 7 =====
+EXPECTED OUTPUT - VISUAL DIRECTION
+07
+Football Firm Manager + Street RTS | Phase 2 Development Proposal
+07  |  Confidential
+CONCEPT REFERENCE
+Expected Landscape Gameplay Direction
+These images communicate the intended low-poly mobile visual direction, landscape HUD structure and city readability. They are
+concept references rather than exact final asset commitments.
+Expected Output 01 - Home Territory / Base District
+HQ, stadium surroundings, pub/social area, recruitment point, territory markers, police presence and selected squad controls in a clean mobile-friendly
+low-poly city.
+Expected Output 02 - Waterfront / Social District
+Expanded environment variety with pedestrians, ambient vehicles, police patrols, rail activity and the same consistent landscape strategy interface.
+
+
+===== PAGE 8 =====
+EXPECTED OUTPUT + SCOPE NOTES
+08
+Football Firm Manager + Street RTS | Phase 2 Development Proposal
+08  |  Confidential
+CONCEPT REFERENCE
+Expected Output 03 & Scope Alignment
+Expected Output 03 - Tactical City View
+A closer tactical view showing readable squad selection, police presence, HQ/pub/recruitment landmarks and landscape RTS commands.
+Phase 2 Assumptions
+Landscape is the primary supported orientation on Android
+and iOS.
+Low-poly/stylized city assets are optimized for mobile; final
+visuals may differ from concept art.
+IAP product names, rewards, store copy and monetization
+placements are finalized with the client before integration.
+Client provides Google Play and Apple developer
+accounts/access. Account or store fees are separate.
+Online multiplayer and dedicated multiplayer servers are not
+included in Phase 2.
+Future Expansion
+Online multiplayer and multiplayer server infrastructure.
+Larger open-world city and additional city maps.
+Advanced civilian simulation and larger dynamic event
+systems.
+Full police campaign and progression.
+Rival diplomacy, alliances and branching storylines.
+Advanced headquarters construction, vehicle gameplay and
+voice acting.
+PHASE 2 OUTCOME
+A reviewed, cross-platform landscape RTS build with a functional home territory, improved city gameplay, playable police,
+PlayFab cloud data, monetization support and Android/iOS store-ready delivery - built on the completed Version 1 foundation.

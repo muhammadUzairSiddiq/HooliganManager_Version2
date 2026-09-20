@@ -462,8 +462,8 @@ public class PoliceRaidGameplayController : MonoBehaviour
         // Write heat result into GameData
         if (playerWon)
         {
-            GameData.instance.PlayerData.PoliceHeat = 0;
-            Debug.Log("[PoliceRaidGameplay] Victory — heat reset to 0, all agents healed.");
+            GameData.instance.PlayerData.PoliceHeat = Mathf.Max(5, GameData.instance.PlayerData.PoliceHeat - 2);
+            Debug.Log("[PoliceRaidGameplay] Victory — heat reduced but not cleared, all agents healed.");
         }
         else
         {

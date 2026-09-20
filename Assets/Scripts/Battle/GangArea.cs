@@ -19,6 +19,7 @@ public class GangArea : MonoBehaviour
 
     public string GangName => _gangName;
     public Color ZoneColor => _color;
+    public float Radius => _radius;
     public float DetectRadius => _detectRadius;
 
     public void Setup(string gangName, Vector3 center, float radius, Color color)
@@ -30,7 +31,7 @@ public class GangArea : MonoBehaviour
 
         transform.position = GroundedCenter(center);
         ZoneVolumeFactory.Create(transform, _color, radius, height: 2.6f);
-        _label = ZoneLabelUtil.Create(transform, _gangName.ToUpperInvariant(), 3.4f, 12f);
+        _label = ZoneLabelUtil.Create(transform, _gangName.ToUpperInvariant()+"\n<size=68%>RIVAL TURF · ENTER TO CONFRONT</size>", 4.4f, 8.2f);
         MiniMapIconFactory.Register(transform, MiniMapIconFactory.Kind.Gang, _gangName);
     }
 
@@ -107,6 +108,7 @@ public class GangArea : MonoBehaviour
     private static bool IsPromptBlocked()
     {
         if (GamePopup.Instance != null && GamePopup.Instance.IsOpen) return true;
+        if (CityActionSystem.TaxiSessionActive) return true;
         if (RecruitDialogBox.Instance != null && RecruitDialogBox.Instance.IsOpen) return true;
         if (LivePoliceSystem.Instance != null && LivePoliceSystem.Instance.BlocksWorldPrompts) return true;
         return false;

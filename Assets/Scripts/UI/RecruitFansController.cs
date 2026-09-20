@@ -225,10 +225,33 @@ public class RecruitFansController : MonoBehaviour
         GameData.instance.SaveData();
         UpdateTopBar();
         SelectOption(_selectedIndex);
-        if (footerLabel) footerLabel.text = $"RECRUITMENT CONFIRMED · +{fanGain} FANS ARRIVE NEXT MATCHDAY. £{effectiveCost:N0} SPENT.";
+        GetComponentInParent<LandscapeFrontEnd>()?.Refresh();
+        if (footerLabel) footerLabel.text = $"RECRUITMENT CONFIRMED · +{fanGain} NEW MEMBER{(fanGain == 1 ? "" : "S")} · JOIN ON END MATCHDAY. £{effectiveCost:N0} SPENT.";
 
         string modNote = combined < 0.9f ? $" (reduced — police watching + low morale)" : "";
         Debug.Log($"[Recruit] Spent £{effectiveCost}, queued +{fanGain} fans.{modNote}");
+
+        ShowRecruitFeedback(opt.title, fanGain, effectiveCost, d.PendingFansGain, combined < 0.9f);
+    }
+
+    /// <summary>Clear confirmation so the player knows members were added and when they join.</summary>
+    void ShowRecruitFeedback(string campaign, int fanGain, int cost, int totalIncoming, bool reduced)
+    {
+        GameAudio.Play("recovery");
+        var shell = GetComponentInParent<LandscapeFrontEnd>();
+        string body =
+            $"{campaign}\n\n" +
+            $"<color=#70F2A0>+{fanGain} NEW MEMBER{(fanGain == 1 ? "" : "S")} ADDED</color>   ·   £{cost:N0} spent\n" +
+            $"Waiting to join: <color=#E8BA5A>{totalIncoming}</color>\n\n" +
+            (reduced ? "<color=#FFD36A>Reduced intake — police watching / low morale.</color>\n\n" : "") +
+            "Press <color=#70F2A0>END MATCHDAY</color> to bring them into the squad immediately.";
+        var options = new System.Collections.Generic.List<GamePopup.Option>
+        {
+            new GamePopup.Option("KEEP RECRUITING", LandscapeUI.PanelColor, null)
+        };
+        if (shell != null)
+            options.Add(new GamePopup.Option("END MATCHDAY NOW", new Color(.18f, .43f, .25f), () => shell.Navigate("end-day")));
+        GamePopup.Instance.Show("RECRUITMENT CONFIRMED", body, options.ToArray());
     }
 
     void UpdateWatchlistWarning()

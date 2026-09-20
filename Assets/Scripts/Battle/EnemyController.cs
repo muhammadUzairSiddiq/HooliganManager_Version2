@@ -135,6 +135,8 @@ public class EnemyController : MonoBehaviour
         // Build the code-driven animation controller.
         // Run style is randomised internally so each enemy looks different.
         _anim = new AgentAnimController(animator);
+        attackInterval = GameplayTuning.Current.attackInterval;
+        _attackTimer = Random.Range(0f, attackInterval * .4f);
 
         healthBar?.Initialise(transform, true);
         healthBar?.SetHealth(CurrentHp, MaxHp);
@@ -181,6 +183,7 @@ public class EnemyController : MonoBehaviour
         if (characterPrefab == null) return;
 
         GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
+        GameplayTuning.ScaleModel(spawnedCharacter.transform);
 
         // Add the Animator component dynamically
         animator = spawnedCharacter.GetComponent<Animator>();
@@ -194,6 +197,9 @@ public class EnemyController : MonoBehaviour
         {
             smr.renderingLayerMask = renderLayers;
         }
+
+        var capsule = GetComponent<CapsuleCollider>();
+        if (capsule != null) { capsule.radius *= 1.6f; capsule.height *= 2f; }
     }
 
     // ── Update ────────────────────────────────────────────────────────────
@@ -430,28 +436,36 @@ public class EnemyController : MonoBehaviour
         // for AttackLockDuration seconds so the clip plays fully.
         _anim?.PlayAttack();
 
-        float damage = Strength + Random.Range(-1.5f, 1.5f);
-        DealDamageToTarget(damage);
+        _pendingPlayer = _targetPlayer; _pendingEnemy = _targetEnemy;
+        _impactPending = true;
+        StartCoroutine(ImpactAfterDelay());
     }
-
-    /// <summary>
-    /// Animation Event hook — wire to the impact frame of any attack clip
-    /// for frame-accurate damage instead of instant application above.
-    /// </summary>
+    AgentController _pendingPlayer;
+    EnemyController _pendingEnemy;
+    bool _impactPending;
+    IEnumerator ImpactAfterDelay()
+    {
+        yield return new WaitForSeconds(GameplayTuning.Current.impactDelay);
+        AnimEvent_DealDamage();
+    }
     public void AnimEvent_DealDamage()
     {
-        if (IsTargetAlive)
-        {
-            float damage = Strength + Random.Range(-1.5f, 1.5f);
-            DealDamageToTarget(damage);
-        }
+        if (!_impactPending) return;
+        _impactPending = false;
+        if (!IsAlive || _cinematicIdle) return;
+        var target = _pendingPlayer ? _pendingPlayer.transform : _pendingEnemy ? _pendingEnemy.transform : null;
+        if (!target || Vector3.Distance(transform.position, target.position) > AttackRange + .35f) return;
+        float damage = Mathf.Max(1, Strength + Random.Range(-1f, 1f));
+        if (_pendingPlayer && _pendingPlayer.IsAlive) _pendingPlayer.TakeDamage(damage);
+        else if (_pendingEnemy && _pendingEnemy.IsAlive) _pendingEnemy.TakeDamage(damage, this);
+        GameAudio.Play("impact");
     }
 
     // ── Damage ────────────────────────────────────────────────────────────
     public void TakeDamage(float amount, MonoBehaviour attacker = null)
     {
         if (!IsAlive) return;
-        CurrentHp = Mathf.Max(0, CurrentHp - amount);
+        CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount));
         healthBar?.SetHealth(CurrentHp, MaxHp);
 
         if (CurrentHp <= 0) { Die(); return; }
@@ -570,7 +584,7 @@ public class EnemyController : MonoBehaviour
         Vector3 dir = targetPos - transform.position;
         dir.y = 0;
         if (dir.sqrMagnitude > 0.001f)
-            transform.rotation = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir), GameplayTuning.Current.turnSpeed * Time.deltaTime);
     }
 
     // ── Building Interactions ──────────────────────────────────────────────
@@ -594,6 +608,8 @@ public class EnemyController : MonoBehaviour
     {
         var kind = firmName == "POLICE" ? MiniMapIconFactory.Kind.Police : MiniMapIconFactory.Kind.Gang;
         MiniMapIconFactory.Register(transform, kind, firmName);
+        UnitAffiliationMarker.Attach(transform,
+            firmName == "POLICE" ? new Color(.20f, .55f, 1f, 1f) : new Color(1f, .10f, .08f, 1f), 1.02f, false);
     }
 
     private void OnDestroy()

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 [System.Serializable]
 public class PlayerData
 {
+    public int PowerPackagesPurchased;
+    /// <summary>Playable side selected before the campaign starts: "Firm" or "Police".</summary>
+    [System.Runtime.Serialization.OptionalField] public string PlayerFaction;
     [System.Runtime.Serialization.OptionalField] public List<string> CityCapturedZones;
     [System.Runtime.Serialization.OptionalField] public int HomeTrainingLevel;
     [System.Runtime.Serialization.OptionalField] public bool HomeDefenceCompleted;
@@ -34,7 +37,7 @@ public class PlayerData
     public int  Fans       = 1;
     public int  Strength   = 40;
     public int  Reputation = 10;
-    public int  PoliceHeat = 0;
+    public int  PoliceHeat = 7;
     public int  Ranking    = 5;
     public int  Money      = 5000;
     public int  MatchDay   = 1;
@@ -77,11 +80,36 @@ public class PlayerData
     public int LastAwayTripMatchday;
     [System.Runtime.Serialization.OptionalField]
     public List<string> SelectedAwayAgentIds = new List<string>();
+    [System.Runtime.Serialization.OptionalField]
+    public bool DeploymentSelectionCustomized = false;
 
     // ── Campaign level (1–5), saved across sessions ───────────────────────
     public int CurrentLevel = 1;
     [System.Runtime.Serialization.OptionalField]
     public int LastTrainingMatchday;
+
+    // ── Live-city RTS operations ledger (resets each matchday) ───────────
+    [System.Runtime.Serialization.OptionalField] public int OperationsMatchday;
+    [System.Runtime.Serialization.OptionalField] public int CityIntel;
+    [System.Runtime.Serialization.OptionalField] public int CitySupplies;
+    [System.Runtime.Serialization.OptionalField] public int MatchTickets;
+    [System.Runtime.Serialization.OptionalField] public int SocialMomentum;
+    [System.Runtime.Serialization.OptionalField] public bool TransportPrepared;
+    [System.Runtime.Serialization.OptionalField] public bool StadiumAccessPrepared;
+    [System.Runtime.Serialization.OptionalField] public List<string> CompletedCityOperations;
+
+    // ── Five-mission campaign (home + four sequential away operations) ───
+    [System.Runtime.Serialization.OptionalField] public int CampaignResourceMission;
+    [System.Runtime.Serialization.OptionalField] public List<int> CompletedCampaignMissions;
+    [System.Runtime.Serialization.OptionalField] public List<string> CompletedCampaignSteps;
+    [System.Runtime.Serialization.OptionalField] public List<string> CampaignRivalKeys;
+    [System.Runtime.Serialization.OptionalField] public List<string> CampaignTerritoryKeys;
+    [System.Runtime.Serialization.OptionalField] public List<string> CampaignActionKeys;
+    [System.Runtime.Serialization.OptionalField] public bool CampaignStartingHeatApplied;
+    [System.Runtime.Serialization.OptionalField] public string MatchdayPhase;
+    [System.Runtime.Serialization.OptionalField] public bool MatchdayIncidentResolved;
+    [System.Runtime.Serialization.OptionalField] public int MatchdayRivalPressure;
+    [System.Runtime.Serialization.OptionalField] public int MatchdayPolicePresence;
 
     // ── Battle session snapshot (leave = keep progress; Try Again = restore) ──
     /// <summary>True while a street battle session is in progress across loads.</summary>
@@ -90,6 +118,16 @@ public class PlayerData
     public List<string> BattleStartAgentIds = new List<string>();
     /// <summary>Recruits already taken per recruitment center (A/B/C) this session.</summary>
     public int[] BattleRecruitSlotsUsed = new int[3];
+    /// <summary>Campaign level when the battle session began (Try Again restores this).</summary>
+    [System.Runtime.Serialization.OptionalField]
+    public int BattleStartLevel = 1;
+    /// <summary>Whether the session began in home district (Try Again restores this).</summary>
+    [System.Runtime.Serialization.OptionalField]
+    public bool BattleStartHomeMode = true;
+    /// <summary>Heat restored by Try Again. A retry always resumes at the campaign's
+    /// readable seven-bar starting pressure instead of carrying a terminal 10/10 state.</summary>
+    [System.Runtime.Serialization.OptionalField]
+    public int BattleStartPoliceHeat = 7;
 
     // ── Hooligan Manager — Recent event log ──────────────────────────────
     public string[] RecentEvents = new string[0];

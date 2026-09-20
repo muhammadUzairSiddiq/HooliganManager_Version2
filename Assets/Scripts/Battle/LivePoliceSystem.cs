@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UI;
@@ -22,6 +23,7 @@ public class LivePoliceSystem : MonoBehaviour
         if (_instance != null) return;
         if (BattleManager.instance == null) return;
         if (BattleManager.instance.Mode != BattleManager.BattleMode.RivalFight) return;
+        if (GameManager.IsPolicePlayer) return;
         var go = new GameObject("LivePoliceSystem");
         _instance = go.AddComponent<LivePoliceSystem>();
     }
@@ -77,8 +79,9 @@ public class LivePoliceSystem : MonoBehaviour
 
     void Start()
     {
-        if(gameObject.scene.name=="Gameplay") {cutsceneHeight=65;startingHeat=GameManager.Data?.PoliceHeat??0;}
-        _heat = Mathf.Clamp(startingHeat, 0, maxHeat);
+        if(gameObject.scene.name=="Gameplay") {cutsceneHeight=28;startingHeat=GameManager.Data?.PoliceHeat??0;}
+        var pd = GameData.instance != null ? GameData.instance.PlayerData : null;
+        _heat = Mathf.Clamp(pd != null ? pd.PoliceHeat : startingHeat, 0, maxHeat);
         BuildUI();
         PoliceRoadSpline.EnsureExists();
         SpawnPatrolCars();
@@ -86,30 +89,30 @@ public class LivePoliceSystem : MonoBehaviour
     }
 
     /// <summary>
-    /// Kill-only heat: +1 per rival taken down. Never auto-increments over time.
-    /// Shows a "+1" ping next to the bar. At 10, triggers the police arrival
-    /// only after the current gang fight has finished.
+    /// Individual knockouts do not create noisy per-unit heat changes. A complete
+    /// rival fight applies one predictable +4 spike in NotifyGangFightEnded.
     /// </summary>
     public void NotifyKill()
     {
-        if (_state == PoliceState.BribedOff) return;
-        if (_state == PoliceState.Cutscene || _state == PoliceState.AwaitingChoice) return;
-        if (_state == PoliceState.Fighting) return; // already dealing with police
-        if (_heat >= maxHeat) return;
-
-        _heat = Mathf.Min(maxHeat, _heat + 1);
-        UpdateHeatBar();
-        ShowHeatPlusOne();
-
-        if (_heat >= maxHeat && _state == PoliceState.Idle)
-            TryStartPoliceArrival();
+        // Intentionally aggregated at fight completion.
     }
 
     /// <summary>Called when a rival firm wipe finishes — flush deferred police arrival.</summary>
     public void NotifyGangFightEnded()
     {
+        if(_state!=PoliceState.BribedOff&&_state!=PoliceState.Fighting&&gameObject.scene.name=="Gameplay")
+        {
+            int before=_heat;_heat=Mathf.Min(maxHeat,_heat+BattleManager.RivalFightHeatGain);
+            if(_heat!=before)
+            {
+                var data=GameManager.Data;if(data!=null){data.PoliceHeat=_heat;GameManager.Save();}
+                UpdateHeatBar();ShowHeatPlusOne();
+                CityGameplay.Instance?.PostEvent("RIVAL FIGHT COMPLETE - POLICE HEAT +4");
+            }
+        }
         if (_pendingArrival && _state == PoliceState.Idle && _heat >= maxHeat)
             TryStartPoliceArrival();
+        else if(_state==PoliceState.Idle&&_heat>=maxHeat)TryStartPoliceArrival();
     }
 
     private void TryStartPoliceArrival()
@@ -132,6 +135,7 @@ public class LivePoliceSystem : MonoBehaviour
         RestoreHiddenGangs();
         DespawnWave();
         UnfreezeWorld();
+        startingHeat = GameManager.Data?.PoliceHeat ?? startingHeat;
         _heat = Mathf.Clamp(startingHeat, 0, maxHeat);
         _wave = 0;
         _pendingArrival = false;
@@ -144,8 +148,21 @@ public class LivePoliceSystem : MonoBehaviour
         UpdateHeatBar();
     }
 
+    private void SyncHeatFromCampaign()
+    {
+        if (_state == PoliceState.Fighting) return;
+        var pd = GameData.instance != null ? GameData.instance.PlayerData : null;
+        if (pd == null) return;
+        int savedHeat = Mathf.Clamp(pd.PoliceHeat, 0, maxHeat);
+        if (savedHeat == _heat) return;
+        _heat = savedHeat;
+        UpdateHeatBar();
+    }
+
     void Update()
     {
+        SyncHeatFromCampaign();
+
         if (_state == PoliceState.BribedOff ||
             _state == PoliceState.Cutscene ||
             _state == PoliceState.AwaitingChoice)
@@ -166,6 +183,12 @@ public class LivePoliceSystem : MonoBehaviour
         {
             if (BattleManager.instance == null || !BattleManager.instance.IsRivalGangFightActive())
                 TryStartPoliceArrival();
+        }
+        else if(_state==PoliceState.Idle&&_heat>=maxHeat)
+        {
+            // City actions and matchday choices can reach 10/10 without a gang wipe.
+            // A full bar must always produce a police response instead of silently persisting.
+            TryStartPoliceArrival();
         }
     }
 
@@ -234,15 +257,7 @@ public class LivePoliceSystem : MonoBehaviour
             nearest = _responseCar != null ? _responseCar.GetComponent<PoliceCarChaser>() : null;
         }
 
-        Vector3 carFocus = _responseCar != null ? _responseCar.transform.position : playerPos;
-
-        // 2) Cutscene camera on the blinking patrol car.
-        yield return StartCoroutine(PoliceCarCutscene(carFocus));
-
-        // 3) Hide rival gangs — only player + police remain.
-        HideRivalGangs();
-
-        // 4) Park car beside the player and spawn stronger officers in front.
+        // 2) Park car beside the player. Camera tracks this road arrival closely.
         Vector3 forward = GetPlayerForward();
         Vector3 carPark = playerPos - forward * 6f + Vector3.right * 2.5f;
         int roadMask=gameObject.scene.name=="Gameplay" ? 1<<3 : NavMesh.AllAreas;
@@ -250,13 +265,18 @@ public class LivePoliceSystem : MonoBehaviour
             carPark = carHit.position;
 
         if(nearest!=null && gameObject.scene.name=="Gameplay")
-            yield return nearest.DriveArrival(carPark);
+            yield return StartCoroutine(PoliceCarCutscene(nearest,carPark));
         else if (nearest != null)
             nearest.ParkAt(carPark, forward);
         else if (_responseCar != null)
             _responseCar.transform.position = carPark;
 
+        // 3) Hide rival gangs — only player + police remain.
+        HideRivalGangs();
+
+        // 4) Officers step out. Hold on their close-up before any popup appears.
         SpawnOfficersInFrontOfPlayer(playerPos, forward);
+        yield return StartCoroutine(PoliceOfficerCutscene(playerPos,forward));
 
         // 5) Camera back to the player.
         yield return StartCoroutine(ReturnCameraToPlayer());
@@ -299,7 +319,7 @@ public class LivePoliceSystem : MonoBehaviour
         chaser.StopAndIdle();
     }
 
-    private IEnumerator PoliceCarCutscene(Vector3 focus)
+    private IEnumerator PoliceCarCutscene(PoliceCarChaser car,Vector3 destination)
     {
         var camCtl = CameraPanTouchOnly.Instance;
         var cam = Camera.main;
@@ -308,15 +328,37 @@ public class LivePoliceSystem : MonoBehaviour
         bool wasEnabled = camCtl != null && camCtl.enabled;
         if (camCtl != null) camCtl.enabled = false;
 
-        Vector3 startPos = cam.transform.position;
-        Vector3 focusPos = FrameFromRotation(cam.transform.rotation, focus, cutsceneHeight);
+        Vector3 focus=car?car.transform.position:destination;
+        Vector3 focusPos=FrameFromRotation(cam.transform.rotation,focus,cutsceneHeight);
         if(gameObject.scene.name=="Gameplay")focusPos=CameraPanTouchOnly.SafeCityPosition(focus,focusPos);
-
-        yield return MoveCamRealtime(cam, startPos, focusPos, 0.7f);
-        yield return new WaitForSecondsRealtime(cutsceneHoldSeconds);
-        // Hold briefly — sirens keep blinking via unscaled time.
+        yield return MoveCamRealtime(cam,cam.transform.position,focusPos,.45f);
+        if(car!=null)
+        {
+            var drive=car.DriveArrival(destination);
+            while(drive.MoveNext())
+            {
+                Vector3 follow=FrameFromRotation(cam.transform.rotation,car.transform.position,cutsceneHeight);
+                if(gameObject.scene.name=="Gameplay")follow=CameraPanTouchOnly.SafeCityPosition(car.transform.position,follow);
+                cam.transform.position=Vector3.Lerp(cam.transform.position,follow,Time.unscaledDeltaTime*6f);
+                yield return drive.Current;
+            }
+        }
+        yield return new WaitForSecondsRealtime(.45f);
 
         if (camCtl != null) camCtl.enabled = wasEnabled;
+    }
+
+    private IEnumerator PoliceOfficerCutscene(Vector3 playerPos,Vector3 forward)
+    {
+        var camCtl=CameraPanTouchOnly.Instance;var cam=Camera.main;if(!cam)yield break;
+        bool wasEnabled=camCtl&&camCtl.enabled;if(camCtl)camCtl.enabled=false;
+        var officer=_waveOfficers.FirstOrDefault(o=>o&&o.IsAlive);
+        Vector3 focus=officer?officer.transform.position:playerPos+forward*3f;
+        Vector3 close=FrameFromRotation(cam.transform.rotation,focus,Mathf.Max(18f,cutsceneHeight*.78f));
+        if(gameObject.scene.name=="Gameplay")close=CameraPanTouchOnly.SafeCityPosition(focus,close);
+        yield return MoveCamRealtime(cam,cam.transform.position,close,.35f);
+        yield return new WaitForSecondsRealtime(.6f);
+        if(camCtl)camCtl.enabled=wasEnabled;
     }
 
     private IEnumerator ReturnCameraToPlayer()
@@ -608,7 +650,7 @@ public class LivePoliceSystem : MonoBehaviour
 
     private IEnumerator HeatPlusRoutine()
     {
-        _heatPlusLabel.text = "+1";
+        _heatPlusLabel.text = "+4";
         _heatPlusGroup.alpha = 1f;
         var rt = _heatPlusLabel.rectTransform;
         Vector2 start = new Vector2(18f, 0f);
@@ -657,10 +699,7 @@ public class LivePoliceSystem : MonoBehaviour
         var canvas = canvasGo.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 20000;
-        var scaler = canvasGo.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = LandscapeUI.Resolution;
-        scaler.matchWidthOrHeight = 0.5f;
+        LandscapeUI.ConfigureLandscapeScaler(canvasGo.GetComponent<CanvasScaler>());
 
         var vig = new GameObject("Vignette", typeof(RectTransform), typeof(CanvasGroup));
         vig.transform.SetParent(canvasGo.transform, false);
@@ -730,7 +769,7 @@ public class LivePoliceSystem : MonoBehaviour
         plusRt.pivot = new Vector2(0f, 0.5f);
         plusRt.anchoredPosition = new Vector2(8f, 0f);
         plusRt.sizeDelta = new Vector2(40f, 20f);
-        _heatPlusLabel = NewText("Plus", plusGo.transform, "+1", 14f, FontStyles.Bold);
+        _heatPlusLabel = NewText("Plus", plusGo.transform, "+4", 14f, FontStyles.Bold);
         Stretch(_heatPlusLabel.rectTransform);
         _heatPlusLabel.alignment = TextAlignmentOptions.Left;
         _heatPlusLabel.color = new Color(1f, 0.35f, 0.2f, 1f);

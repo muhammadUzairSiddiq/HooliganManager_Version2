@@ -48,6 +48,17 @@ public static class LandscapeThemeImporter
             new Slice("HM_VictoryEmblem",548,354,365,320), new Slice("HM_Celebration",18,5,882,337)
         });
         theme.emblem=result["HM_VictoryEmblem"]; theme.celebration=result["HM_Celebration"];
+        theme.energy=Single(Pack+"icons/icon_energy.png");
+        theme.lootBat=Single(Pack+"icons/icon_loot_bat.png");
+        theme.lootBattery=Single(Pack+"icons/icon_loot_battery.png");
+        theme.medkit=Single(Pack+"icons/icon_loot_medkit.png");
+        theme.navHome=Single(Pack+"nav/nav_home.png");
+        theme.navAttack=Single(Pack+"nav/nav_attack.png");
+        theme.navSquad=Single(Pack+"nav/nav_squad.png");
+        theme.navMissions=Single(Pack+"nav/nav_sidebar_missions.png");
+        theme.taxiPrefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ithappy/Megacity/Traffic/Prefabs/Cars/car_004.prefab");
+        theme.rivalVehiclePrefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ithappy/Megacity/Traffic/Prefabs/Cars/car_013.prefab");
+        theme.vanPrefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ithappy/Megacity/Traffic/Prefabs/Cars/cargo_car_001.prefab");
         EditorUtility.SetDirty(theme); AssetDatabase.SaveAssets(); return theme;
     }
     static Sprite Single(string path, int border=0)

@@ -5,8 +5,8 @@ using TMPro;
 using Pastoral;
 
 /// <summary>
-/// Simplified Plan Away Trip — pick a destination and start.
-/// Police heat / bribe / reputation gates live in gameplay only.
+/// Four sequential away missions. Only the active campaign destination can launch;
+/// the remaining three stay visibly locked until the previous mission is complete.
 /// </summary>
 public class PlanAwayTripController : MonoBehaviour
 {
@@ -130,9 +130,10 @@ public class PlanAwayTripController : MonoBehaviour
         var dest = destinations[index];
         var d = GameData.instance?.PlayerData;
 
-        // Always unlocked — police/rep gates removed from this screen.
-        if (detailLockOverlay) detailLockOverlay.SetActive(false);
-        if (detailLockReasonText) detailLockReasonText.text = "";
+        int missionNumber=CampaignMissions.MissionForDestination(dest.name);
+        bool unlocked=CampaignMissions.CanEnterDestination(d,dest.name,out string lockReason);
+        if (detailLockOverlay) detailLockOverlay.SetActive(!unlocked);
+        if (detailLockReasonText) detailLockReasonText.text = unlocked ? "" : lockReason.ToUpperInvariant();
 
         BotData bot = null;
         if (d?.RivalBots != null)
@@ -157,8 +158,12 @@ public class PlanAwayTripController : MonoBehaviour
             dynamicReward = (Mathf.RoundToInt(dest.potentialReward * strengthRatio) / 100) * 100;
         }
 
-        if (detailNameText) detailNameText.text = dest.name.ToUpper();
-        if (detailDescriptionText) detailDescriptionText.text = dest.description;
+        if (detailNameText) detailNameText.text = $"MISSION {missionNumber:00}  ·  {dest.name.ToUpper()}";
+        if (detailDescriptionText)
+        {
+            var mission=CampaignMissions.Get(missionNumber);
+            detailDescriptionText.text=mission.briefing+"\n\n"+(unlocked?"ACTIVE MISSION":lockReason.ToUpperInvariant());
+        }
         if (detailLocationImage)
         {
             detailLocationImage.sprite = dest.locationImage != null ? dest.locationImage : CreateDestinationSprite(dest.name);
@@ -180,7 +185,7 @@ public class PlanAwayTripController : MonoBehaviour
         int selectedAgents = CountSelectedAliveAgents(d);
 
         if (startTripBtn != null)
-            startTripBtn.interactable = d != null && d.Money >= dest.travelCost && aliveAgents > 0 && selectedAgents > 0 && d.Fans > 0;
+            startTripBtn.interactable = unlocked && d != null && d.Money >= dest.travelCost && aliveAgents > 0 && selectedAgents > 0 && d.Fans > 0;
 
         if (d != null)
         {
@@ -209,6 +214,11 @@ public class PlanAwayTripController : MonoBehaviour
         if (d == null) return;
 
         var dest = destinations[_selectedIndex];
+        if(!CampaignMissions.CanEnterDestination(d,dest.name,out string lockReason))
+        {
+            GamePopup.Instance?.Show("MISSION LOCKED",lockReason,new GamePopup.Option("BACK",LandscapeUI.PanelColor,null));
+            return;
+        }
         if (d.Money < dest.travelCost) return;
 
         EnsureDeploymentSelection();
@@ -353,7 +363,7 @@ public class PlanAwayTripController : MonoBehaviour
     {
         var d = GameData.instance?.PlayerData;
         if (d == null) return;
-        bool initializeFromRoster = d.SelectedAwayAgentIds == null;
+        bool initializeFromRoster = d.SelectedAwayAgentIds == null || !d.DeploymentSelectionCustomized;
         if (d.SelectedAwayAgentIds == null) d.SelectedAwayAgentIds = new List<string>();
 
         for (int i = d.SelectedAwayAgentIds.Count - 1; i >= 0; i--)
@@ -362,6 +372,7 @@ public class PlanAwayTripController : MonoBehaviour
 
         if (initializeFromRoster && d.RecruitedAgents != null)
         {
+            d.SelectedAwayAgentIds.Clear();
             foreach (var agent in d.RecruitedAgents)
             {
                 if (agent == null || !agent.IsAlive) continue;
@@ -376,6 +387,7 @@ public class PlanAwayTripController : MonoBehaviour
         var d = GameData.instance?.PlayerData;
         if (d?.RecruitedAgents == null) return;
         d.SelectedAwayAgentIds = new List<string>();
+        d.DeploymentSelectionCustomized = false;
         foreach (var agent in d.RecruitedAgents)
         {
             if (agent == null || !agent.IsAlive) continue;
@@ -393,6 +405,7 @@ public class PlanAwayTripController : MonoBehaviour
         if (d == null) return;
         if (d.SelectedAwayAgentIds == null) d.SelectedAwayAgentIds = new List<string>();
         d.SelectedAwayAgentIds.Clear();
+        d.DeploymentSelectionCustomized = true;
         GameData.instance.SaveData();
         BuildDeploymentList();
         SelectDestination(_selectedIndex);
@@ -404,9 +417,15 @@ public class PlanAwayTripController : MonoBehaviour
         if (d == null || agent == null || !agent.IsAlive) return;
         if (d.SelectedAwayAgentIds == null) d.SelectedAwayAgentIds = new List<string>();
         if (d.SelectedAwayAgentIds.Contains(agent.AgentId))
+        {
             d.SelectedAwayAgentIds.Remove(agent.AgentId);
+            d.DeploymentSelectionCustomized = true;
+        }
         else if (d.SelectedAwayAgentIds.Count < maxDeployMembers)
+        {
             d.SelectedAwayAgentIds.Add(agent.AgentId);
+            d.DeploymentSelectionCustomized = true;
+        }
         GameData.instance.SaveData();
         BuildDeploymentList();
         SelectDestination(_selectedIndex);
@@ -462,7 +481,7 @@ public class PlanAwayTripController : MonoBehaviour
             "Old Town" => "CityPresentation/CityLoading_OldTown",
             _ => "CityPresentation/CityLoading_Docks",
         };
-        var texture = Resources.Load<Texture2D>(key);
+        var texture = Resources.Load<Texture2D>(key) ?? Resources.Load<Texture2D>("CityPresentation/CityLoading_Docks");
         return texture ? Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(.5f, .5f)) : null;
     }
 

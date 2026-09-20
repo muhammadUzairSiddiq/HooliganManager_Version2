@@ -33,8 +33,8 @@ public static class GameplayReadability
         if (cam == null) return;
         if (cam.gameObject.scene.name == "Gameplay")
         {
-            CameraPanTouchOnly.Instance?.ConfigureCity(PlayerPrefs.GetFloat("CityCameraFov",65),
-                PlayerPrefs.GetFloat("CityCameraHeight",65),PlayerPrefs.GetFloat("CityCameraPitch",65));
+            CameraPanTouchOnly.Instance?.ConfigureCity(PlayerPrefs.GetFloat("CityCameraFov",GameplayTuning.Current.cameraFov),
+                PlayerPrefs.GetFloat("CityCameraHeight",GameplayTuning.Current.explorationHeight),PlayerPrefs.GetFloat("CityCameraPitch",GameplayTuning.Current.cameraPitch));
             CameraPanTouchOnly.Instance?.CenterOnSelection();
             return;
         }

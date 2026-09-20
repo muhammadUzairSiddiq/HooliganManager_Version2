@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -18,13 +19,38 @@ public class GamePopup : MonoBehaviour
         get { if(!instance) {instance=new GameObject("GamePopup").AddComponent<GamePopup>();instance.Build();}return instance; }
     }
     GameObject root;
+    Image dialog,accent,dimmer;
     TextMeshProUGUI title,body;
     RectTransform buttons;
     ScrollRect scroll;
+    public static bool AnyOpen => instance && instance.IsOpen;
     public bool IsOpen => root && root.activeSelf;
-    public void Show(string heading,string message,params Option[] options)
+    Action hideCallback;
+    Coroutine autoHide;
+    public void Show(string heading,string message,params Option[] options)=>Show(heading,message,null,options);
+    public void ShowTimed(string heading,string message,float seconds=1.6f)
     {
-        if(!root) Build();root.SetActive(true);title.text=heading;body.text=message;Clear(buttons);
+        Show(heading,message,new Option("OK",PanelColor,null));
+        autoHide=StartCoroutine(AutoHide(seconds));
+    }
+    IEnumerator AutoHide(float seconds)
+    {
+        yield return new WaitForSecondsRealtime(seconds);
+        autoHide=null;
+        if(IsOpen) Hide();
+    }
+    public void Show(string heading,string message,Action onCancel,params Option[] options)
+    {
+        if(!root) Build();
+        if(autoHide!=null){StopCoroutine(autoHide);autoHide=null;}
+        hideCallback=onCancel;
+        Color tone=ToneFor(heading);
+        GameAudio.Play("popup");root.SetActive(true);title.text=heading;body.text=message;body.richText=true;body.overflowMode=TextOverflowModes.Overflow;Clear(buttons);
+        if(accent)accent.color=tone;
+        if(title)title.color=tone;
+        if(dimmer)dimmer.color=new Color(tone.r*.20f,tone.g*.20f,tone.b*.20f,.44f);
+        var outline=dialog?dialog.GetComponent<Outline>():null;
+        if(outline)outline.effectColor=new Color(tone.r,tone.g,tone.b,.65f);
         if(options==null || options.Length==0) options=new[]{new Option("CLOSE",PanelColor,null)};
         bool longList=options.Length>3;
         var grid=buttons.GetComponent<GridLayoutGroup>();grid.constraint=GridLayoutGroup.Constraint.FixedColumnCount;
@@ -33,27 +59,56 @@ public class GamePopup : MonoBehaviour
         foreach(var item in options)
         {
             var captured=item;var b=Button("Option_"+item.Label,buttons,item.Label,0,0,grid.cellSize.x,68);
-            b.GetComponent<Image>().color=Color.Lerp(Color.white,item.Color,.35f);
-            b.onClick.AddListener(()=>{Hide();captured.Action?.Invoke();});
+            var image=b.GetComponent<Image>();
+            if(image)
+            {
+                var theme=LandscapeTheme.Current;
+                if(theme&&item.Color.r>item.Color.g*1.25f)image.sprite=theme.redButton;
+                else if(theme&&item.Color.g>item.Color.r*1.15f)image.sprite=theme.greenButton;
+                else if(theme&&item.Color.b>item.Color.r*1.15f)image.sprite=theme.outlineButton;
+                if(image.sprite)image.type=UnityEngine.UI.Image.Type.Sliced;
+                image.color=Color.white;
+            }
+            b.onClick.AddListener(()=>{var act=captured.Action;hideCallback=null;Hide();act?.Invoke();});
         }
         Canvas.ForceUpdateCanvases();scroll.verticalNormalizedPosition=1;
     }
-    public void Hide() {if(root) root.SetActive(false);}
+    public void Hide()
+    {
+        if(autoHide!=null){StopCoroutine(autoHide);autoHide=null;}
+        var cancel=hideCallback;hideCallback=null;
+        if(root) root.SetActive(false);
+        cancel?.Invoke();
+    }
     void Build()
     {
         var canvas=new GameObject("GamePopupCanvas",typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));canvas.transform.SetParent(transform,false);
         var c=canvas.GetComponent<Canvas>();c.renderMode=RenderMode.ScreenSpaceOverlay;c.sortingOrder=30000;
-        var scaler=canvas.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=LandscapeUI.Resolution;scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.Expand;
+        LandscapeUI.ConfigureLandscapeScaler(canvas.GetComponent<CanvasScaler>());
         var safe=Rect("SafeArea",canvas.transform,0,0,1600,900);Stretch(safe);
         var frame=Rect("Frame",safe,0,0,1600,900);var viewport=safe.gameObject.AddComponent<LandscapeViewport>();viewport.frame=frame;viewport.Fit();
         root=Rect("Modal",frame,0,0,1600,900).gameObject;
-        Image("Dimmer",root.transform,0,0,1600,900,null,new Color(0,0,0,.76f)).raycastTarget=true;
-        var panel=Panel("Dialog",root.transform,306,180,988,540,true);
-        Image("Accent",panel.transform,38,0,912,4,null,Red);
-        title=Text("Title",panel.transform,"",43,27,902,65,39,null,true,TextAlignmentOptions.Center);
-        body=Text("Body",panel.transform,"",48,115,892,145,25,Muted,false,TextAlignmentOptions.Center);
-        scroll=Scroll("Options",panel.transform,42,285,904,218,grid:true);buttons=scroll.content;
+        dimmer=Image("Dimmer",root.transform,0,0,1600,900,null,new Color(.04f,.08f,.12f,.44f));dimmer.raycastTarget=true;
+        dimmer.gameObject.AddComponent<UiWorldTapBlocker>();
+        dialog=Panel("Dialog",root.transform,284,172,1032,556,true);
+        Image("TitleBand",dialog.transform,24,18,984,78,null,new Color(.01f,.02f,.03f,.52f));
+        accent=Image("Accent",dialog.transform,24,18,984,6,null,Red);
+        title=Text("Title",dialog.transform,"",43,33,880,48,38,Red,true,TextAlignmentOptions.Center);
+        var closeX=Button("CloseX",dialog.transform,"X",952,26,56,52,"red");
+        closeX.onClick.AddListener(Hide);
+        body=Text("Body",dialog.transform,"",52,110,928,250,22,White,false,TextAlignmentOptions.Center);
+        body.richText=true;body.overflowMode=TextOverflowModes.Overflow;body.enableWordWrapping=true;body.fontSizeMin=16;
+        scroll=Scroll("Options",dialog.transform,50,372,932,148,grid:true);buttons=scroll.content;
         var grid=buttons.gameObject.AddComponent<GridLayoutGroup>();grid.spacing=new Vector2(14,14);grid.padding=new RectOffset(6,6,6,6);
         root.SetActive(false);
+    }
+
+    static Color ToneFor(string heading)
+    {
+        string value=(heading??string.Empty).ToUpperInvariant();
+        if(value.Contains("DEFEAT")||value.Contains("FAILED")||value.Contains("POLICE")||value.Contains("RIVAL"))return Red;
+        if(value.Contains("COMPLETE")||value.Contains("SECURED")||value.Contains("SUCCESS")||value.Contains("RECOVERY")||value.Contains("CONFIRMED")||value.Contains("JOINED"))return Green;
+        if(value.Contains("WARNING")||value.Contains("HEAT")||value.Contains("ESCALATION")||value.Contains("POWER")||value.Contains("FUNDS"))return Gold;
+        return new Color(.20f,.78f,1f);
     }
 }

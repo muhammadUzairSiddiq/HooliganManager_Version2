@@ -1,62 +1,56 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using System;
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
+using UnityEngine;
 
+// PlayerPrefs is the campaign authority. The legacy binary is retained but never silently restored.
 public static class SaveDataInLocal
 {
+    public const string SaveKey = "HM.Campaign.v2";
+    const string BackupKey = "HM.Campaign.v2.backup";
 #if UNITY_EDITOR
-    // The UI smoke harness uses a separate save path and restores the in-memory campaign.
     public static string EditorSaveOverride;
 #endif
-    private static string SavePath
+    [Serializable] class Envelope { public int version = 2; public PlayerData player; }
+    public static void DataSave(PlayerData player)
     {
-        get
-        {
+        if (player == null) return;
+        string json = JsonUtility.ToJson(new Envelope { player = player });
 #if UNITY_EDITOR
-            if (!string.IsNullOrEmpty(EditorSaveOverride)) return EditorSaveOverride;
-#endif
-            return Application.persistentDataPath + "/playerdata.sz";
+        if (!string.IsNullOrEmpty(EditorSaveOverride))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(EditorSaveOverride)));
+            File.WriteAllText(EditorSaveOverride, json); return;
         }
+#endif
+        var previous = PlayerPrefs.GetString(SaveKey, "");
+        if (Decode(previous) != null) PlayerPrefs.SetString(BackupKey, previous);
+        PlayerPrefs.SetString(SaveKey, json); PlayerPrefs.Save();
     }
-    // Location of data C:\Users\samiz\AppData\LocalLow\DefaultCompany\SoftBall
-    public static void DataSave(PlayerData Playerdata)
-    {
-        BinaryFormatter formatter = new BinaryFormatter();
-        string path = SavePath;
-        Stream stream = new FileStream(path, FileMode.Create);
-
-        // PlayerData playerdata = new PlayerData(Playerdata);
-
-        formatter.Serialize(stream,Playerdata);
-        Debug.Log("Save player data at "+path);
-        stream.Close();
-    }
-
     public static PlayerData DataLoad()
     {
-        string path = SavePath;
-        Debug.Log("Load player data from "+path);
-        if (File.Exists(path))
+#if UNITY_EDITOR
+        if (!string.IsNullOrEmpty(EditorSaveOverride))
+            return File.Exists(EditorSaveOverride) ? Decode(File.ReadAllText(EditorSaveOverride)) : null;
+#endif
+        return Decode(PlayerPrefs.GetString(SaveKey, "")) ?? Decode(PlayerPrefs.GetString(BackupKey, ""));
+    }
+    public static bool HasSavedCampaign()
+    {
+#if UNITY_EDITOR
+        if (!string.IsNullOrEmpty(EditorSaveOverride))
+            return File.Exists(EditorSaveOverride) && Decode(File.ReadAllText(EditorSaveOverride)) != null;
+#endif
+        return Decode(PlayerPrefs.GetString(SaveKey, "")) != null
+            || Decode(PlayerPrefs.GetString(BackupKey, "")) != null;
+    }
+    static PlayerData Decode(string json)
+    {
+        if (string.IsNullOrEmpty(json)) return null;
+        try
         {
-            BinaryFormatter formatter = new BinaryFormatter();
-            Stream stream = new FileStream(path, FileMode.Open);
-            try
-            {
-                PlayerData Playerdata = formatter.Deserialize(stream) as PlayerData;
-                stream.Close();
-                return Playerdata;
-            }
-            catch { Debug.Log("Data was corrupted or tempered with.");}
-            stream.Close();
-
-            return null;
+            var save = JsonUtility.FromJson<Envelope>(json);
+            return save != null && save.version == 2 && save.player?.RecruitedAgents != null ? save.player : null;
         }
-        else
-        {
-            Debug.Log("No Data found.");
-            return null;
-        }
+        catch (ArgumentException) { return null; }
     }
 }

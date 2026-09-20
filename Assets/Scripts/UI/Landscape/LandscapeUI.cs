@@ -14,6 +14,15 @@ public static class LandscapeUI
     public static readonly Color Gold = new Color32(232, 186, 90, 255);
     public static readonly Vector2 Resolution = new Vector2(1600, 900);
 
+    public static void ConfigureLandscapeScaler(CanvasScaler scaler)
+    {
+        if (scaler == null) return;
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = Resolution;
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 1f;
+    }
+
     public static RectTransform Rect(string name, Transform parent, float x, float y, float w, float h)
     {
         var rt = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
@@ -47,6 +56,8 @@ public static class LandscapeUI
         var i = Image(name, p, x, y, w, h, LandscapeTheme.Current?.panel, Color.white);
         if (!i.sprite) i.color = PanelColor;
         i.raycastTarget = block;
+        var outline=i.gameObject.AddComponent<Outline>();
+        outline.effectColor=new Color(.12f,.78f,.76f,.34f);outline.effectDistance=new Vector2(1,-1);
         return i;
     }
     public static TextMeshProUGUI Text(string name, Transform p, string value, float x, float y, float w, float h, float size = 24, Color? color = null, bool bold = false, TextAlignmentOptions align = TextAlignmentOptions.Left)

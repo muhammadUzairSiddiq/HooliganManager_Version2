@@ -92,18 +92,41 @@ public class PoliceRoadSpline : MonoBehaviour
     void BuildCityRoute()
     {
         Vector3 home=BattleManager.instance?.playerSpawnRoot ? BattleManager.instance.playerSpawnRoot.position : new Vector3(120,0,90);
-        Vector3[] guesses={home+new Vector3(-75,0,-90),home+new Vector3(105,0,-90),home+new Vector3(105,0,60),home+new Vector3(-75,0,60)};
-        var stops=new List<Vector3>();
-        foreach(var guess in guesses)if(NavMesh.SamplePosition(guess,out var hit,60,1<<3))stops.Add(hit.position);
-        if(stops.Count<3){Debug.LogError("City police route has no connected road surface.");return;}
+        const int roadMask=1<<3;
+        if(!NavMesh.SamplePosition(home,out var anchor,90,roadMask))
+        {Debug.LogError("City police route has no road surface near the active arrival area.");return;}
+
+        // Imported city road meshes contain disconnected NavMesh islands. Build
+        // from the island that actually contains the active home/arrival point,
+        // rejecting isolated samples before ordering the patrol loop.
+        var stops=new List<Vector3>{anchor.position};
+        var probePath=new NavMeshPath();
+        for(int ring=1;ring<=4;ring++)
+        {
+            float radius=ring*32f;
+            for(int direction=0;direction<16;direction++)
+            {
+                float angle=direction*Mathf.PI*2f/16f;
+                Vector3 guess=home+new Vector3(Mathf.Cos(angle),0f,Mathf.Sin(angle))*radius;
+                if(!NavMesh.SamplePosition(guess,out var hit,18,roadMask))continue;
+                if(!NavMesh.CalculatePath(anchor.position,hit.position,roadMask,probePath) || probePath.status!=NavMeshPathStatus.PathComplete)continue;
+                bool duplicate=false;
+                foreach(var stop in stops)if((stop-hit.position).sqrMagnitude<144f){duplicate=true;break;}
+                if(!duplicate)stops.Add(hit.position);
+            }
+        }
+        if(stops.Count<3){Debug.LogError("City police route has too few connected road points.");return;}
+        stops.Sort((a,b)=>Mathf.Atan2(a.z-home.z,a.x-home.x).CompareTo(Mathf.Atan2(b.z-home.z,b.x-home.x)));
+
         var points=new List<Vector3>();
         for(int i=0;i<stops.Count;i++)
         {
             var path=new NavMeshPath();
             if(!NavMesh.CalculatePath(stops[i],stops[(i+1)%stops.Count],1<<3,path)||path.status!=NavMeshPathStatus.PathComplete)
-            {Debug.LogError("City police patrol contains an unreachable road segment.");return;}
+                continue;
             points.AddRange(path.corners);
         }
+        if(points.Count<4){Debug.LogError("City police route could not connect enough road segments.");return;}
         _points=ResamplePolyline(points,1.25f);
         BuildCumulative();showRouteLine=false;
         Debug.Log("City police road route ready: "+_totalLen+"m");

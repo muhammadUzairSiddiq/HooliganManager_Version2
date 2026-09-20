@@ -4,6 +4,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
 using Arikan;
+using UnityEngine.InputSystem.EnhancedTouch;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 /// <summary>
 /// Corner circular minimap. Tap to expand into a near-fullscreen square map
@@ -30,11 +32,24 @@ public class LiveMiniMap : MonoBehaviour
     private Canvas _canvas;
     private GameObject _expandedRoot;
     private GameObject _closeBtn;
+    private GameObject _zoomInBtn;
+    private GameObject _zoomOutBtn;
     private TextMeshProUGUI _legend;
     private TextMeshProUGUI _hint;
     private bool _expanded;
+    private bool _compactVisible=true;
     private Vector2 _compactPos;
     private Vector2 _compactSize;
+    private float _minExpandedZoom;
+    private float _maxExpandedZoom;
+    private float _lastPinchDistance;
+    private float _nextIconRefresh;
+    private float _nextSceneScan;
+    private float _nextMapRender;
+    private readonly List<Mark> _marks = new List<Mark>(48);
+    private GangArea[] _gangAreas = new GangArea[0];
+    private RecruitArea[] _recruitAreas = new RecruitArea[0];
+    private TerritoryControlPoint[] _territoryPoints = new TerritoryControlPoint[0];
 
     private Vector3 _panFocus;
     private bool _dragging;
@@ -51,7 +66,7 @@ public class LiveMiniMap : MonoBehaviour
     private int _iconUsed;
     private int _labelUsed;
 
-    private Sprite _playerSprite, _gangSprite, _policeSprite, _recruitSprite;
+    private Sprite _playerSprite, _gangSprite, _policeSprite, _recruitSprite, _objectiveSprite;
     private Sprite _uiSprite;
 
     private struct Mark
@@ -73,7 +88,12 @@ public class LiveMiniMap : MonoBehaviour
 
     private void Build()
     {
-        if(gameObject.scene.name=="Gameplay") {cameraHeight=300;orthographicSize=100;expandedOrthoSize=350;}
+        if(gameObject.scene.name=="Gameplay")
+        {
+            cameraHeight=300;orthographicSize=100;expandedOrthoSize=260;
+            _minExpandedZoom=55f;_maxExpandedZoom=480f;
+        }
+        else {_minExpandedZoom=12f;_maxExpandedZoom=90f;}
         _uiSprite = null;
         DisableLegacyMinimap();
         BuildSprites();
@@ -109,6 +129,7 @@ public class LiveMiniMap : MonoBehaviour
         _miniCam.targetTexture = _rt;
         _miniCam.depth = -50f;
         _miniCam.cullingMask = ~(1 << 5);
+        _miniCam.enabled = false;
         camGo.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
     }
 
@@ -120,17 +141,30 @@ public class LiveMiniMap : MonoBehaviour
         _canvas = canvasGo.GetComponent<Canvas>();
         _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         _canvas.sortingOrder = 14000;
-        var scaler = canvasGo.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = LandscapeUI.Resolution;
-        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
+        LandscapeUI.ConfigureLandscapeScaler(canvasGo.GetComponent<CanvasScaler>());
 
-        _compactPos = new Vector2(-27f, gameObject.scene.name=="Gameplay" ? -510f : -122f);
-        _compactSize = new Vector2(266f, 250f);
+        var safeGo = new GameObject("SafeArea", typeof(RectTransform));
+        safeGo.transform.SetParent(canvasGo.transform, false);
+        Stretch(safeGo.GetComponent<RectTransform>());
+        safeGo.AddComponent<MiniMapSafeArea>();
+        Transform uiRoot = safeGo.transform;
+
+        // Gameplay: leave bottom-right margin; stack CAMERA / RECENTRE under the map.
+        if (gameObject.scene.name == "Gameplay")
+        {
+            _compactSize = new Vector2(200f, 190f);
+            // Aligns with camera buttons stacked under the map (bottom margin ~22).
+            _compactPos = new Vector2(-24f, -588f);
+        }
+        else
+        {
+            _compactPos = new Vector2(-24f, -122f);
+            _compactSize = new Vector2(220f, 200f);
+        }
 
         // Dimmer (expanded) — does NOT close on click (use X). Blocks world taps.
         _expandedRoot = new GameObject("ExpandedDim", typeof(RectTransform), typeof(Image));
-        _expandedRoot.transform.SetParent(canvasGo.transform, false);
+        _expandedRoot.transform.SetParent(uiRoot, false);
         Stretch(_expandedRoot.GetComponent<RectTransform>());
         var dimImg = _expandedRoot.GetComponent<Image>();
         dimImg.sprite = _uiSprite;
@@ -140,7 +174,7 @@ public class LiveMiniMap : MonoBehaviour
         _expandedRoot.SetActive(false);
 
         var borderGo = new GameObject("Border", typeof(RectTransform), typeof(Image));
-        borderGo.transform.SetParent(canvasGo.transform, false);
+        borderGo.transform.SetParent(uiRoot, false);
         _borderRt = borderGo.GetComponent<RectTransform>();
         _borderRt.anchorMin = _borderRt.anchorMax = new Vector2(1f, 1f);
         _borderRt.pivot = new Vector2(1f, 1f);
@@ -149,10 +183,12 @@ public class LiveMiniMap : MonoBehaviour
         var borderImg = borderGo.GetComponent<Image>();
         borderImg.sprite = LandscapeTheme.Current ? LandscapeTheme.Current.panel : _uiSprite;
         borderImg.type = Image.Type.Sliced;
+        borderImg.color=new Color(.025f,.08f,.10f,.98f);
         borderImg.raycastTarget = false;
+        BuildNeonEdges(_borderRt);
 
         var frameGo = new GameObject("Frame", typeof(RectTransform), typeof(Image), typeof(Mask), typeof(Button));
-        frameGo.transform.SetParent(canvasGo.transform, false);
+        frameGo.transform.SetParent(uiRoot, false);
         _frame = frameGo.GetComponent<RectTransform>();
         _frame.anchorMin = _frame.anchorMax = new Vector2(1f, 1f);
         _frame.pivot = new Vector2(1f, 1f);
@@ -177,6 +213,15 @@ public class LiveMiniMap : MonoBehaviour
         _raw.color = Color.white;
         _raw.raycastTarget = false;
 
+        // Muted tactical wash keeps city geometry readable without competing
+        // with the high-contrast squad, rival, police and objective symbols.
+        var washGo = new GameObject("TacticalWash", typeof(RectTransform), typeof(Image));
+        washGo.transform.SetParent(frameGo.transform, false);
+        Stretch(washGo.GetComponent<RectTransform>());
+        var wash = washGo.GetComponent<Image>();
+        wash.color = new Color(0.015f, 0.04f, 0.055f, 0.42f);
+        wash.raycastTarget = false;
+
         // Drag catcher on the feed (expanded only uses this for pan).
         var dragGo = new GameObject("DragCatcher", typeof(RectTransform), typeof(Image));
         dragGo.transform.SetParent(frameGo.transform, false);
@@ -194,7 +239,7 @@ public class LiveMiniMap : MonoBehaviour
 
         // Close — always last sibling, high on screen, with real sprite.
         _closeBtn = new GameObject("Close", typeof(RectTransform), typeof(Image), typeof(Button));
-        _closeBtn.transform.SetParent(canvasGo.transform, false);
+        _closeBtn.transform.SetParent(uiRoot, false);
         var crt = _closeBtn.GetComponent<RectTransform>();
         crt.anchorMin = crt.anchorMax = new Vector2(1f, 1f);
         crt.pivot = new Vector2(1f, 1f);
@@ -216,8 +261,13 @@ public class LiveMiniMap : MonoBehaviour
         closeTxt.raycastTarget = false;
         _closeBtn.SetActive(false);
 
+        _zoomInBtn = BuildZoomButton(uiRoot, "ZoomIn", "+", new Vector2(-22f, -154f), () => AdjustZoom(0.78f));
+        _zoomOutBtn = BuildZoomButton(uiRoot, "ZoomOut", "−", new Vector2(-22f, -246f), () => AdjustZoom(1.28f));
+        _zoomInBtn.SetActive(false);
+        _zoomOutBtn.SetActive(false);
+
         var legendGo = new GameObject("Legend", typeof(RectTransform));
-        legendGo.transform.SetParent(canvasGo.transform, false);
+        legendGo.transform.SetParent(uiRoot, false);
         var lrt = legendGo.GetComponent<RectTransform>();
         lrt.anchorMin = new Vector2(0f, 0f);
         lrt.anchorMax = new Vector2(1f, 0f);
@@ -229,11 +279,13 @@ public class LiveMiniMap : MonoBehaviour
         _legend.fontStyle = FontStyles.Bold;
         _legend.alignment = TextAlignmentOptions.Center;
         _legend.color = Color.white;
-        _legend.text = "YOU  ·  GANG TURF  ·  RECRUIT  ·  POLICE";
+        _legend.text = GameManager.IsPolicePlayer
+            ? "<color=#4E8FFF>◆ POLICE UNIT</color>     <color=#FF4935>■ RIVAL</color>     <color=#FFD936>● OBJECTIVE</color>"
+            : "<color=#48FF91>◆ YOU</color>     <color=#FF4935>■ RIVAL</color>     <color=#FFD936>● OBJECTIVE</color>     <color=#4E8FFF>■ POLICE</color>";
         _legend.gameObject.SetActive(false);
 
         var hintGo = new GameObject("PanHint", typeof(RectTransform));
-        hintGo.transform.SetParent(canvasGo.transform, false);
+        hintGo.transform.SetParent(uiRoot, false);
         var hrt = hintGo.GetComponent<RectTransform>();
         hrt.anchorMin = new Vector2(0.5f, 1f);
         hrt.anchorMax = new Vector2(0.5f, 1f);
@@ -245,8 +297,34 @@ public class LiveMiniMap : MonoBehaviour
         _hint.fontStyle = FontStyles.Bold;
         _hint.alignment = TextAlignmentOptions.Center;
         _hint.color = new Color(1f, 1f, 1f, 0.9f);
-        _hint.text = "DRAG MAP TO EXPLORE  ·  TAP X TO CLOSE";
+        _hint.text = "DRAG TO EXPLORE  ·  PINCH / + − TO ZOOM  ·  TAP X TO CLOSE";
         _hint.gameObject.SetActive(false);
+    }
+
+    private GameObject BuildZoomButton(Transform parent, string name, string glyph, Vector2 position,
+                                       UnityEngine.Events.UnityAction action)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        go.transform.SetParent(parent, false);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 1f);
+        rt.anchoredPosition = position;
+        rt.sizeDelta = new Vector2(76f, 76f);
+        var image = go.GetComponent<Image>();
+        image.sprite = LandscapeTheme.Current ? LandscapeTheme.Current.darkButton : _uiSprite;
+        image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        image.color = image.sprite != null ? Color.white : new Color(0.08f, 0.11f, 0.14f, 0.96f);
+        go.GetComponent<Button>().onClick.AddListener(action);
+        var text = new GameObject("Glyph", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
+        text.transform.SetParent(go.transform, false);
+        Stretch(text.rectTransform);
+        text.text = glyph;
+        text.fontSize = 48f;
+        text.fontStyle = FontStyles.Bold;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = Color.white;
+        text.raycastTarget = false;
+        return go;
     }
 
     private void Expand()
@@ -261,8 +339,13 @@ public class LiveMiniMap : MonoBehaviour
         if (_canvas != null) _canvas.sortingOrder = 28000;
 
         _expandedRoot.SetActive(true);
+        _frame.gameObject.SetActive(true);_borderRt.gameObject.SetActive(true);
         _closeBtn.SetActive(true);
+        _zoomInBtn.SetActive(true);
+        _zoomOutBtn.SetActive(true);
         _closeBtn.transform.SetAsLastSibling();
+        _zoomInBtn.transform.SetAsLastSibling();
+        _zoomOutBtn.transform.SetAsLastSibling();
         _legend.gameObject.SetActive(true);
         _legend.transform.SetAsLastSibling();
         _hint.gameObject.SetActive(true);
@@ -276,7 +359,7 @@ public class LiveMiniMap : MonoBehaviour
         var borderImg = _borderRt.GetComponent<Image>();
         borderImg.sprite = _uiSprite;
         borderImg.type = Image.Type.Sliced;
-        borderImg.color = new Color(0.85f, 0.16f, 0.16f, 1f);
+        borderImg.color = new Color(0.015f, 0.07f, 0.09f, 1f);
 
         var frameImg = _frame.GetComponent<Image>();
         frameImg.sprite = _uiSprite;
@@ -302,6 +385,8 @@ public class LiveMiniMap : MonoBehaviour
 
         _expandedRoot.SetActive(false);
         _closeBtn.SetActive(false);
+        _zoomInBtn.SetActive(false);
+        _zoomOutBtn.SetActive(false);
         _legend.gameObject.SetActive(false);
         _hint.gameObject.SetActive(false);
 
@@ -320,7 +405,7 @@ public class LiveMiniMap : MonoBehaviour
         _borderRt.sizeDelta = _compactSize + new Vector2(8f, 8f);
         _borderRt.GetComponent<Image>().sprite = LandscapeTheme.Current ? LandscapeTheme.Current.panel : _uiSprite;
         _borderRt.GetComponent<Image>().type = Image.Type.Sliced;
-        _borderRt.GetComponent<Image>().color = Color.white;
+        _borderRt.GetComponent<Image>().color = new Color(.025f,.08f,.10f,.98f);
 
         var frameImg = _frame.GetComponent<Image>();
         frameImg.sprite = _uiSprite;
@@ -331,6 +416,31 @@ public class LiveMiniMap : MonoBehaviour
         if (btn != null) btn.enabled = true;
 
         if (_miniCam != null) _miniCam.orthographicSize = orthographicSize;
+        _frame.gameObject.SetActive(_compactVisible);_borderRt.gameObject.SetActive(_compactVisible);
+    }
+
+    public void SetCompactVisible(bool visible)
+    {
+        _compactVisible=visible;
+        if(_expanded)return;
+        if(_frame)_frame.gameObject.SetActive(visible);
+        if(_borderRt)_borderRt.gameObject.SetActive(visible);
+    }
+
+    static void BuildNeonEdges(RectTransform parent)
+    {
+        Color glow=new Color(.10f,1f,.92f,.95f);
+        Edge("NeonTop",new Vector2(0,1),new Vector2(1,1),new Vector2(0,-2),new Vector2(0,4));
+        Edge("NeonBottom",new Vector2(0,0),new Vector2(1,0),new Vector2(0,2),new Vector2(0,4));
+        Edge("NeonLeft",new Vector2(0,0),new Vector2(0,1),new Vector2(2,0),new Vector2(4,0));
+        Edge("NeonRight",new Vector2(1,0),new Vector2(1,1),new Vector2(-2,0),new Vector2(4,0));
+        void Edge(string name,Vector2 min,Vector2 max,Vector2 pos,Vector2 size)
+        {
+            var go=new GameObject(name,typeof(RectTransform),typeof(Image));go.transform.SetParent(parent,false);
+            var rt=go.GetComponent<RectTransform>();rt.anchorMin=min;rt.anchorMax=max;rt.pivot=new Vector2(.5f,.5f);rt.anchoredPosition=pos;rt.sizeDelta=size;
+            var image=go.GetComponent<Image>();image.color=glow;image.raycastTarget=false;
+            var outline=image.gameObject.AddComponent<Outline>();outline.effectColor=new Color(.1f,1f,.92f,.38f);outline.effectDistance=new Vector2(3,-3);
+        }
     }
 
     private void FreezeMainGame(bool freeze)
@@ -408,6 +518,19 @@ public class LiveMiniMap : MonoBehaviour
         _dragging = false;
     }
 
+    public void OnMapScroll(float scrollDelta)
+    {
+        if (!_expanded || Mathf.Approximately(scrollDelta, 0f)) return;
+        AdjustZoom(scrollDelta > 0f ? 0.82f : 1.22f);
+    }
+
+    private void AdjustZoom(float multiplier)
+    {
+        if (!_expanded || _miniCam == null) return;
+        _miniCam.orthographicSize = Mathf.Clamp(
+            _miniCam.orthographicSize * multiplier, _minExpandedZoom, _maxExpandedZoom);
+    }
+
     private void SnapCamToPan()
     {
         if (_miniCam == null) return;
@@ -417,11 +540,38 @@ public class LiveMiniMap : MonoBehaviour
     private void LateUpdate()
     {
         if (_miniCam == null) return;
+        UpdatePinchZoom();
         if (!_expanded)
             UpdateCameraFollow();
         else if (!_dragging)
             SnapCamToPan(); // keep stable while idle
-        RefreshIcons();
+        RenderMapWhenDue();
+        if (Time.unscaledTime >= _nextIconRefresh)
+        {
+            _nextIconRefresh = Time.unscaledTime + (_expanded ? 0.08f : 0.12f);
+            RefreshIcons();
+        }
+    }
+
+    private void RenderMapWhenDue()
+    {
+        if (_miniCam == null) return;
+        if (Time.unscaledTime < _nextMapRender) return;
+        _nextMapRender = Time.unscaledTime + (_expanded ? 0.05f : 0.10f);
+        _miniCam.Render();
+    }
+
+    private void UpdatePinchZoom()
+    {
+        if (!_expanded || Touch.activeTouches.Count < 2)
+        {
+            _lastPinchDistance = 0f;
+            return;
+        }
+        float distance = Vector2.Distance(Touch.activeTouches[0].screenPosition, Touch.activeTouches[1].screenPosition);
+        if (_lastPinchDistance > 1f && distance > 1f)
+            AdjustZoom(_lastPinchDistance / distance);
+        _lastPinchDistance = distance;
     }
 
     private void UpdateCameraFollow()
@@ -463,44 +613,60 @@ public class LiveMiniMap : MonoBehaviour
         if (BattleManager.instance == null) { HideUnused(); return; }
 
         float blink = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4f));
-        var marks = new List<Mark>(32);
+        RefreshSceneMarkerCache();
+        _marks.Clear();
 
         foreach (var a in BattleManager.instance.PlayerAgents)
         {
             if (a == null || !a.IsAlive) continue;
-            marks.Add(new Mark
+            _marks.Add(new Mark
             {
                 world = a.transform.position,
                 sprite = _playerSprite,
-                color = new Color(0.25f, 1f, 0.55f, blink),
+                color = GameManager.IsPolicePlayer
+                    ? new Color(0.28f, 0.58f, 1f, blink)
+                    : new Color(0.25f, 1f, 0.55f, blink),
                 size = _expanded ? 40f : 20f,
-                label = _expanded ? "YOU" : null
+                label = null
             });
         }
 
-        foreach (var g in FindObjectsByType<GangArea>(FindObjectsSortMode.None))
+        foreach (var g in _gangAreas)
         {
-            if (g == null) continue;
-            marks.Add(new Mark
+            if (g == null || !g.gameObject.activeInHierarchy) continue;
+            _marks.Add(new Mark
             {
                 world = g.transform.position,
                 sprite = _gangSprite,
                 color = new Color(1f, 0.25f, 0.15f, blink),
                 size = _expanded ? 44f : 24f,
-                label = _expanded ? g.GangName.ToUpperInvariant() : null
+                label = null
             });
         }
 
-        foreach (var r in FindObjectsByType<RecruitArea>(FindObjectsSortMode.None))
+        foreach (var r in _recruitAreas)
         {
-            if (r == null) continue;
-            marks.Add(new Mark
+            if (r == null || !r.gameObject.activeInHierarchy) continue;
+            _marks.Add(new Mark
             {
                 world = r.transform.position,
                 sprite = _recruitSprite,
                 color = new Color(1f, 0.85f, 0.15f, blink),
                 size = _expanded ? 42f : 22f,
-                label = _expanded ? r.AreaName : null
+                label = null
+            });
+        }
+
+        foreach (var objective in _territoryPoints)
+        {
+            if (objective == null || !objective.gameObject.activeInHierarchy) continue;
+            _marks.Add(new Mark
+            {
+                world = objective.transform.position,
+                sprite = _objectiveSprite,
+                color = new Color(1f, 0.82f, 0.12f, blink),
+                size = _expanded ? 38f : 21f,
+                label = null
             });
         }
 
@@ -509,24 +675,24 @@ public class LiveMiniMap : MonoBehaviour
             foreach (var car in LivePoliceSystem.Instance.ActivePatrolCars)
             {
                 if (car == null) continue;
-                marks.Add(new Mark
+                _marks.Add(new Mark
                 {
                     world = car.transform.position,
                     sprite = _policeSprite,
                     color = new Color(0.25f, 0.55f, 1f, blink),
                     size = _expanded ? 40f : 20f,
-                    label = _expanded ? "POLICE" : null
+                    label = null
                 });
             }
             if (LivePoliceSystem.Instance.ResponseCar != null)
             {
-                marks.Add(new Mark
+                _marks.Add(new Mark
                 {
                     world = LivePoliceSystem.Instance.ResponseCar.transform.position,
                     sprite = _policeSprite,
                     color = new Color(0.15f, 0.45f, 1f, blink),
                     size = _expanded ? 42f : 22f,
-                    label = _expanded ? "POLICE" : null
+                    label = null
                 });
             }
         }
@@ -537,16 +703,25 @@ public class LiveMiniMap : MonoBehaviour
             {
                 if (e == null || !e.IsAlive) continue;
                 if (e.firmName == "POLICE")
-                    marks.Add(new Mark { world = e.transform.position, sprite = _policeSprite, color = new Color(0.35f, 0.65f, 1f), size = 14f });
+                    _marks.Add(new Mark { world = e.transform.position, sprite = _policeSprite, color = new Color(0.35f, 0.65f, 1f), size = 14f });
                 else
-                    marks.Add(new Mark { world = e.transform.position, sprite = _gangSprite, color = e.primaryColor.a > 0.01f ? e.primaryColor : new Color(0.95f, 0.2f, 0.2f), size = 14f });
+                    _marks.Add(new Mark { world = e.transform.position, sprite = _gangSprite, color = e.primaryColor.a > 0.01f ? e.primaryColor : new Color(0.95f, 0.2f, 0.2f), size = 14f });
             }
         }
 
-        foreach (var m in marks)
+        foreach (var m in _marks)
             PlaceMark(m);
 
         HideUnused();
+    }
+
+    private void RefreshSceneMarkerCache()
+    {
+        if (Time.unscaledTime < _nextSceneScan) return;
+        _nextSceneScan = Time.unscaledTime + 0.75f;
+        _gangAreas = FindObjectsByType<GangArea>(FindObjectsSortMode.None);
+        _recruitAreas = FindObjectsByType<RecruitArea>(FindObjectsSortMode.None);
+        _territoryPoints = FindObjectsByType<TerritoryControlPoint>(FindObjectsSortMode.None);
     }
 
     private void PlaceMark(Mark m)
@@ -631,10 +806,11 @@ public class LiveMiniMap : MonoBehaviour
 
     private void BuildSprites()
     {
-        _playerSprite = MakeDiamondSprite(new Color(0.2f, 1f, 0.6f));
+        _playerSprite = MakeDiamondSprite(Color.white);
         _gangSprite = MakeSoftSquare(new Color(1f, 0.25f, 0.2f));
         _policeSprite = MakeSoftSquare(new Color(0.3f, 0.55f, 1f));
         _recruitSprite = MakeSoftSquare(new Color(1f, 0.85f, 0.2f));
+        _objectiveSprite = MakeRingSprite(48, new Color(1f, 0.82f, 0.12f), 7);
     }
 
     private static Sprite MakeDiamondSprite(Color color)
@@ -731,7 +907,7 @@ public class LiveMiniMap : MonoBehaviour
 }
 
 /// <summary>Forwards pointer drag events from the expanded map feed to LiveMiniMap.</summary>
-public class MiniMapDragCatcher : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
+public class MiniMapDragCatcher : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler, IScrollHandler
 {
     public LiveMiniMap Owner;
 
@@ -748,5 +924,37 @@ public class MiniMapDragCatcher : MonoBehaviour, IPointerDownHandler, IDragHandl
     public void OnPointerUp(PointerEventData eventData)
     {
         Owner?.OnMapPointerUp();
+    }
+
+    public void OnScroll(PointerEventData eventData)
+    {
+        Owner?.OnMapScroll(eventData.scrollDelta.y);
+    }
+}
+
+/// <summary>Keeps the runtime tactical map clear of notches and rounded display corners.</summary>
+public sealed class MiniMapSafeArea : MonoBehaviour
+{
+    private Rect _lastSafeArea;
+    private Vector2Int _lastScreen;
+
+    private void OnEnable() => Apply();
+    private void LateUpdate()
+    {
+        var size = new Vector2Int(Screen.width, Screen.height);
+        if (Screen.safeArea != _lastSafeArea || size != _lastScreen) Apply();
+    }
+
+    private void Apply()
+    {
+        if (Screen.width <= 0 || Screen.height <= 0) return;
+        var rt = transform as RectTransform;
+        if (rt == null) return;
+        Rect safe = Screen.safeArea;
+        rt.anchorMin = new Vector2(safe.xMin / Screen.width, safe.yMin / Screen.height);
+        rt.anchorMax = new Vector2(safe.xMax / Screen.width, safe.yMax / Screen.height);
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        _lastSafeArea = safe;
+        _lastScreen = new Vector2Int(Screen.width, Screen.height);
     }
 }

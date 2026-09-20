@@ -43,13 +43,31 @@ namespace ITHappy
 
         public void SetTransform(ref Vector3 position, ref Vector3 forward, ref Vector3 up, bool isRender, float deltaTime)
         {
-            m_Transform.position = position;
-            m_Transform.LookAt(position + forward, up);
-
-            foreach(var part in m_Parts)
+            if (!m_Transform) return;
+            m_FromPosition = m_Transform.position;
+            m_FromRotation = m_Transform.rotation;
+            m_TargetPosition = position;
+            m_TargetRotation = forward.sqrMagnitude > .001f ? Quaternion.LookRotation(forward, up) : m_FromRotation;
+            m_InterpolationSeconds = Mathf.Clamp(deltaTime, .016f, .25f);
+            m_SampleTime = Time.time;
+            m_RenderWheels = isRender;
+            if (!m_HasSample || (position - m_FromPosition).sqrMagnitude > 2500)
             {
-                part.Move(deltaTime * m_Speed, isRender);
+                m_FromPosition = position; m_FromRotation = m_TargetRotation;
+                m_Transform.SetPositionAndRotation(position, m_TargetRotation);
             }
+            m_HasSample = true;
+        }
+        Vector3 m_FromPosition, m_TargetPosition;
+        Quaternion m_FromRotation, m_TargetRotation;
+        float m_SampleTime, m_InterpolationSeconds;
+        bool m_HasSample, m_RenderWheels;
+        void LateUpdate()
+        {
+            if (!m_HasSample || !m_Transform || Time.deltaTime <= 0) return;
+            float t = Mathf.Clamp01((Time.time - m_SampleTime) / m_InterpolationSeconds);
+            m_Transform.SetPositionAndRotation(Vector3.Lerp(m_FromPosition, m_TargetPosition, t), Quaternion.Slerp(m_FromRotation, m_TargetRotation, t));
+            foreach (var part in m_Parts) part.Move(Time.deltaTime * m_Speed, m_RenderWheels);
         }
 
         public void SetTransport(int index, int turnIndex, float speed, float progress)

@@ -12,10 +12,10 @@ using TouchPhase = UnityEngine.InputSystem.TouchPhase;
 ///   • One-finger drag  → pan the city (world-locked, very smooth)
 ///   • Pinch            → zoom in/out
 ///   • Double-tap       → snap camera to the player firm (Google Maps style)
+///   • Rotate button    → step the yaw around the current focus when buildings block view
 ///
-/// Rotation is locked to a fixed isometric angle. No physics collision —
-/// collision was causing camera shake + yellow full-screen flashes when the
-/// camera clipped yellow sidewalks.
+/// Rotation stays isometric but yaw can rotate 360 degrees. A filtered rooftop
+/// collision pass lifts the camera smoothly over buildings without entering them.
 /// </summary>
 public class CameraPanTouchOnly : MonoBehaviour
 {
@@ -78,6 +78,8 @@ public class CameraPanTouchOnly : MonoBehaviour
     private bool _mouseGesture, _mouseDragged;
     private Vector2 _mouseStart;
     public bool IsFollowingSelection => _followSelection;
+    public bool CollisionAvoidanceEnabled => true;
+    public float LastCollisionLift { get; private set; }
 
     void Awake()
     {
@@ -86,10 +88,17 @@ public class CameraPanTouchOnly : MonoBehaviour
         if (_camera == null) _camera = Camera.main;
         if (gameObject.scene.name == "Gameplay")
         {
-            camMinHeight=35; camMaxHeight=220; defaultHeight=65;
-            isometricEuler=new Vector3(PlayerPrefs.GetFloat("CityCameraPitch",65),45,0);
+            if (!PlayerPrefs.HasKey("HM.CameraProfile.v3"))
+            {
+                PlayerPrefs.SetFloat("CityCameraHeight", GameplayTuning.Current.explorationHeight);
+                PlayerPrefs.SetFloat("CityCameraPitch", GameplayTuning.Current.cameraPitch);
+                PlayerPrefs.SetFloat("CityCameraFov", GameplayTuning.Current.cameraFov);
+                PlayerPrefs.SetInt("HM.CameraProfile.v3", 1);
+            }
+            camMinHeight=18; camMaxHeight=180; defaultHeight=GameplayTuning.Current.explorationHeight;
+            isometricEuler=new Vector3(PlayerPrefs.GetFloat("CityCameraPitch",GameplayTuning.Current.cameraPitch),PlayerPrefs.GetFloat("CityCameraYaw",45),0);
             panMinX=-1000; panMaxX=1450; panMinZ=-600; panMaxZ=450;
-            _camera.fieldOfView=PlayerPrefs.GetFloat("CityCameraFov",65);
+            _camera.fieldOfView=PlayerPrefs.GetFloat("CityCameraFov",GameplayTuning.Current.cameraFov);
             _camera.nearClipPlane=.3f; _camera.farClipPlane=2500;
             _camera.useOcclusionCulling=false;
         }
@@ -156,7 +165,7 @@ public class CameraPanTouchOnly : MonoBehaviour
     void Update()
     {
         // Fullscreen town map owns input — do not move the main camera.
-        if (LiveMiniMap.IsExpanded) return;
+        if (LiveMiniMap.IsExpanded || AgentSelectionManager.BlocksWorldTap() || Time.timeScale == 0) return;
 
         if (lockRotationEveryFrame) LockIsometric();
 
@@ -164,9 +173,15 @@ public class CameraPanTouchOnly : MonoBehaviour
         HandleEditorInput();
         if (_followSelection && TryGetSelectionCentroid(out var followed)) MoveFocus(followed);
 
-        // Smooth toward target — NO collision. Collision caused shake + yellow flash.
+        UpdateCombatFocus();
+        // Keep the preferred camera low, then lift only while a building blocks
+        // the line between the tactical focus and the camera.
         Vector3 desired = _targetPosition;
         desired.y = Mathf.Clamp(desired.y, camMinHeight, camMaxHeight);
+        float preferredHeight = desired.y;
+        desired = SafeCityPosition(transform.position, desired);
+        desired.y = Mathf.Clamp(desired.y, camMinHeight, camMaxHeight);
+        LastCollisionLift = Mathf.Max(0f, desired.y - preferredHeight);
         transform.position = Vector3.SmoothDamp(transform.position, desired, ref _velocity, _smoothTime);
 
         if (_camera != null && _camera.orthographic)
@@ -176,6 +191,34 @@ public class CameraPanTouchOnly : MonoBehaviour
         // After a recenter finishes gliding, return to normal smooth time.
         if (_smoothTime > moveSmoothTime && _velocity.sqrMagnitude < 0.01f)
             _smoothTime = moveSmoothTime;
+    }
+
+    float manualUntil;
+    bool combatFraming;
+    float explorationHeight;
+    void UpdateCombatFocus()
+    {
+        if (!GameplayTuning.Current.focusFights || Time.unscaledTime < manualUntil || !BattleManager.instance) return;
+        Vector3 center = Vector3.zero; int count = 0;
+        foreach (var agent in BattleManager.instance.PlayerAgents)
+        {
+            if (!agent || !agent.IsAlive || agent.CurrentState != AgentController.State.AutoAttacking) continue;
+            var enemy = BattleManager.instance.GetNearestEnemy(agent.transform.position);
+            if (!enemy || Vector3.SqrMagnitude(enemy.transform.position - agent.transform.position) > 100) continue;
+            center += (agent.transform.position + enemy.transform.position) * .5f; count++;
+        }
+        if (count > 0)
+        {
+            if (!combatFraming) explorationHeight = _targetPosition.y;
+            combatFraming = true;
+            _targetPosition.y = Mathf.Lerp(_targetPosition.y, GameplayTuning.Current.combatHeight, 1 - Mathf.Exp(-2 * Time.deltaTime));
+            MoveFocus(center / count);
+        }
+        else if (combatFraming)
+        {
+            Vector3 focus = FocusFromTarget(); _targetPosition.y = explorationHeight;
+            MoveFocus(focus); combatFraming = false;
+        }
     }
 
     private bool _uiGesture; // finger started on HUD — don't pan/zoom
@@ -288,6 +331,8 @@ public class CameraPanTouchOnly : MonoBehaviour
                 _smoothTime = recenterSmoothTime;
                 CenterOnSelection();
             }
+            if (keyboard.qKey.wasPressedThisFrame) RotateCamera(-45f);
+            if (keyboard.eKey.wasPressedThisFrame) RotateCamera(45f);
         }
 
         var mouse = Mouse.current;
@@ -341,6 +386,7 @@ public class CameraPanTouchOnly : MonoBehaviour
 
     private void PanBy(Vector3 worldDelta)
     {
+        manualUntil = Time.unscaledTime + 5; combatFraming = false;
         _followSelection = false;
         _targetPosition += worldDelta;
         ClampXZ();
@@ -354,6 +400,7 @@ public class CameraPanTouchOnly : MonoBehaviour
 
     private void Zoom(float amount)
     {
+        manualUntil = Time.unscaledTime + 5; combatFraming = false;
         if (_camera != null && _camera.orthographic)
         {
             _targetOrthoSize = Mathf.Clamp(_targetOrthoSize - amount, orthoMin, orthoMax);
@@ -377,6 +424,26 @@ public class CameraPanTouchOnly : MonoBehaviour
     public void ZoomOut()
     {
         Zoom(-scrollZoomSpeed * 0.9f);
+    }
+
+    public void RotateCamera(float degrees = 45f)
+    {
+        if (Mathf.Approximately(degrees, 0f)) return;
+
+        _followSelection = false;
+        Vector3 focus = FocusFromTarget();
+        float height = Mathf.Clamp(_targetPosition.y - groundY, camMinHeight, camMaxHeight);
+
+        isometricEuler.y = Mathf.Repeat(isometricEuler.y + degrees, 360f);
+        transform.rotation = Quaternion.Euler(isometricEuler);
+
+        float distance = height / Mathf.Max(0.05f, -transform.forward.y);
+        _targetPosition = focus - transform.forward * distance;
+        _targetPosition.y = groundY + height;
+        _velocity = Vector3.zero;
+        ClampXZ();
+
+        PlayerPrefs.SetFloat("CityCameraYaw", isometricEuler.y);
     }
 
     private float ZoomFactor()
@@ -467,38 +534,54 @@ public class CameraPanTouchOnly : MonoBehaviour
 
     public void ConfigureCity(float fov, float height, float pitch)
     {
+        ConfigureCity(fov, height, pitch, isometricEuler.y);
+    }
+
+    public void ConfigureCity(float fov, float height, float pitch, float yaw)
+    {
         Vector3 focus=FocusFromTarget();
         isometricEuler.x=Mathf.Clamp(pitch,50,85);
+        isometricEuler.y=Mathf.Repeat(yaw,360);
         _camera.fieldOfView=Mathf.Clamp(fov,45,85);
         transform.rotation=Quaternion.Euler(isometricEuler);
-        float h=Mathf.Clamp(height,35,180);
+        float h=Mathf.Clamp(height,18,180);
         _targetPosition=focus-transform.forward*(h/Mathf.Max(.1f,transform.forward.y*-1));
         _velocity=Vector3.zero;
         PlayerPrefs.SetFloat("CityCameraFov",_camera.fieldOfView);
         PlayerPrefs.SetFloat("CityCameraHeight",h);
         PlayerPrefs.SetFloat("CityCameraPitch",isometricEuler.x);
+        PlayerPrefs.SetFloat("CityCameraYaw",isometricEuler.y);
     }
 
-    public static Vector3 SafeCityPosition(Vector3 focus,Vector3 position)
+    public static Vector3 SafeCityPosition(Vector3 start,Vector3 position)
     {
-        // Raise the sight line over intersecting buildings, preserving the ground focus.
-        for(int i=0;i<6;i++)
+        // Check the camera body's real movement volume, not the entire sightline
+        // to the ground focus (which would make every distant tower lift the view).
+        float required=position.y;
+        Vector3 delta=position-start;
+        if(delta.sqrMagnitude>.01f)
         {
-            Vector3 start=focus+Vector3.up*2;
-            Vector3 delta=position-start;
-            float required=position.y;
             foreach(var hit in Physics.SphereCastAll(start,1.2f,delta.normalized,delta.magnitude,~0,QueryTriggerInteraction.Ignore))
             {
-                if(hit.collider.transform.root.name!="Demonstration" || hit.collider.bounds.size.y<4) continue;
-                float fraction=Mathf.Max(.12f,hit.distance/Mathf.Max(1,delta.magnitude));
-                required=Mathf.Max(required,start.y+(hit.collider.bounds.max.y+4-start.y)/fraction);
+                if(!IsCameraObstacle(hit.collider)) continue;
+                required=Mathf.Max(required,hit.collider.bounds.max.y+3.5f);
             }
-            if(required<=position.y+.01f)break;
-            position.y=Mathf.Min(required,500);
-            position.x=Mathf.Lerp(position.x,focus.x,.25f);
-            position.z=Mathf.Lerp(position.z,focus.z,.25f);
         }
+        foreach(var collider in Physics.OverlapSphere(position,1.25f,~0,QueryTriggerInteraction.Ignore))
+            if(IsCameraObstacle(collider))required=Mathf.Max(required,collider.bounds.max.y+3.5f);
+        position.y=Mathf.Min(required,500f);
         return position;
+    }
+
+    static bool IsCameraObstacle(Collider collider)
+    {
+        if (!collider || collider.isTrigger || collider.bounds.size.y < 4f) return false;
+        if (collider.GetComponentInParent<AgentController>() || collider.GetComponentInParent<EnemyController>() ||
+            collider.GetComponentInParent<PedestrianController>()) return false;
+        string n = collider.name.ToLowerInvariant();
+        if (n.Contains("ground") || n.Contains("road") || n.Contains("sidewalk") || n.Contains("pavement")) return false;
+        return collider.transform.root.name == "Demonstration" || n.Contains("building") || n.Contains("house") ||
+               n.Contains("roof") || n.Contains("wall") || n.Contains("structure") || n.Contains("bridge");
     }
 
     public void ForceOrthoSize(float size)

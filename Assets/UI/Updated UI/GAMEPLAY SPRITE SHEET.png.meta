@@ -1,0 +1,1786 @@
+fileFormatVersion: 2
+guid: d86d8308ada692c4fa7b2725d61965f3
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 0
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_1
+      rect:
+        serializedVersion: 2
+        x: 552
+        y: 0
+        width: 12
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b6fff2ecd1d203f44bb1213522669c60
+      internalID: -537770300
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_2
+      rect:
+        serializedVersion: 2
+        x: 636
+        y: 0
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 55649287a1f0c4a4dae8241fb68f3011
+      internalID: 456619409
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_0
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 913
+        width: 488
+        height: 94
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 79ff0cbc80c398944af3b02c9e1a7ce2
+      internalID: 362343918
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_3
+      rect:
+        serializedVersion: 2
+        x: 537
+        y: 919
+        width: 247
+        height: 84
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 84bcce9830e39ec4ca7fb0da560442b3
+      internalID: -616369854
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_4
+      rect:
+        serializedVersion: 2
+        x: 804
+        y: 919
+        width: 177
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d6baa91235be9a34abba64f530b70519
+      internalID: 590432267
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_5
+      rect:
+        serializedVersion: 2
+        x: 1001
+        y: 919
+        width: 160
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b1f31f0ce9ced3f47b7fb3ada8a4a9fc
+      internalID: 1531137720
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_6
+      rect:
+        serializedVersion: 2
+        x: 1182
+        y: 919
+        width: 160
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e5a1c25828f472a4daa1553b85a24fa3
+      internalID: -1045812771
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_7
+      rect:
+        serializedVersion: 2
+        x: 1364
+        y: 919
+        width: 160
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6ca0db4de1339c044947b36a03275873
+      internalID: -1117544124
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_8
+      rect:
+        serializedVersion: 2
+        x: 25
+        y: 822
+        width: 334
+        height: 79
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2a0510d697346d7478c890bce2b5e98a
+      internalID: 826466510
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_9
+      rect:
+        serializedVersion: 2
+        x: 378
+        y: 823
+        width: 265
+        height: 81
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 42a380ee49f438b409e1a93a6c6bec52
+      internalID: -1638747306
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_10
+      rect:
+        serializedVersion: 2
+        x: 663
+        y: 822
+        width: 265
+        height: 81
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 23adf94294a6c6b42b3c130f26842186
+      internalID: -1089831373
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_11
+      rect:
+        serializedVersion: 2
+        x: 945
+        y: 826
+        width: 265
+        height: 81
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 232889a073a09a148a6db006513eea08
+      internalID: -1917007512
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_12
+      rect:
+        serializedVersion: 2
+        x: 1233
+        y: 822
+        width: 279
+        height: 81
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2f1bba8b1e06e7747acf85198f61b84b
+      internalID: 1608063248
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_13
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 554
+        width: 401
+        height: 250
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 590573c406b6fed4081f4d7c10c1ecf7
+      internalID: -818570472
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_14
+      rect:
+        serializedVersion: 2
+        x: 441
+        y: 607
+        width: 202
+        height: 199
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4d5287b767108e441a23bb99eb3cfa35
+      internalID: -674947951
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_15
+      rect:
+        serializedVersion: 2
+        x: 657
+        y: 606
+        width: 202
+        height: 199
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d64497caa20f39147a54167fef4f6c8f
+      internalID: 1186068894
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_16
+      rect:
+        serializedVersion: 2
+        x: 871
+        y: 606
+        width: 202
+        height: 199
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3f966c448756625489bfd38ab382aee9
+      internalID: 146778372
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_17
+      rect:
+        serializedVersion: 2
+        x: 1086
+        y: 608
+        width: 202
+        height: 199
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 219213678e2099643b2ea2d701c2e4df
+      internalID: -1257732859
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_18
+      rect:
+        serializedVersion: 2
+        x: 1305
+        y: 605
+        width: 208
+        height: 199
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 313afc0cb34d6c1499c8e0bd1ba1b206
+      internalID: -2122622288
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_19
+      rect:
+        serializedVersion: 2
+        x: 440
+        y: 551
+        width: 216
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2422d1c7bed0fb841911fcc484bad563
+      internalID: -278199116
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_20
+      rect:
+        serializedVersion: 2
+        x: 662
+        y: 548
+        width: 216
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 24774f964badddf4a84a2b1bfe1936c7
+      internalID: -2039008253
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_21
+      rect:
+        serializedVersion: 2
+        x: 882
+        y: 551
+        width: 216
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 883b30013364ab547a61e374794f488f
+      internalID: 1855193679
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_22
+      rect:
+        serializedVersion: 2
+        x: 1096
+        y: 547
+        width: 216
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8eabf7fb567dd7e4a9e299abe66b6860
+      internalID: 465565017
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_23
+      rect:
+        serializedVersion: 2
+        x: 1317
+        y: 548
+        width: 196
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5f35b763811d70040b369845e76fa80e
+      internalID: 684076127
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_24
+      rect:
+        serializedVersion: 2
+        x: 23
+        y: 456
+        width: 285
+        height: 80
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dcf5e5467fc94a346afdfb2225f03919
+      internalID: -945238542
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_25
+      rect:
+        serializedVersion: 2
+        x: 326
+        y: 457
+        width: 270
+        height: 76
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a630433bea61cf746a5bb5cb2818d246
+      internalID: -172113360
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_26
+      rect:
+        serializedVersion: 2
+        x: 614
+        y: 461
+        width: 192
+        height: 74
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1137963cbd69b0e4d9d83f2114f6bd5c
+      internalID: -1621445386
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_27
+      rect:
+        serializedVersion: 2
+        x: 25
+        y: 366
+        width: 285
+        height: 80
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5fc5c235e2b0dcd428a045baaf684318
+      internalID: -705587609
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_28
+      rect:
+        serializedVersion: 2
+        x: 327
+        y: 367
+        width: 271
+        height: 78
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dfb7e5243e07617479a70d011c9b31bf
+      internalID: -972391968
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_29
+      rect:
+        serializedVersion: 2
+        x: 612
+        y: 368
+        width: 192
+        height: 74
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e015975cd3b480b4cb9300cbe09f4746
+      internalID: -1343149799
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_30
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 274
+        width: 175
+        height: 76
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2573707b9ce37e6489176bb0265af5f1
+      internalID: -1854536975
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_31
+      rect:
+        serializedVersion: 2
+        x: 222
+        y: 275
+        width: 175
+        height: 76
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6cc996b9daef855468ef0b8864e6e994
+      internalID: -847027829
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_32
+      rect:
+        serializedVersion: 2
+        x: 418
+        y: 274
+        width: 175
+        height: 76
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ea5aa310198532d45900ab000fa925c9
+      internalID: -1964637498
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_33
+      rect:
+        serializedVersion: 2
+        x: 614
+        y: 275
+        width: 190
+        height: 76
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4911c24a5ec22a343882a274176d07c6
+      internalID: -1439337625
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_34
+      rect:
+        serializedVersion: 2
+        x: 27
+        y: 183
+        width: 176
+        height: 75
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2f6c91b9cffa29d439f4b00577d2921f
+      internalID: 1250709054
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_35
+      rect:
+        serializedVersion: 2
+        x: 222
+        y: 183
+        width: 176
+        height: 75
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ee6d6ddf286d6d6468c7c3fc31a04491
+      internalID: -1275041015
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_36
+      rect:
+        serializedVersion: 2
+        x: 417
+        y: 178
+        width: 179
+        height: 81
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bdb2bf6a96152a840929a55795fe8106
+      internalID: -135581617
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_37
+      rect:
+        serializedVersion: 2
+        x: 613
+        y: 178
+        width: 191
+        height: 81
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: af55672e19bc6ad47b7346eaf015e84a
+      internalID: -64222401
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_38
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 34
+        width: 112
+        height: 112
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 02b78a137adb4b24884ef3c751c4f502
+      internalID: 2039474082
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_39
+      rect:
+        serializedVersion: 2
+        x: 157
+        y: 33
+        width: 112
+        height: 112
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 56b88827f3a566c498b0a30f2f919bb1
+      internalID: -1064019151
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_40
+      rect:
+        serializedVersion: 2
+        x: 283
+        y: 33
+        width: 112
+        height: 112
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 63cef28c75dbad64d9a4a00af50092b3
+      internalID: -175809673
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_41
+      rect:
+        serializedVersion: 2
+        x: 409
+        y: 34
+        width: 112
+        height: 112
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6d50b28e7e12e474dad12b89dcf2aff9
+      internalID: -2103022107
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_42
+      rect:
+        serializedVersion: 2
+        x: 545
+        y: 36
+        width: 112
+        height: 112
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9b3ec5d400d710e4fae6cc01c212ccbf
+      internalID: 463645722
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_43
+      rect:
+        serializedVersion: 2
+        x: 675
+        y: 42
+        width: 106
+        height: 103
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4a86af2a2c5fdc34ab46102689b9df3e
+      internalID: 255954252
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_44
+      rect:
+        serializedVersion: 2
+        x: 797
+        y: 42
+        width: 106
+        height: 102
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4a4f81928d316ea44a86463a3c8d207e
+      internalID: 988240795
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_45
+      rect:
+        serializedVersion: 2
+        x: 921
+        y: 41
+        width: 106
+        height: 102
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9e5307884273d0f4fa7b23e2310fa762
+      internalID: 64066937
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_46
+      rect:
+        serializedVersion: 2
+        x: 1049
+        y: 38
+        width: 135
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a420a8c36e80c9e428b3fb2e922f4122
+      internalID: -1794250889
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_47
+      rect:
+        serializedVersion: 2
+        x: 1212
+        y: 107
+        width: 302
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: acc9a5b76b0ca8445ab2aebcab04feed
+      internalID: 378821623
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_48
+      rect:
+        serializedVersion: 2
+        x: 1211
+        y: 68
+        width: 302
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c5ccf1229e75ad044b3221f266c2f5aa
+      internalID: -1165541417
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_49
+      rect:
+        serializedVersion: 2
+        x: 1211
+        y: 30
+        width: 302
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5ad596f559b7ce14fac76d28fd18c6ce
+      internalID: -2019712112
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_50
+      rect:
+        serializedVersion: 2
+        x: 839
+        y: 446
+        width: 74
+        height: 91
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 42424347e83ad0d4a98ddef1bbb9cbe2
+      internalID: 495010003
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_51
+      rect:
+        serializedVersion: 2
+        x: 935
+        y: 445
+        width: 74
+        height: 91
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0120d34dcf05c3d46ad2d5efa7765342
+      internalID: -1609956696
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_52
+      rect:
+        serializedVersion: 2
+        x: 1031
+        y: 445
+        width: 74
+        height: 91
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cec272a397f943747beb798631fc7080
+      internalID: -868890515
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_53
+      rect:
+        serializedVersion: 2
+        x: 1131
+        y: 447
+        width: 79
+        height: 91
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3321ba7b3b8e8de4fa637a3f8d116b23
+      internalID: 1443913703
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_54
+      rect:
+        serializedVersion: 2
+        x: 839
+        y: 345
+        width: 92
+        height: 91
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9db73f285bbfe96469a41b8ac8bc2c4e
+      internalID: -446024926
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_55
+      rect:
+        serializedVersion: 2
+        x: 946
+        y: 345
+        width: 92
+        height: 91
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fc9c1ef858b251241b26a1d6aeca82ff
+      internalID: 1946946073
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_56
+      rect:
+        serializedVersion: 2
+        x: 1047
+        y: 346
+        width: 92
+        height: 91
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c0d4caaf851f2a944a22f47d32344fcd
+      internalID: 866693171
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_57
+      rect:
+        serializedVersion: 2
+        x: 1143
+        y: 346
+        width: 92
+        height: 91
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2f977d3165e824741b36b79dce5ad7a4
+      internalID: 1531736405
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_58
+      rect:
+        serializedVersion: 2
+        x: 844
+        y: 234
+        width: 116
+        height: 88
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c3dc8dd83ebc2b348946a83ce77d7415
+      internalID: -1538221823
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_59
+      rect:
+        serializedVersion: 2
+        x: 974
+        y: 234
+        width: 116
+        height: 88
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: edcdfd92d520b4748a231a6af2e97885
+      internalID: 2080221092
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_60
+      rect:
+        serializedVersion: 2
+        x: 1101
+        y: 235
+        width: 116
+        height: 88
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 373859e139601474fba856ac6e1ecb99
+      internalID: -1494434391
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_61
+      rect:
+        serializedVersion: 2
+        x: 1225
+        y: 236
+        width: 116
+        height: 88
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b23a98b510aa867489f3a47cd30ec6f0
+      internalID: -348059701
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_62
+      rect:
+        serializedVersion: 2
+        x: 838
+        y: 145
+        width: 116
+        height: 88
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4c9823c038dfdd84a80593008405093d
+      internalID: -1309091131
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_63
+      rect:
+        serializedVersion: 2
+        x: 958
+        y: 143
+        width: 116
+        height: 88
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 630fe2fe18a084649afe72140e5e79ab
+      internalID: 555378866
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_64
+      rect:
+        serializedVersion: 2
+        x: 1091
+        y: 149
+        width: 116
+        height: 88
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5b8e290e508c22c4bbc42680af674e41
+      internalID: 1397676905
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_65
+      rect:
+        serializedVersion: 2
+        x: 1220
+        y: 145
+        width: 116
+        height: 88
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8e0044439457fcb4aa4a61776cda1654
+      internalID: 901418301
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_66
+      rect:
+        serializedVersion: 2
+        x: 1365
+        y: 170
+        width: 142
+        height: 137
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 79cf30c317f0c9e4c8dbd08809921bb8
+      internalID: -442286570
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_67
+      rect:
+        serializedVersion: 2
+        x: 1240
+        y: 444
+        width: 121
+        height: 87
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 88ca76c5fbc521e4c8095bca4fe7d9f6
+      internalID: 1052164431
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_68
+      rect:
+        serializedVersion: 2
+        x: 1388
+        y: 443
+        width: 121
+        height: 87
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 31b4a4b53bf6975409ada377e13e1255
+      internalID: 725406730
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_69
+      rect:
+        serializedVersion: 2
+        x: 1392
+        y: 339
+        width: 107
+        height: 87
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 801e77745de89124196284f721b67254
+      internalID: 2087918586
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_70
+      rect:
+        serializedVersion: 2
+        x: 1392
+        y: 339
+        width: 107
+        height: 87
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 68ea73962a986c24da8ca6c3910e5efe
+      internalID: -541519100
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GAMEPLAY SPRITE SHEET_71
+      rect:
+        serializedVersion: 2
+        x: 1253
+        y: 340
+        width: 107
+        height: 87
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 10f9cfcf207a5f44b8d9e0dc38f8c978
+      internalID: 1220266795
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5f768cab54c6ea143974ec35fc028651
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      GAMEPLAY SPRITE SHEET_0: 362343918
+      GAMEPLAY SPRITE SHEET_1: -537770300
+      GAMEPLAY SPRITE SHEET_10: -1089831373
+      GAMEPLAY SPRITE SHEET_11: -1917007512
+      GAMEPLAY SPRITE SHEET_12: 1608063248
+      GAMEPLAY SPRITE SHEET_13: -818570472
+      GAMEPLAY SPRITE SHEET_14: -674947951
+      GAMEPLAY SPRITE SHEET_15: 1186068894
+      GAMEPLAY SPRITE SHEET_16: 146778372
+      GAMEPLAY SPRITE SHEET_17: -1257732859
+      GAMEPLAY SPRITE SHEET_18: -2122622288
+      GAMEPLAY SPRITE SHEET_19: -278199116
+      GAMEPLAY SPRITE SHEET_2: 456619409
+      GAMEPLAY SPRITE SHEET_20: -2039008253
+      GAMEPLAY SPRITE SHEET_21: 1855193679
+      GAMEPLAY SPRITE SHEET_22: 465565017
+      GAMEPLAY SPRITE SHEET_23: 684076127
+      GAMEPLAY SPRITE SHEET_24: -945238542
+      GAMEPLAY SPRITE SHEET_25: -172113360
+      GAMEPLAY SPRITE SHEET_26: -1621445386
+      GAMEPLAY SPRITE SHEET_27: -705587609
+      GAMEPLAY SPRITE SHEET_28: -972391968
+      GAMEPLAY SPRITE SHEET_29: -1343149799
+      GAMEPLAY SPRITE SHEET_3: -616369854
+      GAMEPLAY SPRITE SHEET_30: -1854536975
+      GAMEPLAY SPRITE SHEET_31: -847027829
+      GAMEPLAY SPRITE SHEET_32: -1964637498
+      GAMEPLAY SPRITE SHEET_33: -1439337625
+      GAMEPLAY SPRITE SHEET_34: 1250709054
+      GAMEPLAY SPRITE SHEET_35: -1275041015
+      GAMEPLAY SPRITE SHEET_36: -135581617
+      GAMEPLAY SPRITE SHEET_37: -64222401
+      GAMEPLAY SPRITE SHEET_38: 2039474082
+      GAMEPLAY SPRITE SHEET_39: -1064019151
+      GAMEPLAY SPRITE SHEET_4: 590432267
+      GAMEPLAY SPRITE SHEET_40: -175809673
+      GAMEPLAY SPRITE SHEET_41: -2103022107
+      GAMEPLAY SPRITE SHEET_42: 463645722
+      GAMEPLAY SPRITE SHEET_43: 255954252
+      GAMEPLAY SPRITE SHEET_44: 988240795
+      GAMEPLAY SPRITE SHEET_45: 64066937
+      GAMEPLAY SPRITE SHEET_46: -1794250889
+      GAMEPLAY SPRITE SHEET_47: 378821623
+      GAMEPLAY SPRITE SHEET_48: -1165541417
+      GAMEPLAY SPRITE SHEET_49: -2019712112
+      GAMEPLAY SPRITE SHEET_5: 1531137720
+      GAMEPLAY SPRITE SHEET_50: 495010003
+      GAMEPLAY SPRITE SHEET_51: -1609956696
+      GAMEPLAY SPRITE SHEET_52: -868890515
+      GAMEPLAY SPRITE SHEET_53: 1443913703
+      GAMEPLAY SPRITE SHEET_54: -446024926
+      GAMEPLAY SPRITE SHEET_55: 1946946073
+      GAMEPLAY SPRITE SHEET_56: 866693171
+      GAMEPLAY SPRITE SHEET_57: 1531736405
+      GAMEPLAY SPRITE SHEET_58: -1538221823
+      GAMEPLAY SPRITE SHEET_59: 2080221092
+      GAMEPLAY SPRITE SHEET_6: -1045812771
+      GAMEPLAY SPRITE SHEET_60: -1494434391
+      GAMEPLAY SPRITE SHEET_61: -348059701
+      GAMEPLAY SPRITE SHEET_62: -1309091131
+      GAMEPLAY SPRITE SHEET_63: 555378866
+      GAMEPLAY SPRITE SHEET_64: 1397676905
+      GAMEPLAY SPRITE SHEET_65: 901418301
+      GAMEPLAY SPRITE SHEET_66: -442286570
+      GAMEPLAY SPRITE SHEET_67: 1052164431
+      GAMEPLAY SPRITE SHEET_68: 725406730
+      GAMEPLAY SPRITE SHEET_69: 2087918586
+      GAMEPLAY SPRITE SHEET_7: -1117544124
+      GAMEPLAY SPRITE SHEET_70: -541519100
+      GAMEPLAY SPRITE SHEET_71: 1220266795
+      GAMEPLAY SPRITE SHEET_8: 826466510
+      GAMEPLAY SPRITE SHEET_9: -1638747306
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

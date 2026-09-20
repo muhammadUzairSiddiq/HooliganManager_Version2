@@ -413,10 +413,7 @@ public class BattleHudLayoutFix : MonoBehaviour
         var canvas = canvasGo.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 13000;
-        var scaler = canvasGo.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = LandscapeUI.Resolution;
-        scaler.matchWidthOrHeight = 0.5f;
+        LandscapeUI.ConfigureLandscapeScaler(canvasGo.GetComponent<CanvasScaler>());
 
         var go = new GameObject("Hint", typeof(RectTransform), typeof(Image));
         go.transform.SetParent(canvasGo.transform, false);

@@ -12,9 +12,13 @@ public class PedestrianController : MonoBehaviour
     private NavMeshAgent _navAgent;
     private Animator _animator;
     private MeshRenderer[] _pavementMeshes;
+    private bool _hasActivityZone;
+    private Vector3 _activityCenter;
+    private float _activityRadius;
     
     private float _waitTimer = 0f;
     private bool _isWaiting = true;
+    private bool _conversationPaused;
 
     // Optional: Reference to AgentAnimController if they use the same animation setup
     private AgentAnimController _animController;
@@ -41,7 +45,9 @@ public class PedestrianController : MonoBehaviour
             {
                 GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
                 
-                _animator = spawnedCharacter.AddComponent<Animator>();
+                GameplayTuning.ScaleModel(spawnedCharacter.transform);
+                _animator = spawnedCharacter.GetComponent<Animator>();
+                if (!_animator) _animator = spawnedCharacter.AddComponent<Animator>();
                 _animator.runtimeAnimatorController = entry.animatorController != null ? entry.animatorController : BattleManager.instance.characterAnimator;
                 StartCoroutine(General.InvokeMethod(()=>_animator.Play("Walking"), 1));
                 
@@ -65,6 +71,16 @@ public class PedestrianController : MonoBehaviour
         PickRandomDestination();
     }
 
+    /// <summary>Keeps special-event pedestrians close to an important location.</summary>
+    public void SetActivityZone(Vector3 center, float radius)
+    {
+        _hasActivityZone = true;
+        _activityCenter = center;
+        _activityRadius = Mathf.Max(4f, radius);
+        _isWaiting = false;
+        PickRandomDestination();
+    }
+
     private void Update()
     {
         // Animate
@@ -73,15 +89,17 @@ public class PedestrianController : MonoBehaviour
         {
             // If we are not waiting, ALWAYS play the walking animation, regardless of NavMesh velocity.
             // This ensures they start walking immediately on spawn without waiting for acceleration.
-            float normSpeed = (!_isWaiting) ? 0.4f : 0f;
+            float normSpeed = Mathf.Clamp01(speed / Mathf.Max(.1f, walkSpeed)) * .5f;
             // We pass false for isFighting so it uses Idle instead of BattleIdle when standing still
-            _animController.Tick(normSpeed, false);
+            _animController.Tick(normSpeed, _streetFight || _conversationPaused);
         }
         else if (_animator != null)
         {
             // Fallback if they use a simple animator with a Speed parameter
             _animator.SetFloat("Speed", speed);
         }
+
+        if (_conversationPaused) return;
 
         if (_isWaiting)
         {
@@ -106,8 +124,76 @@ public class PedestrianController : MonoBehaviour
         }
     }
 
+    private bool _streetFight;
+
+    public void SetConversationPaused(bool paused, Vector3 speakerPosition)
+    {
+        _conversationPaused = paused;
+        if (!paused) _streetFight = false;
+        if (_navAgent != null && _navAgent.isOnNavMesh)
+        {
+            _navAgent.isStopped = paused;
+            if (paused) _navAgent.ResetPath();
+            else PickRandomDestination();
+        }
+        if (paused) Face(speakerPosition);
+    }
+
+    public void BeginStreetFight()
+    {
+        _streetFight = true;
+        _conversationPaused = true;
+        if (_navAgent != null && _navAgent.isOnNavMesh)
+        {
+            _navAgent.isStopped = true;
+            _navAgent.ResetPath();
+        }
+    }
+
+    public void EndStreetFight()
+    {
+        _streetFight = false;
+        SetConversationPaused(false, transform.position);
+    }
+
+    public void Face(Vector3 worldPoint)
+    {
+        Vector3 look = worldPoint - transform.position;
+        look.y = 0f;
+        if (look.sqrMagnitude > .05f) transform.rotation = Quaternion.LookRotation(look.normalized, Vector3.up);
+    }
+
+    public void PlayAttack() => _animController?.PlayAttack();
+    public void PlayDie()
+    {
+        _streetFight = false;
+        _conversationPaused = true;
+        if (_navAgent != null && _navAgent.isOnNavMesh)
+        {
+            _navAgent.isStopped = true;
+            _navAgent.ResetPath();
+        }
+        _animController?.PlayDie();
+    }
+
+    public bool IsConversationPaused => _conversationPaused;
+
     private void PickRandomDestination()
     {
+        if (_hasActivityZone)
+        {
+            for (int i = 0; i < 12; i++)
+            {
+                Vector2 offset = Random.insideUnitCircle * _activityRadius;
+                Vector3 candidate = _activityCenter + new Vector3(offset.x, 0f, offset.y);
+                if (NavMesh.SamplePosition(candidate, out NavMeshHit localHit, 5f, NavMesh.AllAreas))
+                {
+                    _navAgent.SetDestination(localHit.position);
+                    return;
+                }
+            }
+        }
+
         if (_pavementMeshes == null || _pavementMeshes.Length == 0) return;
 
         // Try a few times to find a valid NavMesh point on a random pavement mesh

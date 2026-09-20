@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -26,10 +27,23 @@ public class PedestrianSpawner : MonoBehaviour
     private MeshRenderer[] _pavementMeshes;
     private List<GameObject> _activePedestrians = new List<GameObject>();
     private bool _isInitialized = false;
+    public bool IsInitialized => _isInitialized;
+
+    private int _ambientCount;
 
     private void Start()
     {
-        BattleManager.instance.OnMapSpawnedIn += SetupPedestrianSpawner;
+        int full = Mathf.Max(6, GameplayTuning.Current.maxPedestrians);
+        _ambientCount = 3;
+        spawnCount = _ambientCount;
+        if (BattleManager.instance) BattleManager.instance.OnMapSpawnedIn += SetupPedestrianSpawner;
+    }
+
+    public void SetMatchdayIntensity(bool live)
+    {
+        int full = Mathf.Max(6, GameplayTuning.Current.maxPedestrians);
+        if (_ambientCount <= 0) _ambientCount = 3;
+        spawnCount = live ? Mathf.Min(5, full) : _ambientCount;
     }
 
     private void SetupPedestrianSpawner()
@@ -44,20 +58,24 @@ public class PedestrianSpawner : MonoBehaviour
             }
         }
 
-        if (pavementParent == null)
-        {
-            Debug.LogWarning("[PedestrianSpawner] Pavement parent not found! Please assign it or name it 'Pedestrian'.");
-            return;
-        }
-
         if (pedestrianPrefab == null)
         {
             Debug.LogWarning("[PedestrianSpawner] Pedestrian prefab is missing.");
             return;
         }
 
-        // Get all MeshRenderers from the children of the pavement parent
-        _pavementMeshes = pavementParent.GetComponentsInChildren<MeshRenderer>();
+        // Get walkable presentation meshes. The production city is a flattened import and
+        // does not always preserve a dedicated PavementsParent, so discover its path pieces.
+        _pavementMeshes = pavementParent != null
+            ? pavementParent.GetComponentsInChildren<MeshRenderer>()
+            : FindObjectsByType<MeshRenderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                .Where(r => r && r.transform.root.name == "Demonstration")
+                .Where(r =>
+                {
+                    string n=r.name.ToLowerInvariant();
+                    return n.StartsWith("park_road") || n.StartsWith("side_") ||
+                           n.Contains("sidewalk") || n.Contains("pavement") || n.Contains("walkway");
+                }).ToArray();
 
         if (_pavementMeshes.Length == 0)
         {
@@ -86,7 +104,7 @@ public class PedestrianSpawner : MonoBehaviour
                 continue;
             }
 
-            if (Vector3.Distance(ped.transform.position, camPos) > despawnRadius)
+            if (HorizontalDistance(ped.transform.position, camPos) > despawnRadius)
             {
                 Destroy(ped);
                 _activePedestrians.RemoveAt(i);
@@ -112,6 +130,7 @@ public class PedestrianSpawner : MonoBehaviour
                 
                 var registryToUse = pedestrianRegistry != null ? pedestrianRegistry : BattleManager.instance.portraitRegistry;
                 controller.Initialize(_pavementMeshes, registryToUse);
+                (go.GetComponent<SocialNpc>() ?? go.AddComponent<SocialNpc>()).Configure("CITY STREET", false);
                 
                 _activePedestrians.Add(go);
             }
@@ -126,7 +145,7 @@ public class PedestrianSpawner : MonoBehaviour
             MeshRenderer randomMesh = _pavementMeshes[Random.Range(0, _pavementMeshes.Length)];
             
             // Fast distance check to the mesh center before doing precise bounds logic
-            if (Vector3.Distance(randomMesh.transform.position, camPos) > spawnRadius) continue;
+            if (HorizontalDistance(randomMesh.transform.position, camPos) > spawnRadius) continue;
 
             Bounds bounds = randomMesh.bounds;
 
@@ -139,7 +158,7 @@ public class PedestrianSpawner : MonoBehaviour
             if (NavMesh.SamplePosition(randomPos, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
             {
                 // Ensure it's not too close to the camera to prevent popping in right in front of the player
-                if (Vector3.Distance(hit.position, camPos) > 10f)
+                if (HorizontalDistance(hit.position, camPos) > 10f)
                 {
                     return hit.position;
                 }
@@ -147,5 +166,36 @@ public class PedestrianSpawner : MonoBehaviour
         }
 
         return Vector3.zero;
+    }
+
+    public GameObject SpawnActivityPedestrian(Vector3 center, float radius, Transform parent, string venue = "CITY STREET", bool showTalkPrompt = true)
+    {
+        if (!_isInitialized || pedestrianPrefab == null) return null;
+
+        for (int i = 0; i < 16; i++)
+        {
+            Vector2 offset = Random.insideUnitCircle * radius;
+            Vector3 candidate = center + new Vector3(offset.x, 0f, offset.y);
+            if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 6f, NavMesh.AllAreas)) continue;
+
+            GameObject go = Instantiate(pedestrianPrefab, hit.position, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), parent);
+            go.name = "Matchday Supporter";
+            PedestrianController controller = go.GetComponent<PedestrianController>();
+            if (controller == null) controller = go.AddComponent<PedestrianController>();
+            var registryToUse = pedestrianRegistry != null ? pedestrianRegistry : BattleManager.instance?.portraitRegistry;
+            controller.Initialize(_pavementMeshes, registryToUse);
+            controller.SetActivityZone(center, radius);
+            (go.GetComponent<SocialNpc>() ?? go.AddComponent<SocialNpc>()).Configure(venue, showTalkPrompt);
+            return go;
+        }
+
+        return null;
+    }
+
+    private static float HorizontalDistance(Vector3 a, Vector3 b)
+    {
+        a.y = 0f;
+        b.y = 0f;
+        return Vector3.Distance(a, b);
     }
 }

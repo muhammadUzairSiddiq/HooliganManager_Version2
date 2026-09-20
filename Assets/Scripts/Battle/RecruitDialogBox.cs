@@ -35,6 +35,7 @@ public class RecruitDialogBox : MonoBehaviour
         }
     }
 
+    public static bool AnyOpen => _instance && _instance.IsOpen;
     public bool IsOpen => _root != null && _root.activeSelf;
 
     private GameObject _root;
@@ -77,11 +78,8 @@ public class RecruitDialogBox : MonoBehaviour
         canvasGo.transform.SetParent(transform, false);
         var canvas = canvasGo.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 24000;
-        var scaler = canvasGo.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = LandscapeUI.Resolution;
-        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
+        canvas.sortingOrder = 28000;
+        LandscapeUI.ConfigureLandscapeScaler(canvasGo.GetComponent<CanvasScaler>());
 
         _root = new GameObject("Dialog", typeof(RectTransform), typeof(Image));
         _root.transform.SetParent(canvasGo.transform, false);
@@ -95,6 +93,8 @@ public class RecruitDialogBox : MonoBehaviour
         bg.sprite = LandscapeTheme.Current ? LandscapeTheme.Current.panel : null;
         bg.type = Image.Type.Sliced;
         bg.color = Color.white;
+        bg.raycastTarget = true;
+        _root.AddComponent<UiWorldTapBlocker>();
 
         var accent = new GameObject("Accent", typeof(RectTransform), typeof(Image));
         accent.transform.SetParent(_root.transform, false);

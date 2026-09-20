@@ -36,8 +36,8 @@ public static partial class LandscapeSceneBuilder
         }
         AssetDatabase.Refresh(); theme=LandscapeThemeImporter.Import();
         BuildMenu(); BuildDashboard(); BuildBattle();
-        PlayerSettings.defaultInterfaceOrientation=UIOrientation.AutoRotation;
-        PlayerSettings.allowedAutorotateToLandscapeLeft=true; PlayerSettings.allowedAutorotateToLandscapeRight=true;
+        PlayerSettings.defaultInterfaceOrientation=UIOrientation.LandscapeLeft;
+        PlayerSettings.allowedAutorotateToLandscapeLeft=true; PlayerSettings.allowedAutorotateToLandscapeRight=false;
         PlayerSettings.allowedAutorotateToPortrait=false; PlayerSettings.allowedAutorotateToPortraitUpsideDown=false;
         PlayerSettings.defaultScreenWidth=1600; PlayerSettings.defaultScreenHeight=900;
         PlayerSettings.defaultWebScreenWidth=1600; PlayerSettings.defaultWebScreenHeight=900;
@@ -67,8 +67,7 @@ public static partial class LandscapeSceneBuilder
     {
         var go=new GameObject(name,typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
         canvas=go.GetComponent<Canvas>(); canvas.renderMode=RenderMode.ScreenSpaceOverlay; canvas.sortingOrder=order;
-        var scaler=go.GetComponent<CanvasScaler>(); scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution=LandscapeUI.Resolution; scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.Expand;
+        LandscapeUI.ConfigureLandscapeScaler(go.GetComponent<CanvasScaler>());
         if(background)
         {
             var bg=Image("Backdrop",go.transform,0,0,1600,900,background);
@@ -174,8 +173,8 @@ public static partial class LandscapeSceneBuilder
         Image("TitleArtwork",frame,44,119,484,216,theme.logo,null,true);
         Text("Tagline",frame,"BUILD YOUR FIRM.\nRULE THE TERRACES.",58,348,465,74,26,White,true);
         ctrl.newGameBtn=LegacyButton("NewGame",frame,"NEW GAME    >",52,460,460,72,"red");
-        ctrl.continueBtn=LegacyButton("Continue",frame,"CONTINUE CAMPAIGN",52,548,460,64);
-        shell.continueCampaign=Action(shell,frame,"LoadGame","LOAD HEADQUARTERS",52,627,460,60,"load");
+        ctrl.continueBtn=LegacyButton("Continue",frame,"ENTER HOME TERRITORY",52,548,460,64);
+        shell.continueCampaign=Action(shell,frame,"LoadGame","OPEN HEADQUARTERS",52,627,460,60,"load");
         ctrl.settingsBtn=LegacyButton("Settings",frame,"SETTINGS",52,702,224,58);
         Action(shell,frame,"Credits","CREDITS",288,702,224,58,"credits");
         ctrl.exitBtn=LegacyButton("Exit",frame,"QUIT GAME",52,777,224,52,"outline");

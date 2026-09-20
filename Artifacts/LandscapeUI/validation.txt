@@ -1,4 +1,4 @@
 PASS MainMenu: landscape canvas, navigation and required controller bindings.
 PASS DashboardScene: landscape canvas, navigation and required controller bindings.
-PASS GameScene: landscape canvas, navigation and required controller bindings.
-PASS player orientation: both landscape rotations enabled, portrait disabled.
+PASS Gameplay: landscape canvas, navigation and required controller bindings.
+PASS player orientation: fixed Landscape Left, portrait disabled.

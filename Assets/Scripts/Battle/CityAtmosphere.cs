@@ -51,7 +51,7 @@ public static class CityAtmosphere
         // Kill every Volume in loaded scenes (Global Volume + URP default leftovers).
         foreach (var vol in Object.FindObjectsByType<Volume>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
-            if (vol == null) continue;
+            if (vol == null || vol.GetComponent<ModalPresentation>()) continue;
             vol.weight = 0f;
             vol.enabled = false;
             vol.gameObject.SetActive(false);

@@ -24,6 +24,14 @@ MonoBehaviour:
   settings: {fileID: 3041082722531355676, guid: 6912dec163c74fe4585fa0a9b773d552, type: 3}
   emblem: {fileID: -5090176270661260661, guid: 4a9437fc874361843a924e719b0237c1, type: 3}
   celebration: {fileID: 3361922360508061046, guid: 4a9437fc874361843a924e719b0237c1, type: 3}
+  energy: {fileID: 21300000, guid: 0d2ea10a03a154b4dae2710453bd404e, type: 3}
+  lootBat: {fileID: 21300000, guid: 676dcaf723dd83b44a15e0724fca6711, type: 3}
+  lootBattery: {fileID: 21300000, guid: fc1d73fca1c89044492a151e1f1180e8, type: 3}
+  medkit: {fileID: 21300000, guid: 35aa03203f4f8db4285e3c5ed4fe704a, type: 3}
+  navHome: {fileID: 21300000, guid: 710267d206cb5cd4898d74f93dd0842e, type: 3}
+  navAttack: {fileID: 21300000, guid: 00542b2aa11b0dd4f822896dba284913, type: 3}
+  navSquad: {fileID: 21300000, guid: c83fd2ebe818d1549ae513eaf8f3e7de, type: 3}
+  navMissions: {fileID: 21300000, guid: bf77c8e55ef18c74398058ec4c403284, type: 3}
   panel: {fileID: 646905182892122349, guid: 18e4bb0835e1d724d9b95499c5b84f9c, type: 3}
   card: {fileID: -3518721618884921689, guid: 482e5125b8124804283e04e10b8e9e23, type: 3}
   redButton: {fileID: 7371052949212109300, guid: 0ad066b6d051efc4b82015ca1cd4d209, type: 3}
@@ -36,3 +44,6 @@ MonoBehaviour:
   - {fileID: -6021406866511509003, guid: 3176141614f692646bee2fd28b3370e1, type: 3}
   - {fileID: -4027200565316533501, guid: 3176141614f692646bee2fd28b3370e1, type: 3}
   - {fileID: 7111507242042348212, guid: 3176141614f692646bee2fd28b3370e1, type: 3}
+  taxiPrefab: {fileID: 1863946516262807295, guid: f28024e5611c9334188f104d88fab7b3, type: 3}
+  rivalVehiclePrefab: {fileID: 6638622196832716987, guid: 949eee56bf4fd3c468ac874af3728490, type: 3}
+  vanPrefab: {fileID: 6973908115289011383, guid: e5ca4f52761564544a0195ea46aed9da, type: 3}

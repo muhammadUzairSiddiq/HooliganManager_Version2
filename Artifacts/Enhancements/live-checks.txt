@@ -1,0 +1,27 @@
+PASS Spawn does not inflate stats: Review Member 1
+PASS Player spawned on NavMesh
+PASS Player visual scale 1.5
+PASS Spawn does not inflate stats: Review Member 2
+PASS Player spawned on NavMesh
+PASS Player visual scale 1.5
+PASS Spawn does not inflate stats: Review Member 3
+PASS Player spawned on NavMesh
+PASS Player visual scale 1.5
+PASS Spawn does not inflate stats: Review Member 4
+PASS Player spawned on NavMesh
+PASS Player visual scale 1.5
+PASS Rival visual scale 1.5
+PASS Rival visual scale 1.5
+PASS Rival visual scale 1.5
+PASS Rival visual scale 1.5
+PASS Rival visual scale 1.5
+PASS Rival visual scale 1.5
+PASS Downed member stays in roster
+PASS Paid live recovery succeeds
+PASS Recovered unit immediately usable on the map
+PASS Recovery charged exactly once
+PASS Healthy recovery cannot charge twice
+PASS Negative recovery price rejected
+PASS Damage immediately syncs roster health
+PASS Recovered health survives reload
+PASS Modal enables silver world post processing

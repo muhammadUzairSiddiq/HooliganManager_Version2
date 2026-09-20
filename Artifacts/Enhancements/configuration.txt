@@ -1,0 +1,8 @@
+Tuning asset and compressed audio configured. Engine stripping enabled.
+True Assets/Scenes/MainMenu.unity
+True Assets/Scenes/DashboardScene.unity
+True Assets/Scenes/Gameplay.unity
+False Assets/Scenes/Map.unity
+False Assets/Scenes/Map1.unity
+False Assets/Scenes/Map2.unity
+False Assets/Scenes/Map3.unity

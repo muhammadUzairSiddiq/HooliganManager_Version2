@@ -101,11 +101,12 @@ public class BattleUIController : MonoBehaviour
         retreatBtn?.onClick.AddListener(OnRetreat);
         moveBtn?.onClick.AddListener(OnMovePressed);
         pauseButton?.onClick.AddListener(OnPause);
+        SyncPauseButtonIcon(BattleManager.instance?.IsPaused ?? false);
 
-        // Deactivate attack, retreat, and move buttons to clean up HUD and support default movement
-        if (attackBtn != null) attackBtn.gameObject.SetActive(landscapeLayout);
-        if (retreatBtn != null) retreatBtn.gameObject.SetActive(landscapeLayout);
-        if (moveBtn != null) moveBtn.gameObject.SetActive(landscapeLayout);
+        // Deactivate attack, retreat, and move — city HUD shows Capture/Retreat contextually.
+        if (attackBtn != null) attackBtn.gameObject.SetActive(false);
+        if (retreatBtn != null) retreatBtn.gameObject.SetActive(false);
+        if (moveBtn != null) moveBtn.gameObject.SetActive(false);
 
         // Subscribe to BattleManager events
         if (BattleManager.instance != null)
@@ -134,6 +135,12 @@ public class BattleUIController : MonoBehaviour
     public void SetupHUD(BattleManager.BattleMode mode)
     {
         _mode = mode;
+
+        if (GameManager.IsPolicePlayer)
+        {
+            foreach (var label in transform.root.GetComponentsInChildren<TextMeshProUGUI>(true))
+                if (label != null && label.name == "SquadTitle") label.text = "YOUR UNIT";
+        }
 
         bool isRaid = mode == BattleManager.BattleMode.PoliceRaid;
 
@@ -244,7 +251,9 @@ public class BattleUIController : MonoBehaviour
 
     private void UpdateCounts(int aliveP, int aliveE)
     {
-        if (playerCountText) playerCountText.text = $"MEMBERS: {aliveP}";
+        if (playerCountText) playerCountText.text = GameManager.IsPolicePlayer
+            ? $"OFFICERS: {aliveP}"
+            : $"MEMBERS: {aliveP}";
         if (landscapeLayout && enemyCountText) enemyCountText.text = $"RIVALS: {aliveE}";
         EnsureSquadSelectToggle();
     }
@@ -254,9 +263,9 @@ public class BattleUIController : MonoBehaviour
     public void RefreshSelection(List<AgentController> selected)
     {
         if (selectedUnitsLabel)
-            selectedUnitsLabel.text = selected.Count == 1
-                ? "SELECTED: 1 UNIT"
-                : $"SELECTED: {selected.Count} UNITS";
+            selectedUnitsLabel.text = selected.Count == 0
+                ? ""
+                : selected.Count == 1 ? "1 SELECTED" : $"{selected.Count} SELECTED";
 
         EnsurePortraitScrollView();
         EnsureSquadSelectToggle();
@@ -496,7 +505,9 @@ public class BattleUIController : MonoBehaviour
         if (landscapeLayout)
         {
             if (!selectedUnitsLabel) return;
-            selectedUnitsLabel.text=message; selectedUnitsLabel.fontSize=26;
+            selectedUnitsLabel.richText = true;
+            selectedUnitsLabel.text=message; selectedUnitsLabel.fontSize=22;
+            selectedUnitsLabel.color = LandscapeUI.White;
             if (_alertRoutine!=null) StopCoroutine(_alertRoutine);
             _alertRoutine=StartCoroutine(AlertTimeout(seconds));return;
         }
@@ -527,9 +538,9 @@ public class BattleUIController : MonoBehaviour
             if (_alertBaseFontSize > 0f)
                 selectedUnitsLabel.fontSize = _alertBaseFontSize;
             var sel = AgentSelectionManager.instance?.SelectedAgents;
-            selectedUnitsLabel.text = sel != null
-                ? $"SELECTED: {sel.Count} UNITS"
-                : "SELECTED: 0 UNITS";
+            selectedUnitsLabel.text = sel != null && sel.Count > 0
+                ? (sel.Count == 1 ? "1 SELECTED" : $"{sel.Count} SELECTED")
+                : "";
         }
         _alertRoutine = null;
     }
@@ -540,12 +551,14 @@ public class BattleUIController : MonoBehaviour
     {
         _awaitingMoveTarget = false;
         AgentSelectionManager.instance?.CommandSelectedAttack();
+        ShowAlert("ATTACK ORDER CONFIRMED", 1.4f);
     }
 
     private void OnRetreat()
     {
         _awaitingMoveTarget = false;
         AgentSelectionManager.instance?.CommandSelectedRetreat();
+        ShowAlert(CityGameplay.HomeMode ? "REGROUPING AT HEADQUARTERS" : "RETREAT ORDER CONFIRMED", 1.4f);
         if(CityGameplay.Instance && CityGameplay.HomeMode)
         {CityGameplay.Instance.PostEvent("REGROUPING AT HEADQUARTERS");return;}
 
@@ -563,6 +576,12 @@ public class BattleUIController : MonoBehaviour
 
     private void OnMovePressed()
     {
+        if (CityGameplay.Instance)
+        {
+            _awaitingMoveTarget = false;
+            AgentSelectionManager.instance?.ArmMoveCommand();
+            return;
+        }
         // Next tap on the world will set move target
         _awaitingMoveTarget = true;
         if (selectedUnitsLabel)
@@ -591,15 +610,35 @@ public class BattleUIController : MonoBehaviour
     }
 
     /// <summary>
-    /// Keeps the HUD pause button icon (⏸ / ▶) in sync with the current pause state.
+    /// Keeps the HUD pause button (icon + label) in sync with the current pause state.
+    /// Icons are generated sprites — the project fonts have no ⏸ / ▶ glyphs.
     /// Called both from OnPause and from BattlePauseMenuController when the player resumes.
     /// </summary>
     public void SyncPauseButtonIcon(bool isPaused)
     {
         if(!isPaused) gameObject.SetActive(true); // Ensure HUD is visible when unpausing
         if (!pauseButton) return;
-        var label = pauseButton.GetComponentInChildren<TextMeshProUGUI>();
-        if (label) label.text = isPaused ? "▶" : "⏸";
+        pauseButton.gameObject.SetActive(true);
+        pauseButton.interactable = true;
+        var mask = pauseButton.GetComponent<RectMask2D>();
+        if (mask) mask.enabled = false;
+        HudIconFactory.EnsureButtonIcon(pauseButton, isPaused ? HudIconFactory.Play() : HudIconFactory.Pause(), 26f);
+        var label = pauseButton.transform.Find("Label")?.GetComponent<TextMeshProUGUI>() ?? pauseButton.GetComponentInChildren<TextMeshProUGUI>();
+        if (!label)
+        {
+            label = LandscapeUI.Text("Label", pauseButton.transform, "", 44, 4, 100, 48, 18, Color.white, true, TextAlignmentOptions.Center);
+        }
+        label.text = isPaused ? "RESUME" : "PAUSE";
+        label.color = Color.white;
+        label.alpha = 1f;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 13;
+        label.fontSizeMax = 20;
+        label.enableWordWrapping = false;
+        label.overflowMode = TextOverflowModes.Overflow;
+        label.gameObject.SetActive(true);
+        var icon = pauseButton.transform.Find("Icon")?.GetComponent<UnityEngine.UI.Image>();
+        if (icon) { icon.color = Color.white; icon.gameObject.SetActive(true); }
     }
 
     void OnEnable()
@@ -629,7 +668,7 @@ public class BattleUIController : MonoBehaviour
         // Handle MOVE tap on world space
         if (_awaitingMoveTarget)
         {
-            if (IsPointerOverUI(screenPosition))
+            if (AgentSelectionManager.BlocksWorldTap() || IsPointerOverUI(screenPosition))
                 return;
 
             // Raycast onto the ground plane (Y = 0) for a 3D destination
@@ -646,7 +685,9 @@ public class BattleUIController : MonoBehaviour
             // Restore label
             var sel = AgentSelectionManager.instance?.SelectedAgents;
             if (selectedUnitsLabel && sel != null)
-                selectedUnitsLabel.text = $"SELECTED: {sel.Count} UNITS";
+                selectedUnitsLabel.text = sel != null && sel.Count > 0
+                    ? (sel.Count == 1 ? "1 SELECTED" : $"{sel.Count} SELECTED")
+                    : "";
         }
     }
 

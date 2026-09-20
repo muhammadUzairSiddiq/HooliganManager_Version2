@@ -76,14 +76,21 @@ public class SceneTransitionManager : MonoBehaviour
     /// <summary>Themed transition with an optional title and subtitle/tip line.</summary>
     public void Transition(string sceneName, string title, string subtitle)
     {
-        if (_transitioning) return;
+        // Allow intentional reloads (Try Again) to interrupt a stuck/finished gate.
+        if (_transitioning)
+        {
+            StopAllCoroutines();
+            _transitioning = false;
+            _battleHold = false;
+            _battleReady = false;
+        }
         _transitioning = true;
+        GameAudio.Play("loading");
         bool isBattle = sceneName == GameManager.SCENE_BATTLE;
         _pendingTitle = string.IsNullOrEmpty(title) ? "LOADING" : title;
         _pendingSubtitle = string.IsNullOrEmpty(subtitle)
             ? LoadingTips[Random.Range(0, LoadingTips.Length)]
             : subtitle;
-        StopAllCoroutines();
         StartCoroutine(TransitionRoutine(sceneName, isBattle));
     }
 
@@ -141,7 +148,21 @@ public class SceneTransitionManager : MonoBehaviour
 
         SetProgress(1f);
         yield return Fade(0f);            // reveal the new scene
+        HideOverlay();
         _transitioning = false;
+    }
+
+    void HideOverlay()
+    {
+        if (_group != null)
+        {
+            _group.alpha = 0f;
+            _group.blocksRaycasts = false;
+        }
+        if (_titleLabel != null) _titleLabel.text = "";
+        if (_subtitleLabel != null) _subtitleLabel.text = "";
+        if (_percentLabel != null) _percentLabel.text = "";
+        SetProgress(0f);
     }
 
     private IEnumerator Fade(float targetAlpha)
@@ -176,10 +197,7 @@ public class SceneTransitionManager : MonoBehaviour
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 32000; // above everything
 
-        var scaler = canvasGo.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
+        LandscapeUI.ConfigureLandscapeScaler(canvasGo.GetComponent<CanvasScaler>());
 
         _group = canvasGo.GetComponent<CanvasGroup>();
         _group.alpha = 0f;
@@ -195,13 +213,13 @@ public class SceneTransitionManager : MonoBehaviour
         var shade=NewImage("Readability",canvasGo.transform);
         Stretch(shade.rectTransform);shade.color=new Color(.02f,.04f,.07f,.3f);
 
-        // Title
-        _titleLabel = NewText("Title", canvasGo.transform, "LOADING", 64f, FontStyles.Bold);
+        // Title — kept small so it never reads like a giant in-game banner if the overlay lingers.
+        _titleLabel = NewText("Title", canvasGo.transform, "LOADING", 34f, FontStyles.Bold);
         var tr = _titleLabel.rectTransform;
         tr.anchorMin = tr.anchorMax = new Vector2(0.5f, 0.5f);
         tr.pivot = new Vector2(0.5f, 0.5f);
-        tr.anchoredPosition = new Vector2(0f, -260f);
-        tr.sizeDelta = new Vector2(1200f, 100f);
+        tr.anchoredPosition = new Vector2(0f, -320f);
+        tr.sizeDelta = new Vector2(900f, 48f);
         _titleLabel.color = new Color(0.92f, 0.94f, 1f, 1f);
         _titleLabel.alignment = TextAlignmentOptions.Center;
 

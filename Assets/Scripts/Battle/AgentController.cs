@@ -32,6 +32,7 @@ public class AgentController : MonoBehaviour
     public float CurrentHp  { get; private set; }
     public bool  IsAlive    => CurrentHp > 0;
     public bool  IsSelected { get; private set; }
+    public Vector3 CommandDestination => _moveTarget;
 
     // ── Inspector ─────────────────────────────────────────────────────────
     [Header("References")]
@@ -57,29 +58,26 @@ public class AgentController : MonoBehaviour
     private Vector3           _retreatPoint;
     private float             _attackTimer;
     private float             _scanTimer;
+    private UnitAffiliationMarker _affiliationMarker;
 
     private const float SCAN_INTERVAL = 0.5f;
 
     // When true the agent stands still in idle — used during the pre-battle
     // cinematic intro so the camera can reveal each team without them fighting.
     private bool _cinematicIdle;
+    private bool _activityLocked;
+    public bool IsActivityLocked => _activityLocked;
 
     public GameObject modelPrefab { get; private set; }
 
     // ─────────────────────────────────────────────────────────────────────
 
-    public void Initialise(AgentData data, Vector3 retreatPoint)
+    public void Initialise(AgentData data, Vector3 retreatPoint, CharacterPortraitRegistry visualRegistry = null)
     {
-        setup();
+        Data = data;
+        setup(visualRegistry);
         
         Data          = data;
-        // Player firm starts stronger than early-level rival gangs (who are at ~30% HP).
-        if (data.MaxHp < 90f)
-        {
-            data.MaxHp *= 1.35f;
-            data.CurrentHp = data.MaxHp;
-            data.Strength *= 1.25f;
-        }
         CurrentHp     = data.CurrentHp;
         _retreatPoint = retreatPoint;
 
@@ -97,20 +95,33 @@ public class AgentController : MonoBehaviour
         // Build the code-driven animation controller.
         // It randomises run style internally so each agent looks different.
         _anim = new AgentAnimController(animator);
+        attackInterval = GameplayTuning.Current.attackInterval;
+        _attackTimer = Random.Range(0f, attackInterval * .4f);
 
         // Health bar
         healthBar?.Initialise(transform, false);
         RefreshHealthBar();
 
-        // Selection indicator
-        selectionCircle?.SetActive(false);
+        // Selection indicator — hollow ring only while selected (no always-on rings).
+        if (selectionCircle != null)
+        {
+            selectionCircle.transform.localScale *= 2f;
+            selectionCircle.SetActive(false);
+        }
+        _affiliationMarker = UnitAffiliationMarker.Attach(transform, new Color(.12f, 1f, .36f, 1f), 1.02f, true);
+        _affiliationMarker?.SetVisible(false);
+
+        // Make controlled people and their tap targets clearly readable on phones.
+        // NavMesh spacing stays unchanged so larger visuals do not block streets.
+        var capsule = GetComponent<CapsuleCollider>();
+        if (capsule != null) { capsule.radius = .45f; capsule.height = 2.7f; capsule.center = Vector3.up * 1.35f; }
 
         SetState(State.Idle);
     }
 
-    private void setup()
+    private void setup(CharacterPortraitRegistry visualRegistry = null)
     {
-        var registry = BattleManager.instance.portraitRegistry;
+        var registry = visualRegistry != null ? visualRegistry : BattleManager.instance.portraitRegistry;
 
         // Pick a random model prefab from the portrait registry.
         // Falls back to no visual model if the registry is not configured.
@@ -120,7 +131,7 @@ public class AgentController : MonoBehaviour
             return;
         }
 
-        int index = Mathf.RoundToInt(Random.Range(0, registry.entries.Count - 1));
+        int index = Mathf.Clamp(Data != null ? Data.PortraitIndex : Random.Range(0, registry.entries.Count), 0, registry.entries.Count - 1);
         var entry = registry.entries[index];
         GameObject characterPrefab = entry.modelPrefab;
         if (characterPrefab == null) return;
@@ -128,6 +139,7 @@ public class AgentController : MonoBehaviour
         modelPrefab = characterPrefab;
 
         GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
+        GameplayTuning.ScaleModel(spawnedCharacter.transform);
 
         // Add the Animator component dynamically
         animator = spawnedCharacter.GetComponent<Animator>();
@@ -152,7 +164,12 @@ public class AgentController : MonoBehaviour
     public void SetSelected(bool selected)
     {
         IsSelected = selected;
-        if(selectionCircle)selectionCircle.SetActive(selected);
+        if (selectionCircle) selectionCircle.SetActive(false);
+        if (_affiliationMarker != null)
+        {
+            _affiliationMarker.SetVisible(selected);
+            _affiliationMarker.SetSelected(selected);
+        }
     }
 
     // ── Cinematic idle lock ───────────────────────────────────────────────
@@ -170,12 +187,32 @@ public class AgentController : MonoBehaviour
         }
     }
 
+    /// <summary>Temporarily assigns this member to a non-combat city operation.</summary>
+    public void SetActivityLocked(bool locked, Vector3 facePoint)
+    {
+        _activityLocked = locked;
+        if (_nav != null && _nav.enabled && _nav.isOnNavMesh)
+        {
+            _nav.isStopped = locked;
+            if (locked) _nav.ResetPath();
+        }
+        if (locked)
+        {
+            _target = null;
+            SetState(State.Idle);
+            Vector3 direction = facePoint - transform.position;
+            direction.y = 0f;
+            if (direction.sqrMagnitude > .05f)
+                transform.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+        }
+    }
+
     // ── Commands ──────────────────────────────────────────────────────────
 
     /// <summary>Move to a world-space point, then return to Idle.</summary>
     public void CommandMoveTo(Vector3 point)
     {
-        if (!IsAlive || _cinematicIdle || _nav == null || !_nav.isOnNavMesh) return;
+        if (!IsAlive || _cinematicIdle || _activityLocked || _nav == null || !_nav.isOnNavMesh) return;
         if (!NavMesh.SamplePosition(point,out var destination,3f,_nav.areaMask)) return;
         var path=new NavMeshPath();
         if (!_nav.CalculatePath(destination.position,path) || path.status!=NavMeshPathStatus.PathComplete) return;
@@ -189,14 +226,14 @@ public class AgentController : MonoBehaviour
     /// <summary>Switch to aggressive auto-attack mode.</summary>
     public void CommandAttack()
     {
-        if (!IsAlive) return;
+        if (!IsAlive || _activityLocked) return;
         SetState(State.AutoAttacking);
     }
 
     /// <summary>Target a specific enemy to attack.</summary>
     public void CommandAttackTarget(EnemyController target)
     {
-        if (!IsAlive) return;
+        if (!IsAlive || _activityLocked) return;
         _target = target;
         SetState(State.AutoAttacking);
     }
@@ -204,25 +241,34 @@ public class AgentController : MonoBehaviour
     /// <summary>Move back to spawn / retreat zone.</summary>
     public void CommandRetreat()
     {
-        if (!IsAlive) return;
+        if (!IsAlive || _activityLocked) return;
         _target = null;
         SetState(State.Retreating);
         _nav.SetDestination(_retreatPoint);
     }
 
     // ── Damage ────────────────────────────────────────────────────────────
+    public void PlayStreetPunch()
+    {
+        if (!IsAlive) return;
+        _anim?.PlayAttack();
+    }
+
     public void TakeDamage(float amount)
     {
         if (!IsAlive) return;
-        CurrentHp = Mathf.Max(0, CurrentHp - amount);
+        CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount));
+        SyncHpToData();
         RefreshHealthBar();
+        if (CurrentHp <= 0) GameManager.Save();
 
         if (CurrentHp <= 0) { Die(); return; }
 
         _anim?.PlayHit();
+        if (!_injuryReported && CurrentHp <= Data.MaxHp * .3f) { _injuryReported = true; InjuryNotifications.Report(Data); }
 
         // Always fight back when punched — even if the turf popup was skipped.
-        if (!_cinematicIdle && CurrentState != State.AutoAttacking && CurrentState != State.Dead)
+        if (!_activityLocked && !_cinematicIdle && CurrentState != State.AutoAttacking && CurrentState != State.Dead)
         {
             var nearest = FindNearestEnemy();
             if (nearest != null)
@@ -260,7 +306,7 @@ public class AgentController : MonoBehaviour
 
         // During the pre-battle cinematic intro agents stand still in idle.
         // Drive animation only — skip all combat and navigation logic.
-        if (_cinematicIdle)
+        if (_cinematicIdle || _activityLocked)
         {
             _anim?.Tick(0f);
             return;
@@ -280,7 +326,7 @@ public class AgentController : MonoBehaviour
 
         // Drive animation — AgentAnimController handles idle vs run crossfade.
         float speed = _nav.enabled ? _nav.velocity.magnitude : 0f;
-        _anim?.Tick(speed);
+        _anim?.Tick(speed / Mathf.Max(.1f, Data.Speed), CurrentState == State.AutoAttacking);
 
         switch (CurrentState)
         {
@@ -331,24 +377,39 @@ public class AgentController : MonoBehaviour
         // for AttackLockDuration seconds so the clip plays fully.
         _anim?.PlayAttack();
 
-        float damage = Data.Strength + Random.Range(-2f, 2f);
-        Debug.Log($"{Data.AgentName} attacks {_target.gameObject.name} for {damage:F1} dmg");
-        // Pass attacker so enemies flip hostile and fight back.
-        _target?.TakeDamage(damage, this);
+        _pendingTarget = _target;
+        _impactPending = true;
+        StartCoroutine(ImpactAfterDelay());
     }
-
-    // ── Called by Animation Event on the Attack clip (optional) ──────────
-    /// <summary>
-    /// Wire to the impact frame of any attack clip as an Animation Event
-    /// to apply damage in sync with the animation instead of immediately.
-    /// </summary>
+    EnemyController _pendingTarget;
+    bool _impactPending;
+    IEnumerator ImpactAfterDelay()
+    {
+        yield return new WaitForSeconds(GameplayTuning.Current.impactDelay);
+        AnimEvent_DealDamage();
+    }
     public void AnimEvent_DealDamage()
     {
-        if (_target != null && _target.IsAlive)
-        {
-            float damage = Data.Strength + Random.Range(-2f, 2f);
-            _target.TakeDamage(damage, this);
-        }
+        if (!_impactPending) return;
+        _impactPending = false;
+        if (!IsAlive || _cinematicIdle || CurrentState != State.AutoAttacking || !_pendingTarget || !_pendingTarget.IsAlive) return;
+        if (DistanceTo(_pendingTarget.transform) > Data.AttackRange + .35f) return;
+        _pendingTarget.TakeDamage(Mathf.Max(1, (Data.Strength + Random.Range(-1f, 1f)) * GameplayTuning.Current.playerDamageMultiplier * _strengthMultiplier), this);
+        GameAudio.Play("impact");
+    }
+    public void RestoreFromData()
+    {
+        RestoreFromData(Data);
+    }
+
+    public void RestoreFromData(AgentData data)
+    {
+        if (data != null) Data = data;
+        StopAllCoroutines(); _injuryReported = false; _activeBoosts.Clear(); _strengthMultiplier = 1; _impactPending = false;
+        gameObject.SetActive(true); CurrentHp = Data.CurrentHp;
+        _nav.enabled = true; if (_nav.isOnNavMesh) _nav.ResetPath();
+        _nav.speed = Data.Speed; _nav.isStopped = false; _target = null; _cinematicIdle = false; _activityLocked = false;
+        _anim = new AgentAnimController(animator); SetState(State.Idle); RefreshHealthBar();
     }
 
     // ── Joystick (called by VirtualJoystick) ─────────────────────────────
@@ -383,7 +444,7 @@ public class AgentController : MonoBehaviour
         Vector3 dir = targetPos - transform.position;
         dir.y = 0;
         if (dir.sqrMagnitude > 0.001f)
-            transform.rotation = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir), GameplayTuning.Current.turnSpeed * Time.deltaTime);
     }
 
     private void SetState(State s)
@@ -427,6 +488,8 @@ public class AgentController : MonoBehaviour
 
     // Tracks active boost coroutines by boost type so they can be cancelled if
     // a new boost of the same type is applied before the old one expires.
+    private bool _injuryReported;
+    private float _strengthMultiplier = 1;
     private Dictionary<BoostType, Coroutine> _activeBoosts = new Dictionary<BoostType, Coroutine>();
 
     /// <summary>
@@ -453,11 +516,11 @@ public class AgentController : MonoBehaviour
         switch (type)
         {
             case BoostType.Speed:
-                if (_nav != null) _nav.speed += Data.Speed * amount;
+                if (_nav != null) _nav.speed = Data.Speed * (1 + amount);
                 Debug.Log($"[AgentController] {Data.AgentName} speed boosted +{amount * 100f:F0}% for {duration}s");
                 break;
             case BoostType.Strength:
-                Data.Strength += Data.Strength * amount;
+                _strengthMultiplier = 1 + amount;
                 Debug.Log($"[AgentController] {Data.AgentName} strength boosted +{amount * 100f:F0}% for {duration}s");
                 break;
         }
@@ -469,10 +532,10 @@ public class AgentController : MonoBehaviour
         switch (type)
         {
             case BoostType.Speed:
-                if (_nav != null) _nav.speed -= Data.Speed * amount;
+                if (_nav != null) _nav.speed = Data.Speed;
                 break;
             case BoostType.Strength:
-                Data.Strength -= Data.Strength * amount;
+                _strengthMultiplier = 1;
                 break;
         }
 

@@ -78,9 +78,9 @@ public class RecruitArea : MonoBehaviour
     {
         if (_label == null) return;
         if (IsExhausted)
-            _label.text = _areaName + "\n(FULL)";
+            _label.text = "RECRUIT";
         else
-            _label.text = _areaName + $"\n({RemainingSlots} LEFT)";
+            _label.text = $"RECRUIT  ·  {RemainingSlots}";
     }
 
     /// <summary>Spawn exactly <paramref name="count"/> walking civilians — matches UI slots.</summary>
@@ -108,6 +108,7 @@ public class RecruitArea : MonoBehaviour
                 pos = hit.position;
 
             var model = Instantiate(entry.modelPrefab, pos, Quaternion.identity, transform);
+            GameplayTuning.ScaleModel(model.transform);
 
             // Strip any battle AI that might have been on the prefab.
             foreach (var ac in model.GetComponentsInChildren<AgentController>())
@@ -170,10 +171,10 @@ public class RecruitArea : MonoBehaviour
         }
 
         if (!_wasInside && _promptArmed && !_mustLeaveBeforeReprompt && !IsExhausted &&
-            !GamePopup.Instance.IsOpen && !RecruitDialogBox.Instance.IsOpen)
+            !GamePopup.Instance.IsOpen && !RecruitDialogBox.Instance.IsOpen && !RecruitPackagePanel.AnyOpen)
         {
             _promptArmed = false;
-            BeginConversation();
+            OpenCampaigns();
         }
 
         _wasInside = true;
@@ -209,10 +210,18 @@ public class RecruitArea : MonoBehaviour
 
         RecruitDialogBox.Instance.Show(
             _areaName,
-            $"{RemainingSlots} local{(RemainingSlots == 1 ? "" : "s")} here can join. Fancy a word?",
+            $"{RemainingSlots} local{(RemainingSlots == 1 ? "" : "s")} here can join. Fancy a word — or run a full recruitment campaign?",
             new RecruitDialogBox.Choice("TALK TO THEM", new Color(0.85f, 0.65f, 0.1f), AskWhyJoin),
+            new RecruitDialogBox.Choice("RECRUITMENT CAMPAIGNS", new Color(0.18f, 0.55f, 0.32f), OpenCampaigns),
             new RecruitDialogBox.Choice("WALK AWAY", new Color(0.25f, 0.32f, 0.4f), WalkAway)
         );
+    }
+
+    /// <summary>Same four-package board as headquarters; recruits spawn here.</summary>
+    private void OpenCampaigns()
+    {
+        RecruitDialogBox.Instance.Hide();
+        RecruitPackagePanel.Instance.Show(transform.position, _areaName, FinishRecruitVisit);
     }
 
     private void FocusCameraOnFans()
@@ -274,14 +283,14 @@ public class RecruitArea : MonoBehaviour
             return;
         }
 
-        pd.Money -= recruitCost;
-        GameData.instance.SaveData();
-
         Vector3 spawnPos = transform.position;
         if (NavMesh.SamplePosition(spawnPos, out var hit, 5f, NavMesh.AllAreas))
             spawnPos = hit.position;
 
-        BattleManager.instance?.SpawnRecruitedAgentAt(spawnPos, "New Recruit");
+        if (BattleManager.instance == null || BattleManager.instance.SpawnRecruitedAgentAt(spawnPos, "New Recruit") == null)
+        { RecruitDialogBox.Instance.Show("SQUAD FULL", "No payment taken. Free an active squad slot before recruiting.", new RecruitDialogBox.Choice("OK", Color.gray, WalkAway)); return; }
+        pd.Money -= recruitCost;
+        GameAudio.Play("recovery");
         _recruitedHere++;
         PersistRecruitSlots();
         RemoveOneCivilianVisual();

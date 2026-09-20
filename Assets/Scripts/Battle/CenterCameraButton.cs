@@ -77,6 +77,7 @@ public class CenterCameraButton : MonoBehaviour
         _instance.targetButton = go.GetComponent<Button>();
         BuildCompanionButton(canvas.transform, "CameraZoomInButton", "+", -465f, 150f, () => CameraPanTouchOnly.Instance?.ZoomIn());
         BuildCompanionButton(canvas.transform, "CameraZoomOutButton", "-", -585f, 150f, () => CameraPanTouchOnly.Instance?.ZoomOut());
+        BuildCompanionButton(canvas.transform, "CameraRotateButton", "R", -705f, 150f, () => CameraPanTouchOnly.Instance?.RotateCamera(45f));
     }
 
     private static void BuildCompanionButton(Transform parent, string name, string label, float x, float y, System.Action action)

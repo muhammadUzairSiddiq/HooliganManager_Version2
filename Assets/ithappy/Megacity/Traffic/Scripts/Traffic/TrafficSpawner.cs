@@ -6,7 +6,7 @@ namespace ITHappy
 {
     public class TrafficSpawner : MonoBehaviour
     {
-        private const int k_MaxCarCount = 2048;
+        private const int k_MaxCarCount = 80;
 
         [SerializeField]
         private List<GameObject> m_CarPrefabs = new();
@@ -46,7 +46,7 @@ namespace ITHappy
                 while (offset <= length - m_SpawnDistance)
                 {
                     float random = Random.Range(0f, 1f);
-                    float density = gameObject.scene.name == "Gameplay" ? 0.1f : 1f;
+                    float density = Application.isMobilePlatform ? .08f : .1f;
                     if (random < m_SpawnProbability * density)
                     {
                         var prefIndex = Random.Range(0, m_CarPrefabs.Count);

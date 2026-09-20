@@ -56,6 +56,7 @@ public static class CityServiceChecks
         }
         finally
         {
+            if(GamePopup.AnyOpen)GamePopup.Instance.Hide();
             File.WriteAllLines("Artifacts/CityQA/service-checks.txt",rows);
             AgentSelectionManager.instance.DeselectAll();
             var list=(List<AgentController>)typeof(BattleManager).GetField("_playerAgents",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(bm);

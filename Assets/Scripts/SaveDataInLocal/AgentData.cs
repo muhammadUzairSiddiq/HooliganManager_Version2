@@ -19,6 +19,12 @@ public class AgentData
     public float Speed;          // world units per second
     public float AttackRange;    // how close before swinging
 
+    // ── RTS management profile ──────────────────────────────────────────
+    [System.Runtime.Serialization.OptionalField] public bool ManagementProfileInitialized;
+    [System.Runtime.Serialization.OptionalField] public string ManagementRole;
+    [System.Runtime.Serialization.OptionalField] public float Stamina;
+    [System.Runtime.Serialization.OptionalField] public int OperationsExperience;
+
     // ── State ─────────────────────────────────────────────────────────────
     public bool  IsAlive => CurrentHp > 0;
 
@@ -35,6 +41,8 @@ public class AgentData
         Strength      = strength;
         Speed         = speed;
         AttackRange   = attackRange;
+        ManagementProfileInitialized = false;
+        EnsureManagementProfile(portraitIndex);
     }
 
     /// <summary>Heal by a percentage of max HP (called on matchday end).</summary>
@@ -45,4 +53,14 @@ public class AgentData
 
     /// <summary>Fully restore HP (e.g. after a victory).</summary>
     public void FullHeal() => CurrentHp = MaxHp;
+
+    public void EnsureManagementProfile(int rosterIndex = 0)
+    {
+        if (ManagementProfileInitialized) return;
+        string[] roles = { "LEADER", "SCOUT", "ORGANIZER", "RUNNER" };
+        ManagementRole = roles[Math.Abs(rosterIndex) % roles.Length];
+        Stamina = 100f;
+        OperationsExperience = 0;
+        ManagementProfileInitialized = true;
+    }
 }

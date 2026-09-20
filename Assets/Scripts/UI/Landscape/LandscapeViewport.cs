@@ -1,6 +1,11 @@
 using UnityEngine;
 
-/// <summary>Keeps the complete authored layout inside the device safe area, including tablets and ultrawide screens.</summary>
+/// <summary>
+/// Maps the authored 1600 x 900 coordinate system onto the complete device safe area.
+/// The old fitter always kept a fixed 16:9 rectangle, which produced visible side
+/// gutters on wide phones and ultrawide Game views.  The logical frame now grows on
+/// the spare axis while preserving a uniform UI scale.
+/// </summary>
 [ExecuteAlways]
 public sealed class LandscapeViewport : MonoBehaviour
 {
@@ -19,8 +24,10 @@ public sealed class LandscapeViewport : MonoBehaviour
             rt.offsetMin = rt.offsetMax = Vector2.zero;
         }
         frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(.5f, .5f);
-        frame.anchoredPosition = Vector2.zero; frame.sizeDelta = LandscapeUI.Resolution;
+        frame.anchoredPosition = Vector2.zero;
         float scale = Mathf.Min(rt.rect.width / 1600f, rt.rect.height / 900f);
-        frame.localScale = Vector3.one * Mathf.Max(.01f, scale);
+        scale = Mathf.Max(.01f, scale);
+        frame.sizeDelta = new Vector2(rt.rect.width / scale, rt.rect.height / scale);
+        frame.localScale = Vector3.one * scale;
     }
 }

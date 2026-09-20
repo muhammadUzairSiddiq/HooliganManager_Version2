@@ -46,8 +46,8 @@ public static partial class LandscapeSceneBuilder
             EditorSceneManager.OpenScene("Assets/Scenes/"+name+".unity");ValidateCurrent();
             report.Add("PASS "+name+": landscape canvas, navigation and required controller bindings.");
         }
-        Require(!PlayerSettings.allowedAutorotateToPortrait && PlayerSettings.allowedAutorotateToLandscapeLeft && PlayerSettings.allowedAutorotateToLandscapeRight,"Landscape player settings missing.");
-        report.Add("PASS player orientation: both landscape rotations enabled, portrait disabled.");
+        Require(!PlayerSettings.allowedAutorotateToPortrait && PlayerSettings.allowedAutorotateToLandscapeLeft && !PlayerSettings.allowedAutorotateToLandscapeRight,"Fixed Landscape Left player setting missing.");
+        report.Add("PASS player orientation: fixed Landscape Left, portrait disabled.");
         Directory.CreateDirectory("Artifacts/LandscapeUI");File.WriteAllLines("Artifacts/LandscapeUI/validation.txt",report);
         if(!string.IsNullOrEmpty(restore)) EditorSceneManager.OpenScene(restore);
     }

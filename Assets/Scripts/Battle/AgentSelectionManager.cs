@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.EnhancedTouch;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
@@ -47,6 +48,24 @@ public class AgentSelectionManager : MonoBehaviour
     private float _pendingTapTime = -1f;
     private Vector2 _pendingTapPos;
     private const float DoubleTapDelay = 0.28f;
+    private bool _moveCommandArmed;
+    float _ignoreWorldTapUntil;
+    public bool IsMoveCommandArmed => _moveCommandArmed;
+
+    public static void ConsumeUiPointer()
+    {
+        if (instance) instance._ignoreWorldTapUntil = Time.unscaledTime + .55f;
+    }
+
+    public static bool BlocksWorldTap()
+    {
+        if (instance && Time.unscaledTime < instance._ignoreWorldTapUntil) return true;
+        if (Time.timeScale == 0f || LiveMiniMap.IsExpanded) return true;
+        if (GamePopup.AnyOpen || RecruitPackagePanel.AnyOpen || RecruitDialogBox.AnyOpen) return true;
+        if (NpcConversationUI.Instance && NpcConversationUI.Instance.IsConversationOpen) return true;
+        if (CityOperationsSystem.Instance && CityOperationsSystem.Instance.IsBoardOpen) return true;
+        return false;
+    }
 
     public static void NotifyDoubleTapConsumed()
     {
@@ -81,7 +100,13 @@ public class AgentSelectionManager : MonoBehaviour
         {
             var position=mouse.position.ReadValue();
             if(mouse.leftButton.wasPressedThisFrame)
-            { _mouseDown=position; _mouseTap=!IsPointerOverUI(position); _mouseDragged=false; }
+            {
+                _mouseDown=position;
+                bool overUi=IsPointerOverUI(position)||BlocksWorldTap();
+                _mouseTap=!overUi;
+                _mouseDragged=false;
+                if(overUi) ConsumeUiPointer();
+            }
             if(mouse.leftButton.isPressed)
                 _mouseDragged |= Vector2.Distance(position,_mouseDown)>dragThresholdPixels;
             if(mouse.leftButton.wasReleasedThisFrame && _mouseTap && !_mouseDragged)
@@ -101,7 +126,12 @@ public class AgentSelectionManager : MonoBehaviour
 
     private void OnFingerDown(Finger finger)
     {
-        if(_fingersDown==0){_touchDragged=false;_touchStartedOnUI=IsPointerOverUI(finger.currentTouch.screenPosition);}
+        if(_fingersDown==0)
+        {
+            _touchDragged=false;
+            _touchStartedOnUI=IsPointerOverUI(finger.currentTouch.screenPosition)||BlocksWorldTap();
+            if(_touchStartedOnUI) ConsumeUiPointer();
+        }
         _fingersDown++;
         if (_fingersDown >= 2) _multiTouchThisGesture = true;
     }
@@ -123,6 +153,11 @@ public class AgentSelectionManager : MonoBehaviour
 
     private void QueueTap(Vector2 position)
     {
+        if (BlocksWorldTap() || IsPointerOverUI(position))
+        {
+            ConsumeUiPointer();
+            return;
+        }
         // Resolve both mouse and touch taps here, independent of camera Update order.
         if (_pendingTapTime > 0f && Time.unscaledTime < _pendingTapTime && Vector2.Distance(position,_pendingTapPos)<55)
         {
@@ -141,17 +176,31 @@ public class AgentSelectionManager : MonoBehaviour
 
     private void HandleTap(Vector2 screenPos)
     {
-        if (LiveMiniMap.IsExpanded || Time.timeScale == 0 || !_cam) return;
-        // Ignore taps on UI (joystick, buttons)
-        if (IsPointerOverUI(screenPos))
-            return;
+        if (!_cam || BlocksWorldTap() || IsPointerOverUI(screenPos)) return;
 
         // 3D raycast from camera through tap point
         Ray ray = _cam.ScreenPointToRay(screenPos);
+
+        // City operation pads are world interactions. Resolve them before the
+        // generic ground order so tapping a task never accidentally moves the crew.
+        var operationHit=Physics.RaycastAll(ray,2500f,~0,QueryTriggerInteraction.Collide)
+            .OrderBy(h=>h.distance).Select(h=>h.collider.GetComponentInParent<CityOperationNode>()).FirstOrDefault(n=>n);
+        if(operationHit)
+        {
+            operationHit.OpenInteraction();
+            return;
+        }
         
         // ── 1. Check if we hit an Agent (Player or Enemy) ──
         if (Physics.Raycast(ray, out RaycastHit hit, 2500f, LayerMask.GetMask("Agent")))
         {
+            var socialNpc = hit.collider.GetComponentInParent<SocialNpc>();
+            if (socialNpc != null)
+            {
+                socialNpc.Talk();
+                return;
+            }
+
             var agent = hit.collider.GetComponent<AgentController>();
             if (agent == null)
                 agent = hit.collider.GetComponentInParent<AgentController>();
@@ -273,6 +322,7 @@ public class AgentSelectionManager : MonoBehaviour
             if (_selected.Count > 0)
             {
                 CommandSelectedMoveTo(groundPoint);
+                _moveCommandArmed = false;
             }
         }
     }
@@ -325,15 +375,40 @@ public class AgentSelectionManager : MonoBehaviour
 
     public void CommandSelectedAttack()
     {
+        var enemies = BattleManager.instance != null
+            ? BattleManager.instance.EnemyAgents.Where(e => e != null && e.IsAlive && e.firmName != "POLICE").ToArray()
+            : System.Array.Empty<EnemyController>();
+        if (_selected.Count == 0) { NotifyCommand("SELECT A CREW MEMBER FIRST"); return; }
+        if (enemies.Length == 0) { NotifyCommand("NO RIVAL CREW REMAINS"); return; }
+        EnemyController marked = null;
         foreach (var a in _selected)
-            if (a != null && a.IsAlive) a.CommandAttack();
+        {
+            if (a == null || !a.IsAlive) continue;
+            var target = enemies.OrderBy(e => (e.transform.position - a.transform.position).sqrMagnitude).FirstOrDefault();
+            if (target != null) { a.CommandAttackTarget(target); marked ??= target; }
+        }
+        if (marked) CreateCommandMarker(marked.transform.position, new Color(1f, .18f, .12f, .95f), "ATTACK");
+        NotifyCommand("ATTACK ORDER CONFIRMED");
     }
 
     public void CommandSelectedRetreat()
     {
         CameraPanTouchOnly.Instance?.FollowSelection();
+        if (_selected.Count == 0) { NotifyCommand("SELECT A CREW MEMBER FIRST"); return; }
+        bool safeTransport = GameManager.Data != null && GameManager.Data.TransportPrepared;
         foreach (var a in _selected)
-            if (a != null && a.IsAlive) a.CommandRetreat();
+            if (a != null && a.IsAlive)
+            {
+                // The city-management layer directly affects the tactical layer:
+                // a prepared transport route gives retreating members a short speed window.
+                if (safeTransport) a.ApplyTemporaryBoost(BoostType.Speed, .30f, 12f);
+                a.CommandRetreat();
+            }
+        var retreat = BattleManager.instance != null && BattleManager.instance.retreatPoint
+            ? BattleManager.instance.retreatPoint.position : Vector3.zero;
+        CreateCommandMarker(retreat, new Color(.20f, .60f, 1f, .95f), "RETREAT");
+        NotifyCommand(safeTransport ? "SAFE TRANSPORT ROUTE ACTIVE - RETREAT SPEED +30%" :
+            CityGameplay.HomeMode ? "REGROUPING AT HEADQUARTERS" : "RETREAT ORDER CONFIRMED");
     }
 
     public void CommandSelectedMoveTo(Vector3 worldPoint)
@@ -345,14 +420,56 @@ public class AgentSelectionManager : MonoBehaviour
         {CityGameplay.Instance?.PostEvent("DESTINATION BLOCKED - CHOOSE A STREET APPROACH");return;}
         CameraPanTouchOnly.Instance?.FollowSelection();
         Debug.DrawRay(worldPoint, Vector3.up*10, Color.green, 3f);
-        // Spread agents in a formation row along X around the target point
+        CreateCommandMarker(worldPoint, new Color(0.25f, 1f, 0.55f, 0.9f), "MOVE");
+        // Use a roomy two-row formation so affiliation rings remain distinct.
+        const float spacing = 3.2f;
+        int columns = Mathf.Min(4, Mathf.CeilToInt(Mathf.Sqrt(_selected.Count)));
         for (int i = 0; i < _selected.Count; i++)
         {
             if (_selected[i] == null || !_selected[i].IsAlive) continue;
-            float offset = (i - _selected.Count / 2f) * 0.6f;
-            Vector3 target = worldPoint + new Vector3(offset, 0, 0);
+            int row = i / columns;
+            int column = i % columns;
+            float width = (Mathf.Min(columns, _selected.Count - row * columns) - 1) * spacing;
+            Vector3 target = worldPoint + new Vector3(column * spacing - width * .5f, 0f, row * spacing);
             _selected[i].CommandMoveTo(target);
         }
+        NotifyCommand("MOVE ORDER CONFIRMED");
+    }
+
+    public void ArmMoveCommand()
+    {
+        if (_selected.Count == 0) SelectAll();
+        _moveCommandArmed = _selected.Count > 0;
+        NotifyCommand(_moveCommandArmed ? "MOVE READY - TAP A STREET" : "NO CREW AVAILABLE");
+    }
+
+    public static void CreateCommandMarker(Vector3 point, Color color, string label)
+    {
+        var marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        marker.name = label + "OrderFeedback";
+        marker.transform.position = point + Vector3.up * 0.08f;
+        marker.transform.localScale = new Vector3(1.4f, 0.025f, 1.4f);
+        var collider = marker.GetComponent<Collider>();
+        if (collider != null) Destroy(collider);
+        var renderer = marker.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            if (shader != null)
+            {
+                var material = new Material(shader) { color = color };
+                renderer.material = material;
+            }
+        }
+        var text = ZoneLabelUtil.Create(marker.transform, label, 2.2f, 2.2f);
+        if (text) text.color = color;
+        Destroy(marker, 1.6f);
+    }
+
+    private static void NotifyCommand(string message)
+    {
+        BattleUIController.instance?.ShowAlert(message, 1.6f);
+        CityGameplay.Instance?.PostEvent(message);
     }
 
     public void ApplyJoystickToSelected(Vector2 dir)
@@ -378,4 +495,11 @@ public class AgentSelectionManager : MonoBehaviour
         UnityEngine.EventSystems.EventSystem.current.RaycastAll(eventData, results);
         return results.Count > 0;
     }
+}
+
+/// <summary>Marks overlay graphics so a UI press cannot also issue a world move order.</summary>
+public sealed class UiWorldTapBlocker : MonoBehaviour, IPointerDownHandler, IPointerClickHandler
+{
+    public void OnPointerDown(PointerEventData eventData) => AgentSelectionManager.ConsumeUiPointer();
+    public void OnPointerClick(PointerEventData eventData) => AgentSelectionManager.ConsumeUiPointer();
 }
