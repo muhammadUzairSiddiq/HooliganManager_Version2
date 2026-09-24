@@ -980,10 +980,141 @@ public class BattleManager : MonoBehaviour
     private void SpawnRivalAgents()
     {
         LevelSystem.EnsureExists();
-        int gangsWanted = LevelSystem.Instance != null ? LevelSystem.Instance.GangsRequired : 2;
         float hpMul = LevelSystem.Instance != null ? LevelSystem.Instance.EnemyHealthMultiplier : .85f;
         float dmgMul = LevelSystem.Instance != null ? LevelSystem.Instance.EnemyDamageMultiplier : .75f;
+        if (CityGameplay.HomeMode)
+        {
+            var plan = RivalGrowthSystem.BuildSpawnPlan(GameManager.Data);
+            if (plan.Count > 0)
+            {
+                SpawnPlannedFirms(plan, hpMul, dmgMul);
+                return;
+            }
+        }
+        int gangsWanted = LevelSystem.Instance != null ? LevelSystem.Instance.GangsRequired : 2;
         SpawnRivalAgentsInternal(gangsWanted, hpMul, dmgMul, startNodeOffset: 0);
+    }
+
+    /// <summary>Top up living firms after the player recruits, without passing the mobile cap.</summary>
+    public void ReinforceLivingRivals()
+    {
+        if (!CityGameplay.HomeMode || enemyAgentPrefab == null) return;
+        var plan = RivalGrowthSystem.BuildSpawnPlan(GameManager.Data);
+        int onMap = 0;
+        foreach (var e in _enemyAgents)
+            if (e != null && e.IsAlive && e.firmName != "POLICE") onMap++;
+        foreach (var order in plan)
+        {
+            int alive = _enemyAgents.Count(e => e != null && e.IsAlive && e.firmName == order.firmName);
+            int need = Mathf.Max(0, order.count - alive);
+            while (need > 0 && onMap < RivalGrowthSystem.MaxOnMap)
+            {
+                Vector3 center = Vector3.zero;
+                bool found = false;
+                foreach (var e in _enemyAgents)
+                {
+                    if (e == null || e.firmName != order.firmName) continue;
+                    center = e.transform.position;
+                    found = true;
+                    break;
+                }
+                if (!found) break;
+                SpawnOneRival(order, center + new Vector3(1.4f * need, 0f, 0.8f), hpScale(order), dmgScale(order));
+                need--;
+                onMap++;
+            }
+        }
+
+        float hpScale(RivalGrowthSystem.SpawnOrder order)
+        {
+            float hpMul = LevelSystem.Instance != null ? LevelSystem.Instance.EnemyHealthMultiplier : .85f;
+            float strength = order.bot != null ? order.bot.strength : _enemyStrength;
+            return (40f + strength * 0.5f) * hpMul;
+        }
+        float dmgScale(RivalGrowthSystem.SpawnOrder order)
+        {
+            float dmgMul = LevelSystem.Instance != null ? LevelSystem.Instance.EnemyDamageMultiplier : .75f;
+            float strength = order.bot != null ? order.bot.strength : _enemyStrength;
+            return (6f + strength * 0.2f) * dmgMul;
+        }
+    }
+
+    private void SpawnPlannedFirms(List<RivalGrowthSystem.SpawnOrder> plan, float hpMul, float dmgMul)
+    {
+        if (plan == null || enemySpawnRoot == null) return;
+        var used = new List<Vector3>();
+        Vector3 playerPos = playerSpawnRoot != null ? playerSpawnRoot.position : Vector3.zero;
+        float minSeparation = Mathf.Max(26f, gangPatrolRadius * 3.8f);
+        for (int i = 0; i < plan.Count; i++)
+        {
+            var order = plan[i];
+            if (!TryPickSeparatedSpawn(used, playerPos, minSeparation, i, out Vector3 center, out Vector3 facing))
+                continue;
+            used.Add(center);
+            int pocket = order.secondPocket ? Mathf.Min(2, order.count - 2) : 0;
+            int main = order.count - pocket;
+            SpawnFirmGroup(order, center, facing, main, hpMul, dmgMul, true);
+            if (pocket > 0 && TryPickSeparatedSpawn(used, playerPos, minSeparation, i + plan.Count, out Vector3 pocketCenter, out Vector3 pocketFacing))
+            {
+                used.Add(pocketCenter);
+                SpawnFirmGroup(order, pocketCenter, pocketFacing, pocket, hpMul, dmgMul, false);
+            }
+            else if (pocket > 0)
+                SpawnFirmGroup(order, center, facing, pocket, hpMul, dmgMul, false);
+        }
+        CityZoneClearance.Resolve();
+        SpawnRecruitAreas(used);
+    }
+
+    private void SpawnFirmGroup(RivalGrowthSystem.SpawnOrder order, Vector3 center, Vector3 facing, int count, float hpMul, float dmgMul, bool makeTurf)
+    {
+        if (count <= 0) return;
+        float strength = order.bot != null ? order.bot.strength : _enemyStrength;
+        float hp = (78f + strength * 0.85f) * hpMul;
+        float dmg = (6f + strength * 0.2f) * dmgMul;
+        Color color = Color.red;
+        if (order.bot == null || !ColorUtility.TryParseHtmlString(order.bot.primaryColor, out color))
+            color = GangPalette[Mathf.Abs(order.firmName.GetHashCode()) % GangPalette.Length];
+        var group = new List<EnemyController>();
+        for (int m = 0; m < count; m++)
+        {
+            float angle = m * (360f / count) * Mathf.Deg2Rad;
+            Vector3 pos = center + new Vector3(Mathf.Cos(angle) * 1.2f, 0f, Mathf.Sin(angle) * 1.2f);
+            var ec = SpawnOneRival(order, pos, hp, dmg);
+            if (ec == null) continue;
+            ec.primaryColor = color;
+            ec.transform.forward = facing.sqrMagnitude > 0.01f ? facing : Vector3.forward;
+            if (ec.healthBar != null)
+            {
+                ec.healthBar.enemyColor = color;
+                ec.healthBar.SetHealth(ec.CurrentHp, ec.MaxHp);
+            }
+            group.Add(ec);
+        }
+        foreach (var member in group) member.SetGangCenter(center);
+        if (!makeTurf || group.Count == 0) return;
+        var areaGo = new GameObject("GangRing_" + order.firmName);
+        var gangArea = areaGo.AddComponent<GangArea>();
+        gangArea.Setup(order.firmName, center, gangPatrolRadius, color);
+    }
+
+    private EnemyController SpawnOneRival(RivalGrowthSystem.SpawnOrder order, Vector3 pos, float hp, float dmg)
+    {
+        if (enemyAgentPrefab == null) return null;
+        if (NavMesh.SamplePosition(pos, out NavMeshHit hit, 8f, NavMesh.AllAreas))
+            pos = hit.position;
+        var go = RivalBodyPool.Take(enemyAgentPrefab, pos, Quaternion.identity);
+        if (go == null) return null;
+        var ec = go.GetComponent<EnemyController>();
+        if (ec == null) return null;
+        ec.StopAllCoroutines();
+        ec.patrolRadius = gangPatrolRadius;
+        ec.detectionRadius = gangDetectionRadius;
+        ec.Initialise(hp, dmg, 2.2f, 1f);
+        ec.firmName = order.firmName;
+        ec.isHostile = false;
+        if (!_enemyAgents.Contains(ec)) _enemyAgents.Add(ec);
+        return ec;
     }
 
     /// <summary>
@@ -1091,7 +1222,8 @@ public class BattleManager : MonoBehaviour
                 if (UnityEngine.AI.NavMesh.SamplePosition(pos, out UnityEngine.AI.NavMeshHit hit, 8f, UnityEngine.AI.NavMesh.AllAreas))
                     pos = hit.position;
 
-                var go = Instantiate(enemyAgentPrefab, pos, Quaternion.identity);
+                var go = RivalBodyPool.Take(enemyAgentPrefab, pos, Quaternion.identity);
+                if (go == null) continue;
                 var ec = go.GetComponent<EnemyController>();
                 if (ec == null) continue;
 
@@ -1407,6 +1539,7 @@ public class BattleManager : MonoBehaviour
 
         if (enemy != null && !string.IsNullOrEmpty(enemy.firmName) && enemy.firmName != "POLICE")
         {
+            RivalGrowthSystem.NoteMemberDown(GameData.instance?.PlayerData, enemy.firmName);
             var remaining = _enemyAgents.Count(e =>
                 e != null && e.IsAlive && e.firmName == enemy.firmName);
 
@@ -1427,6 +1560,12 @@ public class BattleManager : MonoBehaviour
                     LivePoliceSystem.Instance?.NotifyGangFightEnded();
             }
         }
+        if (enemy != null)
+        {
+            _enemyAgents.Remove(enemy);
+            if (enemy.firmName == "POLICE") enemy.gameObject.SetActive(false);
+            else RivalBodyPool.Release(enemy.gameObject);
+        }
     }
 
     /// <summary>Congrats popup + cash + reputation for wiping a firm.</summary>
@@ -1446,12 +1585,8 @@ public class BattleManager : MonoBehaviour
             PersistBattleProgress();
         }
 
-        int rank = GameData.instance?.PlayerData?.Ranking ?? 0;
-        GamePopup.Instance.Show(
-            "CONGRATS!",
-            $"You wiped out {firmName}!\n\n+£{reward:N0}  ·  +{repGain} REP\nRanking: #{rank}",
-            new GamePopup.Option("SORTED", new Color(0.2f, 0.65f, 0.3f), null)
-        );
+        RivalGrowthSystem.MarkWiped(GameData.instance?.PlayerData, firmName);
+        BattleUIController.instance?.ShowAlert($"{firmName} wiped  ·  +£{reward:N0}  ·  +{repGain} REP", 2.8f);
     }
 
     /// <summary>Stop player agents mid-path (used before gang encounter popup).</summary>
@@ -1603,6 +1738,7 @@ public class BattleManager : MonoBehaviour
         // Persist to roster so they stay in the player's gang after battle
         var roster = GameData.instance?.PlayerData?.RecruitedAgents;
         roster?.Add(data);
+        RivalGrowthSystem.NotePlayerRecruits(1);
         if (GameData.instance?.PlayerData != null)
         {
             if (!GameData.instance.PlayerData.DeploymentSelectionCustomized)
@@ -1666,22 +1802,28 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    /// <summary>Orders every living player into AutoAttack against nearest hostile.</summary>
-    public void OrderAllPlayersAttackNearestHostile()
+    /// <summary>Nearby crew join a scrap. The rest of the firm keeps its orders.</summary>
+    public void AlertNearbyCrew(AgentController source, float radius = 8f)
     {
-        SetAllAgentsCinematicIdle(false);
-        AgentSelectionManager.instance?.SelectAll();
+        if (source == null) return;
+        var enemy = GetNearestEnemy(source.transform.position);
+        if (enemy == null || !enemy.IsAlive) return;
+        float limit = radius + 6f;
         foreach (var a in _playerAgents)
         {
-            if (a == null || !a.IsAlive) continue;
-            a.SetCinematicIdle(false);
-            var e = GetNearestEnemy(a.transform.position);
-            if (e != null) a.CommandAttackTarget(e);
-            else a.CommandAttack();
+            if (a == null || a == source || !a.IsAlive || a.IsActivityLocked) continue;
+            if (a.IsOnAssignment && !a.IsSelected) continue;
+            if (a.CurrentState == AgentController.State.AutoAttacking) continue;
+            if (Vector3.Distance(a.transform.position, source.transform.position) > radius) continue;
+            if (Vector3.Distance(a.transform.position, enemy.transform.position) > limit) continue;
+            a.CommandAttackTarget(enemy);
         }
     }
 
-    public void AttackGang(string gangName)
+    public void AttackGang(string gangName) => AttackGang(gangName, null);
+
+    /// <summary>Only the passed crew (or the current selection) engages this firm.</summary>
+    public void AttackGang(string gangName, IList<AgentController> participants)
     {
         var gangMembers = _enemyAgents.Where(e => e != null && e.IsAlive && e.firmName == gangName).ToList();
         if (gangMembers.Count == 0)
@@ -1690,27 +1832,41 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
-        // Unlock cinematic lock (e.g. leftover from recruit) so units can fight.
-        SetAllAgentsCinematicIdle(false);
+        var squad = new List<AgentController>();
+        if (participants != null)
+        {
+            foreach (var a in participants)
+                if (a != null && a.IsAlive && !a.IsActivityLocked && !squad.Contains(a)) squad.Add(a);
+        }
+        if (squad.Count == 0 && AgentSelectionManager.instance != null)
+        {
+            foreach (var a in AgentSelectionManager.instance.SelectedAgents)
+                if (a != null && a.IsAlive && !a.IsActivityLocked) squad.Add(a);
+        }
+        if (squad.Count == 0) return;
+
+        float pace = 1f / (1.65f + 0.2f * Mathf.Max(0, gangMembers.Count - 1));
+        pace = Mathf.Clamp(pace, 0.22f, 0.62f);
 
         foreach (var enemy in gangMembers)
         {
             enemy.isHostile = true;
             enemy.SetCinematicIdle(false);
-            var nearestPlayer = GetNearestAgent(enemy.transform.position);
-            if (nearestPlayer != null)
-                enemy.AlertToTarget(nearestPlayer);
+            AgentController nearest = null;
+            float best = float.MaxValue;
+            foreach (var a in squad)
+            {
+                float d = Vector3.SqrMagnitude(a.transform.position - enemy.transform.position);
+                if (d < best) { best = d; nearest = a; }
+            }
+            if (nearest != null) enemy.AlertToTarget(nearest);
+            enemy.FightPace = pace;
         }
 
-        AgentSelectionManager.instance?.SelectAll();
-
-        // Assign each player a concrete target — CommandAttack alone can Idle out
-        // if the hostile scan races a frame behind.
-        foreach (var a in _playerAgents)
+        foreach (var a in squad)
         {
-            if (a == null || !a.IsAlive) continue;
             a.SetCinematicIdle(false);
-
+            a.FightPace = pace;
             EnemyController best = null;
             float bestD = float.MaxValue;
             foreach (var e in gangMembers)
@@ -1719,14 +1875,9 @@ public class BattleManager : MonoBehaviour
                 float d = Vector3.Distance(a.transform.position, e.transform.position);
                 if (d < bestD) { bestD = d; best = e; }
             }
-
-            if (best != null)
-                a.CommandAttackTarget(best);
-            else
-                a.CommandAttack();
+            if (best != null) a.CommandAttackTarget(best);
         }
 
-        Debug.Log($"[BattleManager] AttackGang '{gangName}': {gangMembers.Count} hostiles, {_playerAgents.Count} players ordered in.");
         BattleUIController.instance?.ShowAlert($"FIGHTING <color=#FF6B4A>{gangName.ToUpper()}</color>", 2.4f);
     }
 

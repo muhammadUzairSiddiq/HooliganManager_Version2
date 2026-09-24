@@ -31,8 +31,16 @@ public sealed class CityMissionHUD : MonoBehaviour
             Place(hud, "TopBar", 8, 6, 1584, 128);
             Place(hud, "SquadRail", 16, 150, 286, 334);
             Place(hud, "SquadTitle", 30, 160, 258, 26);
-            Place(hud, "MemberCount", 30, 190, 258, 22);
-            Place(hud, "PortraitScroll", 24, 220, 268, 252);
+            Place(hud, "MemberCount", 30, 184, 258, 36);
+            Place(hud, "PortraitScroll", 24, 224, 268, 248);
+            var members = hud.Find("MemberCount")?.GetComponent<TextMeshProUGUI>();
+            if (members)
+            {
+                members.richText = true;
+                members.fontSize = 13;
+                members.enableWordWrapping = true;
+                members.color = Color.white;
+            }
 
             // Firm name — white so every HUD label stays readable on the dark bar.
             Place(hud, "Heading", 20, 16, 340, 40);

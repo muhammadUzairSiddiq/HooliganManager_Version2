@@ -231,6 +231,8 @@ public class GameData : MonoBehaviour
             d.PendingFansGain = 0;
         }
 
+        RivalGrowthSystem.AdvanceMatchday(d);
+
         // â”€â”€ 2. Apply pending money â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (d.PendingMoneyGain != 0)
         {
@@ -666,6 +668,7 @@ public class GameData : MonoBehaviour
                 if (fansGained > 0)
                 {
                     d.PendingFansGain += fansGained;
+                    RivalGrowthSystem.NoteQueuedRecruits(fansGained);
                     d.Fans            += fansGained;
                 }
 

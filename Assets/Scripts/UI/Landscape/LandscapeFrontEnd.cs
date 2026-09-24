@@ -36,6 +36,7 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
         AudioListener.volume = PlayerPrefs.GetFloat("HM.MasterVolume", 1);
         Application.targetFrameRate = PlayerPrefs.GetInt("HM.FrameRate", 60);
         motion = GetComponent<LandscapeScreenMotion>();
+        SimpleShellLayout.Apply(this);
         Refresh();
         motion?.HighlightButtons(currentPage);
         if (PlayerPrefs.GetInt("OpenRankingsOnLoad", 0) == 1)
@@ -49,7 +50,7 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             if (settingsPanel && settingsPanel.activeSelf) Navigate("close-settings");
-            else if (!mainMenu && currentPage != "home") Navigate("home");
+            else if (!mainMenu && currentPage != "trips") Navigate("trips");
         }
     }
     public void Navigate(string action)
@@ -179,15 +180,17 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
         {
             if (!selectable) continue;
             string n = selectable.gameObject.name;
-            if (n == "Continue" || n == "NewGame" || n == "Settings" || n == "Exit" || n == "Credits")
+            if (n == "Continue")
+                selectable.interactable = hasSave;
+            else if (n == "NewGame" || n == "Settings" || n == "Exit" || n == "Credits")
                 selectable.interactable = true;
             else if (n == "LoadGame")
                 selectable.interactable = hasSave;
         }
         var menu = GetComponent<MainMenuController>();
-        if (menu && menu.continueBtn) menu.continueBtn.interactable = true;
+        if (menu && menu.continueBtn) menu.continueBtn.interactable = hasSave;
         if (continueCampaign)
-            continueCampaign.interactable = continueCampaign.gameObject.name == "LoadGame" ? hasSave : true;
+            continueCampaign.interactable = continueCampaign.gameObject.name == "LoadGame" || continueCampaign.gameObject.name == "Continue" ? hasSave : true;
     }
     void RefreshStats()
     {

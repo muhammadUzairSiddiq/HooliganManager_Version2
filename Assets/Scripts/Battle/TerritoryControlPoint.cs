@@ -189,7 +189,6 @@ public class TerritoryControlPoint : MonoBehaviour
                 $"You secured {zoneName.ToUpperInvariant()}.\n\nOccupation tax paid: £{occupationTax:N0}  ·  Reputation: +{reputationReward}\nProtection income available: £{moneyReward:N0}\nStrategic benefit: {benefit}\nPolice heat: +{heatGained}\n\nReturn to this area and use ACTIONS → COLLECT INCOME.",
                 new GamePopup.Option("KEEP MOVING", new Color(0.18f, 0.55f, 0.25f), () =>
                 {
-                    AgentSelectionManager.instance?.SelectAll();
                     CameraPanTouchOnly.Instance?.CenterOnSelection();
                 }));
         }

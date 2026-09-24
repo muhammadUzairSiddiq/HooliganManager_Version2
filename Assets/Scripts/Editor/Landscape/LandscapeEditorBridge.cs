@@ -158,6 +158,8 @@ public static class LandscapeEditorBridge
                 if (EditorApplication.isPlaying) UnityEngine.SceneManagement.SceneManager.LoadScene(name);
                 else EditorSceneManager.OpenScene("Assets/Scenes/"+name+".unity");
             }
+            else if (command=="capture-city") GameplaySnapshotCapture.StartFromCommandLine();
+            else if (command=="apply-city-shots") GameplaySnapshotCapture.ApplySavedShots();
             else if (command.StartsWith("capture:"))
             {
                 string name=command.Substring(8);

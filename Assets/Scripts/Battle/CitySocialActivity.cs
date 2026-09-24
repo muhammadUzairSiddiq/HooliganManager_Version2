@@ -39,7 +39,7 @@ public sealed class CitySocialActivity : MonoBehaviour
 
     public static CitySocialActivity EnsurePub(Vector3 pubCenter)
     {
-        return Create("Pub Surrounding Social Activity", pubCenter, "LOCAL PUB", 2);
+        return Create("Pub Surrounding Social Activity", pubCenter, "LOCAL PUB", 4);
     }
 
     public static CitySocialActivity EnsureArrival(Vector3 arrivalCenter, string arrivalName)

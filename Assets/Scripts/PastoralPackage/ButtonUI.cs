@@ -20,6 +20,11 @@ public class ButtonUI : Selectable, IPointerClickHandler, IEventSystemHandler, I
         {
             isClicking = true;
             OnClick?.Invoke();
+            if (GetComponent<LandscapeButtonPolish>())
+            {
+                AfterPointerClick(eventData);
+                return;
+            }
             StartCoroutine(UIp.UIScaleTweening(GetComponent<RectTransform>(), Vector3.one, Vector3.one*1.05f, DisableOnScaleComplete:false, GameManager.BUTTON_ANIMATION_MULTIPLIER, ()=> {
                 AfterPointerClick(eventData);
                 transform.localScale = Vector3.one;

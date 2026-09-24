@@ -56,7 +56,7 @@ public class AgentAnimController
     /// Should be slightly shorter than the shortest punch clip so the
     /// transition back to idle feels responsive.
     /// </summary>
-    public float AttackLockDuration = 0.65f;
+    public float AttackLockDuration = 0.9f;
 
     /// <summary>
     /// How long Tick() is suppressed after a hit reaction.
@@ -169,9 +169,8 @@ public class AgentAnimController
     /// </summary>
     public void PlayHit()
     {
-        // No dedicated hit clip in the controller yet.
-        // Simply lock Tick() so the current anim "stutters" momentarily.
-        Lock(HitLockDuration);
+        Lock(0.4f);
+        ForceCrossFade(AgentAnimParams.States.ReadyIdle, 0.06f);
     }
 
     /// <summary>

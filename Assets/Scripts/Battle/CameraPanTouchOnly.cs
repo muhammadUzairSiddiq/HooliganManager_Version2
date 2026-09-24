@@ -172,8 +172,6 @@ public class CameraPanTouchOnly : MonoBehaviour
         HandleTouch();
         HandleEditorInput();
         if (_followSelection && TryGetSelectionCentroid(out var followed)) MoveFocus(followed);
-
-        UpdateCombatFocus();
         // Keep the preferred camera low, then lift only while a building blocks
         // the line between the tactical focus and the camera.
         Vector3 desired = _targetPosition;
@@ -191,34 +189,6 @@ public class CameraPanTouchOnly : MonoBehaviour
         // After a recenter finishes gliding, return to normal smooth time.
         if (_smoothTime > moveSmoothTime && _velocity.sqrMagnitude < 0.01f)
             _smoothTime = moveSmoothTime;
-    }
-
-    float manualUntil;
-    bool combatFraming;
-    float explorationHeight;
-    void UpdateCombatFocus()
-    {
-        if (!GameplayTuning.Current.focusFights || Time.unscaledTime < manualUntil || !BattleManager.instance) return;
-        Vector3 center = Vector3.zero; int count = 0;
-        foreach (var agent in BattleManager.instance.PlayerAgents)
-        {
-            if (!agent || !agent.IsAlive || agent.CurrentState != AgentController.State.AutoAttacking) continue;
-            var enemy = BattleManager.instance.GetNearestEnemy(agent.transform.position);
-            if (!enemy || Vector3.SqrMagnitude(enemy.transform.position - agent.transform.position) > 100) continue;
-            center += (agent.transform.position + enemy.transform.position) * .5f; count++;
-        }
-        if (count > 0)
-        {
-            if (!combatFraming) explorationHeight = _targetPosition.y;
-            combatFraming = true;
-            _targetPosition.y = Mathf.Lerp(_targetPosition.y, GameplayTuning.Current.combatHeight, 1 - Mathf.Exp(-2 * Time.deltaTime));
-            MoveFocus(center / count);
-        }
-        else if (combatFraming)
-        {
-            Vector3 focus = FocusFromTarget(); _targetPosition.y = explorationHeight;
-            MoveFocus(focus); combatFraming = false;
-        }
     }
 
     private bool _uiGesture; // finger started on HUD — don't pan/zoom
@@ -386,7 +356,6 @@ public class CameraPanTouchOnly : MonoBehaviour
 
     private void PanBy(Vector3 worldDelta)
     {
-        manualUntil = Time.unscaledTime + 5; combatFraming = false;
         _followSelection = false;
         _targetPosition += worldDelta;
         ClampXZ();
@@ -400,7 +369,6 @@ public class CameraPanTouchOnly : MonoBehaviour
 
     private void Zoom(float amount)
     {
-        manualUntil = Time.unscaledTime + 5; combatFraming = false;
         if (_camera != null && _camera.orthographic)
         {
             _targetOrthoSize = Mathf.Clamp(_targetOrthoSize - amount, orthoMin, orthoMax);

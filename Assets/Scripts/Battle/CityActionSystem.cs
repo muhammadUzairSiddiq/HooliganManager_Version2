@@ -516,10 +516,7 @@ public sealed class CityActionSystem : MonoBehaviour
     AgentController[] SelectedCrew()
     {
         var selection=AgentSelectionManager.instance;
-        var selected=selection?.SelectedAgents.Where(a=>a&&a.IsAlive&&!a.IsActivityLocked).Take(4).ToArray()??new AgentController[0];
-        if(selected.Length>0)return selected;
-        selection?.SelectAll();
-        return selection?.SelectedAgents.Where(a=>a&&a.IsAlive&&!a.IsActivityLocked).Take(4).ToArray()??new AgentController[0];
+        return selection?.SelectedAgents.Where(a=>a&&a.IsAlive&&!a.IsActivityLocked).ToArray()??new AgentController[0];
     }
 
     void BuildTaxi()

@@ -124,6 +124,9 @@ public class PlayerData
     /// <summary>Whether the session began in home district (Try Again restores this).</summary>
     [System.Runtime.Serialization.OptionalField]
     public bool BattleStartHomeMode = true;
+    /// <summary>Where CONTINUE should return: Home, Away, AwayPlan, or Police.</summary>
+    [System.Runtime.Serialization.OptionalField]
+    public string LastSessionMode;
     /// <summary>Heat restored by Try Again. A retry always resumes at the campaign's
     /// readable seven-bar starting pressure instead of carrying a terminal 10/10 state.</summary>
     [System.Runtime.Serialization.OptionalField]
@@ -148,5 +151,7 @@ public class PlayerData
 
     // ── Hooligan Manager — Persistent rival bots ──────────────────────────
     public List<BotData> RivalBots = new List<BotData>();
+    [System.Runtime.Serialization.OptionalField] public int RecruitEchoRemainder;
+    [System.Runtime.Serialization.OptionalField] public List<RivalStreetState> RivalStreets;
     public string LastOpponentFought = "";
 }

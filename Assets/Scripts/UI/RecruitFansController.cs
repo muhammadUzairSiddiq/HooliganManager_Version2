@@ -221,6 +221,7 @@ public class RecruitFansController : MonoBehaviour
         int fanGain  = Mathf.Max(1, Mathf.FloorToInt(baseGain * combined));
 
         d.PendingFansGain += fanGain;
+        RivalGrowthSystem.NoteQueuedRecruits(fanGain);
 
         GameData.instance.SaveData();
         UpdateTopBar();

@@ -13,9 +13,13 @@ MonoBehaviour:
   m_Name: LandscapeTheme
   m_EditorClassIdentifier: 
   font: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  mainBackground: {fileID: 21300000, guid: 8f63768ae26a95c4ea4361afe6872859, type: 3}
-  townBackground: {fileID: 21300000, guid: 7fc0a8e17a0cd70489cec769189529aa, type: 3}
-  tacticalBackground: {fileID: 21300000, guid: 258d4e0d304b26b4f934020e95e50664, type: 3}
+  mainBackground: {fileID: 21300000, guid: ca217538061a06c4293ec6d953cef250, type: 3}
+  townBackground: {fileID: 21300000, guid: ff7763d072216f14da9795f62e86351a, type: 3}
+  tacticalBackground: {fileID: 21300000, guid: ef5ae5b6cbcd3bb43b6e8e7a205e5112, type: 3}
+  presentationBackgrounds:
+  - {fileID: 21300000, guid: 655a84db360e90442a1b0efb6d05c350, type: 3}
+  - {fileID: 21300000, guid: 3ab91025da21d4348bb6017ab3bfb331, type: 3}
+  - {fileID: 21300000, guid: 50d893103b801db4bb3d015b14433cfb, type: 3}
   logo: {fileID: 3945743388369871991, guid: 6912dec163c74fe4585fa0a9b773d552, type: 3}
   cash: {fileID: 5349454706136359848, guid: 6912dec163c74fe4585fa0a9b773d552, type: 3}
   crew: {fileID: -4298574957547531957, guid: 6912dec163c74fe4585fa0a9b773d552, type: 3}

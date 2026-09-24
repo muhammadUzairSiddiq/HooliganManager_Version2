@@ -166,7 +166,6 @@ public static partial class LandscapeSceneBuilder
         var frame=CanvasFrame("LandscapeMainMenu",theme.mainBackground,100,out var canvas);
         var shell=frame.gameObject.AddComponent<LandscapeFrontEnd>(); shell.mainMenu=true; shell.clubs=old?old.clubRegistry:null;
         var ctrl=Copy(old,frame.gameObject); ctrl.SelectClubPanel=null;
-        // A dark editorial rail preserves the skyline and the crew silhouettes.
         Image("MenuShade",frame,0,0,590,900,null,new Color(.018f,.032f,.044f,.83f));
         Image("Accent",frame,48,55,48,4,null,Red);
         Text("Edition",frame,"FOOTBALL. LOYALTY. TERRITORY.",112,40,428,33,17,Muted,true);

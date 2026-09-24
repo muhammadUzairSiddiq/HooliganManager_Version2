@@ -10,7 +10,7 @@ using UnityEngine;
 /// </summary>
 public sealed class StadiumMatchdayActivity : MonoBehaviour
 {
-    const int SupporterCount = 5;
+    const int SupporterCount = 8;
     readonly List<GameObject> supporters = new List<GameObject>();
     Vector3 stadiumCenter;
     enum MatchdayPhase { Arrival, BuildUp, RivalPressure, Kickoff, Aftermath }

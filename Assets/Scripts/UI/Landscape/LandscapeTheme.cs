@@ -7,6 +7,7 @@ public sealed class LandscapeTheme : ScriptableObject
 {
     public TMP_FontAsset font;
     public Sprite mainBackground, townBackground, tacticalBackground;
+    public Sprite[] presentationBackgrounds;
     public Sprite logo, cash, crew, star, shield, settings, emblem, celebration;
     public Sprite energy, lootBat, lootBattery, medkit;
     public Sprite navHome, navAttack, navSquad, navMissions;

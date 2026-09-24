@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: GameplayTuning
   m_EditorClassIdentifier: 
   characterScale: 1.5
-  attackInterval: 1.35
+  attackInterval: 1.5
   impactDelay: 0.28
   playerDamageMultiplier: 0.85
   turnSpeed: 420
@@ -34,7 +34,7 @@ MonoBehaviour:
   combatHeight: 24
   cameraPitch: 54
   cameraFov: 54
-  focusFights: 1
+  focusFights: 0
   captureSeconds: 8
   recoveryCost: 200
   healthPackageCost: 750

@@ -48,19 +48,28 @@ public sealed class CityGameplay : MonoBehaviour
         {
             StadiumMatchdayActivity.Ensure(Locations[5]);
             CitySocialActivity.EnsurePub(Locations[1]);
-            CityLifeActivity.Ensure("MARKET",Locations[2]+new Vector3(-8,0,9));
-            CityLifeActivity.Ensure("PARK",Locations[6]+new Vector3(8,0,-7));
-            CityLifeActivity.Ensure("TRANSIT",Locations[7]+new Vector3(-9,0,7));
-            CityLifeActivity.Ensure("WATERFRONT",Locations[8]+new Vector3(7,0,7));
+            CityLifeActivity.Ensure("SHOPS",Locations[2],2);
+            CityLifeActivity.Ensure("GYM",Locations[3],2);
+            CityLifeActivity.Ensure("HOSPITAL",Locations[4],2);
+            CityLifeActivity.Ensure("CHURCH",Locations[6],2);
+            CityLifeActivity.Ensure("STATION",Locations[7],2);
+            CityLifeActivity.Ensure("DOLPHINARIUM",Locations[8],2);
+            CityLifeActivity.Ensure("BARBER",CityLandmarks.Barber(Locations[2]+new Vector3(-14f,0f,10f)).Point,2);
+            CityLifeActivity.Ensure("FIRE STATION",CityLandmarks.FireStation(Locations[7]+new Vector3(16f,0f,-12f)).Point,2);
+            CityLifeActivity.Ensure("SCHOOL",CityLandmarks.School(Locations[6]+new Vector3(18f,0f,8f)).Point,2);
+            CityLifeActivity.Ensure("STADIUM APPROACH",Locations[5]+new Vector3(0,0,-16),3);
         }
         else if(!HomeMode && Locations.Length>0)
         {
             CitySocialActivity.EnsureArrival(Locations[0],LocationNames[0]);
             CitySocialActivity.EnsurePub(Locations[1]);
-            CityLifeActivity.Ensure("MARKET",Locations[2]+new Vector3(8,0,7));
-            CityLifeActivity.Ensure("PARK",Locations[4]+new Vector3(-8,0,7));
-            CityLifeActivity.Ensure("TRANSIT",Locations[7]+new Vector3(8,0,-7));
-            CityLifeActivity.Ensure("AWAY STAND",Locations[5]+new Vector3(-8,0,-8));
+            CityLifeActivity.Ensure(LocationNames[2],Locations[2],2);
+            CityLifeActivity.Ensure(LocationNames[3],Locations[3],2);
+            CityLifeActivity.Ensure(LocationNames[4],Locations[4],2);
+            CityLifeActivity.Ensure(LocationNames[6],Locations[6],2);
+            CityLifeActivity.Ensure(LocationNames[7],Locations[7],2);
+            CityLifeActivity.Ensure(LocationNames[8],Locations[8],2);
+            CityLifeActivity.Ensure("AWAY STAND",Locations[5]+new Vector3(-8,0,-8),3);
         }
         var operations=CityOperationsSystem.Ensure(this);
         CityActionSystem.Ensure(this);
@@ -195,7 +204,8 @@ public sealed class CityGameplay : MonoBehaviour
         if(Locations==null||Locations.Length<=5)return;
         var stadium=FindObjectsByType<Transform>(FindObjectsInactive.Include,FindObjectsSortMode.None)
             .FirstOrDefault(t=>t&&string.Equals(t.name,"stadium_001",System.StringComparison.OrdinalIgnoreCase));
-        if(!stadium)return;
+        if(stadium)
+        {
         var renderers=stadium.GetComponentsInChildren<Renderer>(true);
         Bounds bounds=renderers.Length>0?renderers[0].bounds:new Bounds(stadium.position,new Vector3(40,4,40));
         for(int i=1;i<renderers.Length;i++)bounds.Encapsulate(renderers[i].bounds);
@@ -214,6 +224,27 @@ public sealed class CityGameplay : MonoBehaviour
         Locations[5]=best;
         LocationNames[5]=HomeMode?"CITY STADIUM":"STADIUM AWAY END";
         Debug.Log($"[CityGameplay] Stadium destination bound to real stadium_001 at {best} (model center {bounds.center}).");
+        }
+        BindDistrictBuildings();
+    }
+
+    void BindDistrictBuildings()
+    {
+        if(Locations==null||Locations.Length<9)return;
+        Snap(1,CityLandmarks.Pub(Locations[1]),HomeMode?"LOCAL PUB":LocationNames[1]);
+        Snap(2,CityLandmarks.Mall(Locations[2]),HomeMode?"SHOPS":LocationNames[2]);
+        Snap(3,CityLandmarks.Gym(Locations[3]),HomeMode?"GYM":LocationNames[3]);
+        Snap(4,CityLandmarks.Hospital(Locations[4]),HomeMode?"HOSPITAL":LocationNames[4]);
+        Snap(6,CityLandmarks.Church(Locations[6]),HomeMode?"CHURCH":LocationNames[6]);
+        Snap(7,CityLandmarks.Station(Locations[7]),HomeMode?"STATION":LocationNames[7]);
+        Snap(8,CityLandmarks.Dolphinarium(Locations[8]),HomeMode?"DOLPHINARIUM":LocationNames[8]);
+    }
+
+    void Snap(int index,CityLandmarks.Spot spot,string name)
+    {
+        if(index<0||index>=Locations.Length)return;
+        Locations[index]=spot.Point;
+        if(!string.IsNullOrEmpty(name))LocationNames[index]=name;
     }
 
     void ClearRailDistrictTrees()
@@ -358,7 +389,7 @@ public sealed class CityGameplay : MonoBehaviour
         districtPanel.SetActive(false);
         CameraPanTouchOnly.Instance?.FocusOn(Locations[index]);
         var options=new System.Collections.Generic.List<GamePopup.Option>();
-        options.Add(new GamePopup.Option("MOVE SQUAD",LandscapeUI.Green,()=>{AgentSelectionManager.instance?.SelectAll();AgentSelectionManager.instance?.CommandSelectedMoveTo(Locations[index]);}));
+        options.Add(new GamePopup.Option("MOVE SELECTED",LandscapeUI.Green,()=>AgentSelectionManager.instance?.CommandSelectedMoveTo(Locations[index])));
         if(HomeMode && index==0)
         {
             options.Add(new GamePopup.Option("MANAGE / AWAY TRIPS",LandscapeUI.PanelColor,()=>{BattleManager.instance.PersistBattleProgress();GameManager.LoadScene(GameManager.SCENE_DASHBOARD);}));
@@ -426,7 +457,6 @@ public sealed class CityGameplay : MonoBehaviour
         var bm=BattleManager.instance;
         if(bm!=null&&!bm.PlayerAgents.Any(a=>a&&a.IsAlive&&Vector3.Distance(a.transform.position,at)<18f))
         {
-            AgentSelectionManager.instance?.SelectAll();
             AgentSelectionManager.instance?.CommandSelectedMoveTo(at);
             AgentSelectionManager.CreateCommandMarker(at,LandscapeUI.Green,"RECRUITMENT");
             PostEvent("CREW MOVING TO "+venue);
@@ -442,7 +472,7 @@ public sealed class CityGameplay : MonoBehaviour
         if(!BattleManager.instance.PlayerAgents.Any(a=>a&&a.IsAlive&&Vector3.Distance(a.transform.position,Locations[2])<16))
         {PostEvent("MOVE YOUR SQUAD TO RECRUITMENT");return;}
         if(d.Money<300){PostEvent("INSUFFICIENT FUNDS");return;}
-        d.Money-=300;d.PendingFansGain+=2;GameManager.Save();PostEvent("2 FANS QUEUED FOR NEXT MATCHDAY");
+        d.Money-=300;d.PendingFansGain+=2;RivalGrowthSystem.NoteQueuedRecruits(2);GameManager.Save();PostEvent("2 FANS QUEUED FOR NEXT MATCHDAY");
     }
     public void CaptureNearest()
     {
@@ -451,7 +481,6 @@ public sealed class CityGameplay : MonoBehaviour
         var target=FindObjectsByType<TerritoryControlPoint>(FindObjectsSortMode.None)
             .Where(p=>!p.IsCaptured).OrderBy(p=>Vector3.Distance(p.transform.position,squad[0].transform.position)).FirstOrDefault();
         if(!target){PostEvent("ALL AVAILABLE TERRITORY SECURED");return;}
-        AgentSelectionManager.instance.SelectAll();
         AgentSelectionManager.instance.CommandSelectedMoveTo(target.transform.position);
         AgentSelectionManager.CreateCommandMarker(target.transform.position,new Color(1f,.72f,.12f,.95f),"CAPTURE");
         BattleUIController.instance?.ShowAlert("CAPTURE ORDER - CLEAR AND HOLD",1.8f);
@@ -475,7 +504,7 @@ public sealed class CityGameplay : MonoBehaviour
         }
         defending=true;defenceTime=150;initialRivals=intruders.Length;homeIntegrity=100;
         PostEvent("RIVAL INTRUSION - PROTECT HEADQUARTERS");
-        AgentSelectionManager.instance?.SelectAll();CameraPanTouchOnly.Instance?.FocusOn(Home);
+        CameraPanTouchOnly.Instance?.FocusOn(Home);
     }
     void Update()
     {

@@ -1,9 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
 /// <summary>
-/// Rival gang turf. Enter → HAVE IT / MOVE ON.
-/// MOVE ON hides the prompt and requires a full leave + re-enter before it returns.
+/// Rival gang turf. Standing inside the circle opens HAVE IT / MOVE ON.
+/// Only the crew in the circle are offered. People already on another job are left alone.
 /// </summary>
 public class GangArea : MonoBehaviour
 {
@@ -14,7 +15,6 @@ public class GangArea : MonoBehaviour
     private TextMeshPro _label;
     private float _scanTimer;
     private bool _promptArmed = true;
-    private bool _wasInside;
     private bool _mustLeaveBeforeReprompt;
 
     public string GangName => _gangName;
@@ -57,93 +57,71 @@ public class GangArea : MonoBehaviour
             _label.transform.rotation = Camera.main.transform.rotation;
 
         _scanTimer += Time.deltaTime;
-        if (_scanTimer < 0.12f) return;
+        if (_scanTimer < 0.2f) return;
         _scanTimer = 0f;
-        if (BattleManager.instance == null) return;
+        if (BattleManager.instance == null || string.IsNullOrEmpty(_gangName)) return;
 
-        if (GangIsHostile())
+        var inside = CrewInside();
+        if (inside.Count == 0)
         {
-            _promptArmed = false;
-            _wasInside = true;
+            _promptArmed = true;
+            _mustLeaveBeforeReprompt = false;
             return;
         }
+        if (!_promptArmed || _mustLeaveBeforeReprompt || GamePopup.AnyOpen || AlreadyFighting()) return;
 
-        bool playerInside = AnyPlayerInside();
-
-        // OnTriggerExit equivalent — must fully leave before the prompt can arm again.
-        if (!playerInside)
-        {
-            if (_wasInside || _mustLeaveBeforeReprompt)
-            {
-                _mustLeaveBeforeReprompt = false;
-                _promptArmed = true;
-            }
-            _wasInside = false;
-            return;
-        }
-
-        // OnTriggerEnter equivalent — rising edge only.
-        if (!_wasInside && _promptArmed && !_mustLeaveBeforeReprompt && !IsPromptBlocked())
-        {
-            _promptArmed = false;
-            ShowEncounterPopup();
-        }
-
-        _wasInside = true;
-    }
-
-    private bool AnyPlayerInside()
-    {
-        float r2 = _detectRadius * _detectRadius;
-        foreach (var a in BattleManager.instance.PlayerAgents)
-        {
-            if (a == null || !a.IsAlive) continue;
-            Vector3 d = a.transform.position - transform.position;
-            d.y = 0f;
-            if (d.sqrMagnitude <= r2) return true;
-        }
-        return false;
-    }
-
-    private static bool IsPromptBlocked()
-    {
-        if (GamePopup.Instance != null && GamePopup.Instance.IsOpen) return true;
-        if (CityActionSystem.TaxiSessionActive) return true;
-        if (RecruitDialogBox.Instance != null && RecruitDialogBox.Instance.IsOpen) return true;
-        if (LivePoliceSystem.Instance != null && LivePoliceSystem.Instance.BlocksWorldPrompts) return true;
-        return false;
-    }
-
-    private bool GangIsHostile()
-    {
-        foreach (var e in BattleManager.instance.EnemyAgents)
-            if (e != null && e.IsAlive && e.firmName == _gangName && e.isHostile)
-                return true;
-        return false;
-    }
-
-    private void ShowEncounterPopup()
-    {
-        BattleManager.instance?.HaltPlayerAgents();
-
+        _promptArmed = false;
+        _mustLeaveBeforeReprompt = true;
+        var crew = new List<AgentController>(inside);
         GamePopup.Instance.Show(
-            _gangName.ToUpper() + " TURF",
-            $"You've stepped onto {_gangName}'s patch. Do you want it?",
+            _gangName.ToUpperInvariant() + " TURF",
+            "Your crew is on their ground. Have it with the lads in the circle, or walk them back out.",
             new GamePopup.Option("HAVE IT!", new Color(0.7f, 0.15f, 0.15f), () =>
             {
-                BattleManager.instance?.AttackGang(_gangName);
+                BattleManager.instance?.AttackGang(_gangName, crew);
+                AgentSelectionManager.instance?.ReleaseOrdered(crew);
             }),
-            new GamePopup.Option("MOVE ON", new Color(0.25f, 0.32f, 0.4f), OnMoveOn)
-        );
+            new GamePopup.Option("MOVE ON", new Color(0.25f, 0.32f, 0.4f), () => WalkOut(crew)));
     }
 
-    private void OnMoveOn()
+    List<AgentController> CrewInside()
     {
-        // Hide is already done by GamePopup button. Do NOT fight.
-        // Require a full exit before the prompt can appear again.
-        _mustLeaveBeforeReprompt = true;
-        _promptArmed = false;
-        _wasInside = true;
-        BattleManager.instance?.PullPlayerAgentsFrom(transform.position, _detectRadius + 3.5f);
+        var found = new List<AgentController>();
+        float limit = _radius + 1.25f;
+        foreach (var agent in BattleManager.instance.PlayerAgents)
+        {
+            if (!agent || !agent.IsAlive || agent.IsActivityLocked) continue;
+            if (agent.IsOnAssignment && !agent.IsSelected) continue;
+            Vector3 delta = agent.transform.position - transform.position;
+            delta.y = 0f;
+            if (delta.sqrMagnitude <= limit * limit) found.Add(agent);
+        }
+        return found;
+    }
+
+    bool AlreadyFighting()
+    {
+        foreach (var enemy in BattleManager.instance.EnemyAgents)
+        {
+            if (!enemy || !enemy.IsAlive || enemy.firmName != _gangName || !enemy.isHostile) continue;
+            return true;
+        }
+        return false;
+    }
+
+    void WalkOut(List<AgentController> crew)
+    {
+        foreach (var agent in crew)
+        {
+            if (!agent || !agent.IsAlive) continue;
+            Vector3 delta = agent.transform.position - transform.position;
+            delta.y = 0f;
+            if (delta.sqrMagnitude < 0.04f) delta = Vector3.forward;
+            Vector3 dest = transform.position + delta.normalized * (_radius + 4f);
+            dest.y = agent.transform.position.y;
+            if (UnityEngine.AI.NavMesh.SamplePosition(dest, out var hit, 8f, UnityEngine.AI.NavMesh.AllAreas))
+                dest = hit.position;
+            agent.CommandMoveTo(dest);
+        }
     }
 }

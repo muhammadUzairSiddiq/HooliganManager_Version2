@@ -427,6 +427,11 @@ MonoBehaviour:
   detailInfamyText: {fileID: 0}
   detailLockOverlay: {fileID: 0}
   detailLockReasonText: {fileID: 0}
+  deploymentContent: {fileID: 0}
+  deploymentSummaryText: {fileID: 0}
+  selectAllMembersBtn: {fileID: 0}
+  clearMembersBtn: {fileID: 0}
+  maxDeployMembers: 12
   startTripBtn: {fileID: 240036387}
   backBtn: {fileID: 0}
 --- !u!225 &5597869
@@ -534,7 +539,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -960,7 +965,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -973,7 +978,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -1124,6 +1129,7 @@ MonoBehaviour:
   label: {fileID: 462215764}
   selectedGlow: {fileID: 1153132996}
   selected: 0
+  primaryShine: 0
 --- !u!114 &37758924
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2823,7 +2829,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -3922,6 +3928,7 @@ MonoBehaviour:
   label: {fileID: 1008632493}
   selectedGlow: {fileID: 1002139769}
   selected: 0
+  primaryShine: 0
 --- !u!114 &194793062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4991,6 +4998,7 @@ MonoBehaviour:
   label: {fileID: 909410717}
   selectedGlow: {fileID: 1321243669}
   selected: 0
+  primaryShine: 0
 --- !u!114 &240036390
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5599,7 +5607,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -5612,7 +5620,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -6066,6 +6074,7 @@ MonoBehaviour:
   label: {fileID: 1472001014}
   selectedGlow: {fileID: 2048835206}
   selected: 0
+  primaryShine: 0
 --- !u!114 &293018992
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6303,7 +6312,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -6316,7 +6325,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -6499,7 +6508,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -6512,7 +6521,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -6902,7 +6911,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -6915,12 +6924,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 20.52
+  m_fontSize: 20
   m_fontSizeBase: 20.52
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -7561,7 +7570,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4290096539
   m_fontColor: {r: 0.60784316, g: 0.6784314, b: 0.70980394, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -7574,7 +7583,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -8166,7 +8175,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -8179,12 +8188,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 20.52
+  m_fontSize: 19.5
   m_fontSizeBase: 20.52
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -8834,6 +8843,7 @@ MonoBehaviour:
   label: {fileID: 327348292}
   selectedGlow: {fileID: 1543948959}
   selected: 0
+  primaryShine: 0
 --- !u!114 &429652484
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9103,6 +9113,7 @@ MonoBehaviour:
   label: {fileID: 2102704696}
   selectedGlow: {fileID: 120226494}
   selected: 0
+  primaryShine: 0
 --- !u!114 &436699618
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9409,7 +9420,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -9834,6 +9845,7 @@ MonoBehaviour:
   label: {fileID: 1806653077}
   selectedGlow: {fileID: 1296055541}
   selected: 0
+  primaryShine: 0
 --- !u!114 &465780569
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10114,7 +10126,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -10127,7 +10139,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -10353,6 +10365,7 @@ MonoBehaviour:
   label: {fileID: 655883186}
   selectedGlow: {fileID: 447376830}
   selected: 0
+  primaryShine: 0
 --- !u!114 &475609883
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10523,6 +10536,7 @@ MonoBehaviour:
   label: {fileID: 2112675915}
   selectedGlow: {fileID: 962957659}
   selected: 0
+  primaryShine: 0
 --- !u!114 &476541850
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10996,6 +11010,7 @@ MonoBehaviour:
   label: {fileID: 1435847995}
   selectedGlow: {fileID: 730640308}
   selected: 0
+  primaryShine: 0
 --- !u!114 &491613753
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11166,6 +11181,7 @@ MonoBehaviour:
   label: {fileID: 1506541537}
   selectedGlow: {fileID: 487459496}
   selected: 0
+  primaryShine: 0
 --- !u!114 &491807004
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11557,7 +11573,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4290096539
   m_fontColor: {r: 0.60784316, g: 0.6784314, b: 0.70980394, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -11570,7 +11586,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -12077,6 +12093,7 @@ MonoBehaviour:
   label: {fileID: 1609935019}
   selectedGlow: {fileID: 356123}
   selected: 0
+  primaryShine: 0
 --- !u!114 &526335391
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12195,6 +12212,7 @@ MonoBehaviour:
   label: {fileID: 1224118298}
   selectedGlow: {fileID: 1101466584}
   selected: 0
+  primaryShine: 0
 --- !u!114 &530107264
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12505,7 +12523,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 100
@@ -14015,6 +14033,7 @@ MonoBehaviour:
   label: {fileID: 798895169}
   selectedGlow: {fileID: 2121071459}
   selected: 0
+  primaryShine: 0
 --- !u!114 &604540835
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14324,6 +14343,7 @@ MonoBehaviour:
   label: {fileID: 333398305}
   selectedGlow: {fileID: 1951523006}
   selected: 0
+  primaryShine: 0
 --- !u!114 &616935999
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16152,7 +16172,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -16165,7 +16185,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -16436,6 +16456,7 @@ MonoBehaviour:
   label: {fileID: 1649280034}
   selectedGlow: {fileID: 754042598}
   selected: 0
+  primaryShine: 0
 --- !u!114 &771660389
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16818,6 +16839,7 @@ MonoBehaviour:
   label: {fileID: 1299961863}
   selectedGlow: {fileID: 919897368}
   selected: 0
+  primaryShine: 0
 --- !u!114 &777826057
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16988,6 +17010,7 @@ MonoBehaviour:
   label: {fileID: 41457207}
   selectedGlow: {fileID: 1669810906}
   selected: 0
+  primaryShine: 0
 --- !u!114 &789671080
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17575,7 +17598,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -17588,7 +17611,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -17994,6 +18017,7 @@ MonoBehaviour:
   label: {fileID: 1830331439}
   selectedGlow: {fileID: 419957665}
   selected: 0
+  primaryShine: 0
 --- !u!114 &811643176
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18301,6 +18325,7 @@ MonoBehaviour:
   label: {fileID: 2145596314}
   selectedGlow: {fileID: 1611243745}
   selected: 0
+  primaryShine: 0
 --- !u!114 &824539583
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18471,6 +18496,7 @@ MonoBehaviour:
   label: {fileID: 658736918}
   selectedGlow: {fileID: 1144709874}
   selected: 0
+  primaryShine: 0
 --- !u!114 &832908467
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19204,7 +19230,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -19217,7 +19243,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -19444,7 +19470,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -20147,6 +20173,7 @@ MonoBehaviour:
   label: {fileID: 875593855}
   selectedGlow: {fileID: 211790224}
   selected: 0
+  primaryShine: 0
 --- !u!114 &926656710
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20317,6 +20344,7 @@ MonoBehaviour:
   label: {fileID: 1061777740}
   selectedGlow: {fileID: 1292981730}
   selected: 0
+  primaryShine: 0
 --- !u!114 &931487263
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20487,6 +20515,7 @@ MonoBehaviour:
   label: {fileID: 314094578}
   selectedGlow: {fileID: 1059202764}
   selected: 0
+  primaryShine: 0
 --- !u!114 &950811708
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21148,7 +21177,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -21161,7 +21190,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -21430,6 +21459,7 @@ MonoBehaviour:
   label: {fileID: 1307679035}
   selectedGlow: {fileID: 1859470112}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1016434359
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21613,7 +21643,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -21735,7 +21765,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7fc0a8e17a0cd70489cec769189529aa, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ff7763d072216f14da9795f62e86351a, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -21894,7 +21924,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -21907,7 +21937,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -22463,6 +22493,7 @@ MonoBehaviour:
   label: {fileID: 467877996}
   selectedGlow: {fileID: 1993679500}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1048710673
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23467,7 +23498,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4290096539
   m_fontColor: {r: 0.60784316, g: 0.6784314, b: 0.70980394, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -23480,7 +23511,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -24573,6 +24604,7 @@ MonoBehaviour:
   label: {fileID: 156678118}
   selectedGlow: {fileID: 1150558821}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1114519897
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -24683,7 +24715,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4290096539
   m_fontColor: {r: 0.60784316, g: 0.6784314, b: 0.70980394, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -24696,7 +24728,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -25826,6 +25858,7 @@ MonoBehaviour:
   label: {fileID: 1809672423}
   selectedGlow: {fileID: 1829542556}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1215054772
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26208,6 +26241,7 @@ MonoBehaviour:
   label: {fileID: 1063516585}
   selectedGlow: {fileID: 1618824629}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1241453328
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26378,6 +26412,7 @@ MonoBehaviour:
   label: {fileID: 2134832606}
   selectedGlow: {fileID: 562364180}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1257682375
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -27065,7 +27100,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -27078,12 +27113,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 20.52
+  m_fontSize: 17.05
   m_fontSizeBase: 20.52
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -27279,7 +27314,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -27292,7 +27327,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -27583,6 +27618,7 @@ MonoBehaviour:
   label: {fileID: 1729929990}
   selectedGlow: {fileID: 174402655}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1333204820
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -27766,7 +27802,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -28027,6 +28063,7 @@ MonoBehaviour:
   label: {fileID: 1031070013}
   selectedGlow: {fileID: 798638008}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1341259977
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -29093,7 +29130,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -29106,7 +29143,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -29211,7 +29248,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -29224,7 +29261,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -29685,7 +29722,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -29698,7 +29735,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -30184,7 +30221,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -30197,7 +30234,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -30809,7 +30846,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -30822,7 +30859,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -31560,7 +31597,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -31813,7 +31850,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -31826,7 +31863,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -32320,6 +32357,7 @@ MonoBehaviour:
   label: {fileID: 2137422260}
   selectedGlow: {fileID: 430510430}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1668899343
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -33067,6 +33105,7 @@ MonoBehaviour:
   label: {fileID: 172616050}
   selectedGlow: {fileID: 1176697712}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1716296430
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -33503,7 +33542,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -33516,7 +33555,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -35840,7 +35879,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -35853,7 +35892,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -36098,7 +36137,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -36111,7 +36150,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -36283,6 +36322,7 @@ MonoBehaviour:
   label: {fileID: 1648133742}
   selectedGlow: {fileID: 1390239609}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1904489084
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -36663,6 +36703,7 @@ MonoBehaviour:
   label: {fileID: 1875039873}
   selectedGlow: {fileID: 522493579}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1937696609
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37350,7 +37391,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4290096539
   m_fontColor: {r: 0.60784316, g: 0.6784314, b: 0.70980394, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -37363,7 +37404,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -37495,6 +37536,7 @@ MonoBehaviour:
   label: {fileID: 409984370}
   selectedGlow: {fileID: 691653124}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1966966425
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37665,6 +37707,7 @@ MonoBehaviour:
   label: {fileID: 807075719}
   selectedGlow: {fileID: 670128351}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1975094297
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37866,7 +37909,7 @@ RectTransform:
   m_GameObject: {fileID: 1981480832}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.6, y: 1.6, z: 1.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 121169201}
@@ -38092,6 +38135,7 @@ MonoBehaviour:
   label: {fileID: 1763610191}
   selectedGlow: {fileID: 806803518}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1982655631
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -38723,6 +38767,7 @@ MonoBehaviour:
   label: {fileID: 1363878178}
   selectedGlow: {fileID: 1062940238}
   selected: 0
+  primaryShine: 0
 --- !u!114 &2007761994
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -39022,7 +39067,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4290096539
   m_fontColor: {r: 0.60784316, g: 0.6784314, b: 0.70980394, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -39035,7 +39080,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -39242,6 +39287,7 @@ MonoBehaviour:
   label: {fileID: 410075851}
   selectedGlow: {fileID: 1107093165}
   selected: 0
+  primaryShine: 0
 --- !u!114 &2035954815
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -39412,6 +39458,7 @@ MonoBehaviour:
   label: {fileID: 1006687192}
   selectedGlow: {fileID: 470045850}
   selected: 0
+  primaryShine: 0
 --- !u!114 &2045666511
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40088,7 +40135,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -40349,7 +40396,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4293587438
   m_fontColor: {r: 0.93333334, g: 0.94509804, b: 0.91764706, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -40362,7 +40409,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -40494,6 +40541,7 @@ MonoBehaviour:
   label: {fileID: 1904024229}
   selectedGlow: {fileID: 49151791}
   selected: 0
+  primaryShine: 0
 --- !u!114 &2116884068
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40876,6 +40924,7 @@ MonoBehaviour:
   label: {fileID: 1876701168}
   selectedGlow: {fileID: 1105608875}
   selected: 0
+  primaryShine: 0
 --- !u!114 &2136013308
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -41532,6 +41581,7 @@ MonoBehaviour:
   label: {fileID: 67869017}
   selectedGlow: {fileID: 1292227561}
   selected: 0
+  primaryShine: 0
 --- !u!114 &2145024157
 MonoBehaviour:
   m_ObjectHideFlags: 0

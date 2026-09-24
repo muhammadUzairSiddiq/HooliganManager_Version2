@@ -163,7 +163,7 @@ public sealed class RecruitPackagePanel : MonoBehaviour
             }
         }
         int queued = gain - spawned;
-        if (queued > 0) d.PendingFansGain += queued;
+        if (queued > 0) { d.PendingFansGain += queued; RivalGrowthSystem.NoteQueuedRecruits(queued); }
 
         bm?.PersistBattleProgress();
         GameManager.Save();

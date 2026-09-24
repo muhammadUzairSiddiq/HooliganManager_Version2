@@ -75,7 +75,16 @@ public static class CampaignMissions
     }
 
     public static Mission Get(int number)=>Missions[Math.Max(0,Math.Min(MissionCount-1,number-1))];
-    public static Mission Active(PlayerData d){Ensure(d);return Get(d?.CurrentLevel??1);}
+    /// <summary>Home tasks always save on mission 1. An away trip saves on that destination's mission.</summary>
+    public static int ContextMission(PlayerData d)
+    {
+        Ensure(d);
+        if(d==null)return 1;
+        if(CityGameplay.HomeMode)return 1;
+        int away=MissionForDestination(d.LastSelectedDestination);
+        return away>1?away:Math.Max(1,d.CurrentLevel);
+    }
+    public static Mission Active(PlayerData d){Ensure(d);return Get(ContextMission(d));}
     public static bool Completed(PlayerData d,int mission){Ensure(d);return d?.CompletedCampaignMissions?.Contains(mission)==true;}
     public static int MissionForDestination(string destination)
     {
@@ -97,21 +106,21 @@ public static class CampaignMissions
 
     public static string OperationKey(int mission,CityOperationType type)=>$"M{mission}:{type}";
     public static bool OperationComplete(PlayerData d,CityOperationType type)
-    { Ensure(d);return d?.CompletedCampaignSteps?.Contains(OperationKey(d.CurrentLevel,type))==true; }
+    { Ensure(d);return d?.CompletedCampaignSteps?.Contains(OperationKey(ContextMission(d),type))==true; }
     public static void CompleteOperation(PlayerData d,CityOperationType type)
-    { Ensure(d);string key=OperationKey(d.CurrentLevel,type);if(!d.CompletedCampaignSteps.Contains(key))d.CompletedCampaignSteps.Add(key); }
+    { Ensure(d);string key=OperationKey(ContextMission(d),type);if(!d.CompletedCampaignSteps.Contains(key))d.CompletedCampaignSteps.Add(key); }
 
     public static void RecordRival(PlayerData d,string firm)
     {
         Ensure(d);if(d==null||string.IsNullOrWhiteSpace(firm))return;
-        string key=$"M{d.CurrentLevel}:{firm}";if(!d.CampaignRivalKeys.Contains(key))d.CampaignRivalKeys.Add(key);
+        string key=$"M{ContextMission(d)}:{firm}";if(!d.CampaignRivalKeys.Contains(key))d.CampaignRivalKeys.Add(key);
     }
     public static int RivalCount(PlayerData d,int mission)
     { Ensure(d);string prefix=$"M{mission}:";return d?.CampaignRivalKeys?.Count(k=>k.StartsWith(prefix,StringComparison.Ordinal))??0; }
     public static void RecordTerritory(PlayerData d,string zone)
     {
         Ensure(d);if(d==null||string.IsNullOrWhiteSpace(zone))return;
-        string key=$"M{d.CurrentLevel}:{zone}";if(!d.CampaignTerritoryKeys.Contains(key))d.CampaignTerritoryKeys.Add(key);
+        string key=$"M{ContextMission(d)}:{zone}";if(!d.CampaignTerritoryKeys.Contains(key))d.CampaignTerritoryKeys.Add(key);
     }
     public static int TerritoryCount(PlayerData d,int mission)
     { Ensure(d);string prefix=$"M{mission}:";return d?.CampaignTerritoryKeys?.Count(k=>k.StartsWith(prefix,StringComparison.Ordinal))??0; }
@@ -119,7 +128,7 @@ public static class CampaignMissions
     public static void RecordAction(PlayerData d,string action,string token=null)
     {
         Ensure(d);if(d==null||string.IsNullOrWhiteSpace(action))return;
-        string prefix=$"M{d.CurrentLevel}:{action}:";
+        string prefix=$"M{ContextMission(d)}:{action}:";
         if(string.IsNullOrWhiteSpace(token))token=(ActionCount(d,d.CurrentLevel,action)+1).ToString();
         string key=prefix+token;
         if(!d.CampaignActionKeys.Contains(key))d.CampaignActionKeys.Add(key);
@@ -132,13 +141,15 @@ public static class CampaignMissions
 
     public static Step[] Steps(PlayerData d,int mission=0)
     {
-        Ensure(d);if(d==null)return Array.Empty<Step>();if(mission<=0)mission=d.CurrentLevel;
+        Ensure(d);if(d==null)return Array.Empty<Step>();if(mission<=0)mission=ContextMission(d);
         var steps=new List<Step>(15);
+        string destination=Get(mission).destination;
         foreach(var op in Operations)
         {
             string key=OperationKey(mission,op);
             bool done=d.CompletedCampaignSteps.Contains(key);
-            steps.Add(new Step(key,OperationTitle(op),OperationPurpose(op),done?1:0,1,op));
+            JobCopy(destination,op,out string title,out string body);
+            steps.Add(new Step(key,title,body,done?1:0,1,op));
         }
         int crew=d.RecruitedAgents?.Count(a=>a!=null&&a.IsAlive)??0;
         int rivals=RivalCount(d,mission),territory=TerritoryCount(d,mission);
@@ -206,30 +217,107 @@ public static class CampaignMissions
     { var s=Steps(d,mission);return(s.Count(x=>x.Complete),s.Length); }
     public static bool TryComplete(PlayerData d,out Mission completed)
     {
-        completed=default;Ensure(d);if(d==null||Completed(d,d.CurrentLevel)||Steps(d).Any(s=>!s.Complete))return false;
-        int finished=d.CurrentLevel;completed=Get(finished);d.CompletedCampaignMissions.Add(finished);d.Money+=completed.reward;
-        if(finished<MissionCount)d.CurrentLevel=finished+1;
+        completed=default;Ensure(d);if(d==null)return false;
+        int finished=ContextMission(d);
+        if(Completed(d,finished)||Steps(d,finished).Any(s=>!s.Complete))return false;
+        completed=Get(finished);d.CompletedCampaignMissions.Add(finished);d.Money+=completed.reward;
+        if(finished==d.CurrentLevel&&finished<MissionCount)d.CurrentLevel=finished+1;
         return true;
     }
 
-    public static string OperationTitle(CityOperationType type)=>type switch
+    public static bool HomeCleared(PlayerData d)
     {
-        CityOperationType.ScoutDistrict=>"SCOUT THE DISTRICT",CityOperationType.SupporterRally=>"ORGANIZE SUPPORTERS",
-        CityOperationType.GatherSupplies=>"BUILD THE SUPPLY CACHE",CityOperationType.CollectTickets=>"SECURE THE TICKET ALLOCATION",
-        CityOperationType.CommunityEvent=>"RUN A COMMUNITY EVENT",CityOperationType.ObservePolice=>"MAP POLICE PATROLS",
-        CityOperationType.PrepareTransport=>"PREPARE TRANSPORT",CityOperationType.FirstAid=>"ESTABLISH FIRST AID",
-        CityOperationType.PrepareStadium=>"FINALIZE THE STADIUM PLAN",_=>type.ToString()
-    };
-    static string OperationPurpose(CityOperationType type)=>type switch
+        Ensure(d);
+        if(d==null)return false;
+        return Completed(d,1)||d.CurrentLevel>1;
+    }
+
+    public static int JobFlavor(string destination)
     {
-        CityOperationType.ScoutDistrict=>"Reveal routes; its intel unlocks tickets, patrol observation and transport.",
-        CityOperationType.SupporterRally=>"Raise morale and social momentum needed for the stadium phase.",
-        CityOperationType.GatherSupplies=>"Create stock used by first aid and protect the crew's endurance.",
-        CityOperationType.CollectTickets=>"Convert intel and cash into access for every deployed member.",
-        CityOperationType.CommunityEvent=>"Build reputation and social support while easing local pressure.",
-        CityOperationType.ObservePolice=>"Spend intel to expose patrol windows and lower immediate heat.",
-        CityOperationType.PrepareTransport=>"Use route intelligence to secure arrival and extraction.",
-        CityOperationType.FirstAid=>"Consume supplies to restore an injured assigned member.",
-        CityOperationType.PrepareStadium=>"Combine tickets, transport and supporter momentum into mission access.",_=>""
-    };
+        if(string.Equals(destination,"Riverside",StringComparison.OrdinalIgnoreCase))return 1;
+        if(string.Equals(destination,"North End",StringComparison.OrdinalIgnoreCase))return 2;
+        if(string.Equals(destination,"East Docks",StringComparison.OrdinalIgnoreCase))return 3;
+        if(string.Equals(destination,"Old Town",StringComparison.OrdinalIgnoreCase))return 4;
+        return 0;
+    }
+
+    public static void JobCopy(string destination,CityOperationType type,out string title,out string body)
+    {
+        int flavor=JobFlavor(destination);
+        switch(type)
+        {
+            case CityOperationType.ScoutDistrict:
+                title=flavor switch{1=>"PROMENADE SCOUT",2=>"ESTATE SCOUT",3=>"WAREHOUSE SCOUT",4=>"CATHEDRAL LANE",_=>"CHURCH LOOKOUT"};
+                body=flavor switch{
+                    1=>"Walk the river edge, then the far wall, and clock the boats.",
+                    2=>"Cross the estate yard and mark who is watching the arches.",
+                    3=>"Check the warehouse mouth, then the far wall, before the crew commits.",
+                    4=>"Move through cathedral lane and read the square.",
+                    _=>"Walk the church yard, then the school wall, and mark the streets."};
+                return;
+            case CityOperationType.SupporterRally:
+                title=flavor switch{1=>"RIVER PUB CHANT",2=>"SOCIAL CLUB",3=>"DOCK PUB",4=>"CROWN PUB",_=>"PUB MEET"};
+                body=flavor switch{
+                    1=>"Take the riverside bar and run three chants with the crew.",
+                    2=>"Hold the social club and pull the north-end crowd in.",
+                    3=>"Use the dock bar to keep the firms from splitting.",
+                    4=>"Fill the Crown and chant until the square answers.",
+                    _=>"Stand in the pub and chant until the room joins in."};
+                return;
+            case CityOperationType.GatherSupplies:
+                title=flavor switch{1=>"BOATYARD STOCK",2=>"MARKET CUT",3=>"CONTAINER PICK",4=>"BACK MARKET",_=>"BARBER RUN"};
+                body=flavor switch{
+                    1=>"Pick up stock along the boatyard, one stop at a time.",
+                    2=>"Work the market cut and carry the bags back.",
+                    3=>"Clear four pickup points around the containers.",
+                    4=>"Buy through the back market without lingering.",
+                    _=>"Use the barber shop as the drop and pick up three loads."};
+                return;
+            case CityOperationType.CollectTickets:
+                title=flavor switch{1=>"FERRY TICKETS",2=>"RAIL ARCH TICKETS",3=>"FERRY ROAD WINDOW",4=>"TOWN GATE TICKETS",_=>"STATION WINDOW"};
+                body="Queue at the window, then walk the platform with the crew.";
+                return;
+            case CityOperationType.CommunityEvent:
+                title=flavor switch{1=>"WATERFRONT GATHERING",2=>"NORTH END MEET",3=>"LOCK-GATE MEET",4=>"SQUARE GATHERING",_=>"DOLPHINARIUM MEET"};
+                body=flavor switch{
+                    1=>"Gather on the waterfront and hold the crowd for four beats.",
+                    2=>"Meet the north-end locals in the open and keep them there.",
+                    3=>"Pull a crowd at the lock gate before the vans roll.",
+                    4=>"Take the square and make the gathering visible.",
+                    _=>"Gather by the dolphinarium and work the crowd in the open."};
+                return;
+            case CityOperationType.ObservePolice:
+                title=flavor switch{1=>"BRIDGE WATCH",2=>"PATROL SHADOW",3=>"DOCK POLICE WATCH",4=>"OLD WATCH",_=>"YARD WATCH"};
+                body=flavor switch{
+                    2=>"Stand across from the yard and track five patrol turns.",
+                    _=>"Hold the open ground opposite the police building and watch the yard."};
+                return;
+            case CityOperationType.PrepareTransport:
+                title=flavor switch{1=>"BOAT CREW",2=>"BUS CREW",3=>"CLEAR THE LANE",4=>"ESCAPE VANS",_=>"FIREHOUSE RUN"};
+                body=flavor switch{
+                    1=>"Walk the crew from the mooring to the departure point.",
+                    2=>"Stage at the bus bay, then move to the departure mark.",
+                    3=>"Clear the lane outside the firehouse, then move to departure.",
+                    4=>"Check the escape vans and walk the departure route.",
+                    _=>"Check the firehouse bay, then walk the departure point."};
+                return;
+            case CityOperationType.FirstAid:
+                title=flavor switch{1=>"RIVERSIDE PATCH",2=>"ESTATE CLINIC",3=>"DOCK INFIRMARY",4=>"LANE CLINIC",_=>"HOSPITAL WARD"};
+                body="Walk the crew into the hospital approach and patch whoever is hurt.";
+                return;
+            default:
+                title=flavor switch{1=>"AWAY-END WARMUP",2=>"HEAVY GYM",3=>"YARD CIRCUIT",4=>"OLD STAND DRILL",_=>"GYM CIRCUIT"};
+                body=flavor switch{
+                    2=>"Four gym stations. Punch through each one.",
+                    3=>"Run the yard circuit and hit every station.",
+                    _=>"Three gym stations. The crew punches through each one."};
+                return;
+        }
+    }
+
+    public static string OperationTitle(CityOperationType type)
+    {
+        JobCopy("HOME",type,out string title,out _);
+        return title;
+    }
 }

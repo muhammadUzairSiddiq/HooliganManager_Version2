@@ -22,6 +22,7 @@ public class EnemyController : MonoBehaviour
 {
     // ── Stats (set by BattleManager.Initialise) ───────────────────────────
     public float MaxHp       = 60f;
+    public float FightPace   = 1f;
     public float CurrentHp   { get; private set; }
     public float Strength    = 10f;
     public float Speed       = 2.0f;
@@ -122,6 +123,7 @@ public class EnemyController : MonoBehaviour
         AttackRange = attackRange;
 
         _nav                   = GetComponent<NavMeshAgent>();
+        if (_nav) _nav.enabled = true;
         _chaseSpeed            = speed;           // remember full combat speed
         _nav.speed             = patrolSpeed;     // start slow (patrol walk)
         _nav.stoppingDistance  = attackRange * 0.9f;
@@ -378,8 +380,18 @@ public class EnemyController : MonoBehaviour
                     if (!_nav.pathPending && (!_nav.hasPath || _nav.remainingDistance < 0.4f))
                     {
                         Vector3 center = _gangCenter != Vector3.zero ? _gangCenter : _spawnPosition;
-                        Vector2 r = Random.insideUnitCircle * Mathf.Max(1.5f, patrolRadius * 0.55f);
-                        Vector3 guess = center + new Vector3(r.x, 0f, r.y);
+                        var stadium = CityGameplay.HomeMode ? UnityEngine.Object.FindFirstObjectByType<StadiumMatchdayActivity>() : null;
+                        Vector3 guess;
+                        if (stadium && Random.value < 0.4f)
+                        {
+                            Vector3 approach = stadium.transform.position + (center - stadium.transform.position).normalized * 14f;
+                            guess = Vector3.Lerp(center, approach, 0.65f);
+                        }
+                        else
+                        {
+                            Vector2 r = Random.insideUnitCircle * Mathf.Max(1.5f, patrolRadius * 0.55f);
+                            guess = center + new Vector3(r.x, 0f, r.y);
+                        }
                         if (UnityEngine.AI.NavMesh.SamplePosition(guess, out var hit, 4f, UnityEngine.AI.NavMesh.AllAreas))
                             _nav.SetDestination(hit.position);
                     }
@@ -465,7 +477,7 @@ public class EnemyController : MonoBehaviour
     public void TakeDamage(float amount, MonoBehaviour attacker = null)
     {
         if (!IsAlive) return;
-        CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount));
+        CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount) * Mathf.Clamp(FightPace, 0.2f, 1f));
         healthBar?.SetHealth(CurrentHp, MaxHp);
 
         if (CurrentHp <= 0) { Die(); return; }
@@ -573,8 +585,8 @@ public class EnemyController : MonoBehaviour
     private IEnumerator DeathSequence()
     {
         yield return new WaitForSeconds(1.8f);
-        gameObject.SetActive(false);
         BattleManager.instance?.OnEnemyDied(this);
+        if (gameObject.activeSelf) gameObject.SetActive(false);
     }
 
 

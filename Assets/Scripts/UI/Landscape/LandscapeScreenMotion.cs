@@ -23,40 +23,48 @@ public sealed class LandscapeScreenMotion : MonoBehaviour
     Coroutine backgroundRoutine;
     Vector3 bgBaseScale = Vector3.one;
     Image backgroundImage;
-    Image backgroundOverlay;
+    Image backgroundBlackout;
     Sprite[] backgroundCycle;
 
     void Awake()
     {
         if (!shell) shell = GetComponent<LandscapeFrontEnd>();
+        if (!background)
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            background = canvas ? canvas.transform.Find("Backdrop") as RectTransform : null;
+        }
         if (background) bgBaseScale = background.localScale;
         if (background) backgroundImage = background.GetComponent<Image>();
         var theme = LandscapeTheme.Current;
-        if (theme) backgroundCycle = new[] { theme.mainBackground, theme.townBackground, theme.tacticalBackground };
+        if (theme && theme.presentationBackgrounds != null && theme.presentationBackgrounds.Length > 0)
+            backgroundCycle = theme.presentationBackgrounds;
+        else if (theme)
+            backgroundCycle = new[] { theme.mainBackground, theme.townBackground, theme.tacticalBackground };
     }
 
     void OnEnable()
     {
-        if (rotatingText && textRoutine == null) textRoutine = StartCoroutine(RotateText());
-        if (backgroundImage && backgroundCycle != null && backgroundCycle.Length > 1 && backgroundRoutine == null)
+        if (backgroundRoutine != null) StopCoroutine(backgroundRoutine);
+        if (backgroundImage && backgroundCycle != null && backgroundCycle.Length > 0)
             backgroundRoutine = StartCoroutine(CycleBackground());
     }
 
-    void Update()
+    void OnDisable()
     {
-        if (!background) return;
-        float t = Time.unscaledTime;
-        float zoom = 1f + Mathf.Sin(t * .09f) * .018f;
-        background.localScale = bgBaseScale * zoom;
-        background.anchoredPosition = new Vector2(Mathf.Sin(t * .07f) * 10f, Mathf.Cos(t * .06f) * 6f);
+        if (backgroundRoutine != null) StopCoroutine(backgroundRoutine);
+        backgroundRoutine = null;
     }
+
+    void Update() { }
 
     public void ShowPage(GameObject[] pages, string[] names, string action)
     {
         int index = System.Array.IndexOf(names, action);
         if (index < 0 || index >= pages.Length || !pages[index]) return;
-        if (pageRoutine != null) StopCoroutine(pageRoutine);
-        pageRoutine = StartCoroutine(SwitchPage(pages, names, index));
+        for (int i = 0; i < pages.Length; i++)
+            if (pages[i]) pages[i].SetActive(i == index);
+        HighlightButtons(names[index]);
     }
 
     IEnumerator SwitchPage(GameObject[] pages, string[] names, int target)
@@ -145,37 +153,71 @@ public sealed class LandscapeScreenMotion : MonoBehaviour
 
     IEnumerator CycleBackground()
     {
-        int index = 0;
-        for (int i = 0; i < backgroundCycle.Length; i++)
-            if (backgroundCycle[i] == backgroundImage.sprite) index = i;
-
+        int index = Random.Range(0, backgroundCycle.Length);
+        ShowBackground(backgroundImage, backgroundCycle[index]);
         while (true)
         {
-            yield return new WaitForSecondsRealtime(13.5f);
+            yield return new WaitForSecondsRealtime(Random.Range(3f, 6f));
             int next = (index + 1) % backgroundCycle.Length;
-            if (!backgroundCycle[next]) continue;
-            if (!backgroundOverlay)
-            {
-                var go = new GameObject("BackdropCrossfade", typeof(RectTransform), typeof(Image));
-                var rt = (RectTransform)go.transform;
-                rt.SetParent(background, false);
-                LandscapeUI.Stretch(rt);
-                backgroundOverlay = go.GetComponent<Image>();
-                backgroundOverlay.raycastTarget = false;
-                backgroundOverlay.preserveAspect = backgroundImage.preserveAspect;
-                backgroundOverlay.type = backgroundImage.type;
-            }
-            backgroundOverlay.sprite = backgroundCycle[next];
-            backgroundOverlay.color = new Color(1, 1, 1, 0);
-            for (float t = 0; t < 1.1f; t += Time.unscaledDeltaTime)
-            {
-                backgroundOverlay.color = new Color(1, 1, 1, Mathf.SmoothStep(0, .45f, t / 1.1f));
-                yield return null;
-            }
-            backgroundImage.sprite = backgroundCycle[next];
-            backgroundOverlay.color = new Color(1, 1, 1, 0);
+            Sprite sprite = backgroundCycle[next];
+            if (!sprite) { yield return null; continue; }
+            yield return BlackoutTo(sprite);
             index = next;
         }
+    }
+
+    IEnumerator BlackoutTo(Sprite next)
+    {
+        EnsureBlackout();
+        if (!backgroundBlackout) yield break;
+        const float outTime = 0.62f;
+        const float hold = 0.14f;
+        const float inTime = 0.78f;
+        for (float t = 0f; t < outTime; t += Time.unscaledDeltaTime)
+        {
+            backgroundBlackout.color = new Color(0f, 0f, 0f, BlackoutEase(t / outTime));
+            yield return null;
+        }
+        backgroundBlackout.color = Color.black;
+        ShowBackground(backgroundImage, next);
+        yield return new WaitForSecondsRealtime(hold);
+        for (float t = 0f; t < inTime; t += Time.unscaledDeltaTime)
+        {
+            backgroundBlackout.color = new Color(0f, 0f, 0f, 1f - BlackoutEase(t / inTime));
+            yield return null;
+        }
+        backgroundBlackout.color = new Color(0f, 0f, 0f, 0f);
+    }
+
+    void EnsureBlackout()
+    {
+        if (backgroundBlackout || !background) return;
+        var go = new GameObject("BackdropBlackout", typeof(RectTransform), typeof(Image));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(background, false);
+        rt.SetAsLastSibling();
+        LandscapeUI.Stretch(rt);
+        backgroundBlackout = go.GetComponent<Image>();
+        backgroundBlackout.raycastTarget = false;
+        backgroundBlackout.color = new Color(0f, 0f, 0f, 0f);
+    }
+
+    static float BlackoutEase(float t)
+    {
+        t = Mathf.Clamp01(t);
+        return t * t * t * (t * (t * 6f - 15f) + 10f);
+    }
+
+    static void ShowBackground(Image image, Sprite sprite)
+    {
+        if (!image || !sprite) return;
+        image.sprite = sprite;
+        image.color = Color.white;
+        image.type = Image.Type.Simple;
+        image.preserveAspect = false;
+        var fitter = image.GetComponent<AspectRatioFitter>();
+        if (fitter && sprite.rect.height > 1f)
+            fitter.aspectRatio = sprite.rect.width / sprite.rect.height;
     }
 
     IEnumerator FadeText(string next)

@@ -247,13 +247,56 @@ public class BattleUIController : MonoBehaviour
     {
         // Cash/heat are drawn by BattleHudLayoutFix in a non-overlapping slot.
         // Do NOT write into enemyCountText — that overlaps the MATCH timer.
+        if (playerCountText && !GameManager.IsPolicePlayer && Time.unscaledTime >= _nextSquadSummary)
+        {
+            _nextSquadSummary = Time.unscaledTime + 0.25f;
+            playerCountText.richText = true;
+            playerCountText.enableWordWrapping = true;
+            playerCountText.fontSize = 13f;
+            playerCountText.text = SquadSummary();
+        }
+    }
+
+    float _nextSquadSummary;
+
+    static int SquadRank(AgentController agent)
+    {
+        if (!agent) return 9;
+        if (agent.IsAlive && agent.IsSelected) return 0;
+        if (!agent.IsAlive) return 4;
+        if (AgentPortraitCard.IsInjured(agent)) return 3;
+        if (agent.IsOnAssignment) return 2;
+        return 1;
+    }
+
+    static string SquadSummary()
+    {
+        var agents = BattleManager.instance != null ? BattleManager.instance.PlayerAgents : null;
+        int selected = 0, free = 0, busy = 0, hurt = 0, down = 0;
+        if (agents != null)
+        {
+            foreach (var agent in agents)
+            {
+                if (!agent) continue;
+                if (!agent.IsAlive) { down++; continue; }
+                if (agent.IsSelected) selected++;
+                if (AgentPortraitCard.IsInjured(agent)) hurt++;
+                else if (agent.IsOnAssignment) busy++;
+                else free++;
+            }
+        }
+        return $"<color=#FFE56A>SEL {selected}</color>   <color=#3DDC6E>FREE {free}</color>\n<color=#F0C84A>BUSY {busy}</color>   <color=#F08A2A>HURT {hurt}</color>   <color=#E23B3B>DOWN {down}</color>";
     }
 
     private void UpdateCounts(int aliveP, int aliveE)
     {
-        if (playerCountText) playerCountText.text = GameManager.IsPolicePlayer
-            ? $"OFFICERS: {aliveP}"
-            : $"MEMBERS: {aliveP}";
+        if (playerCountText)
+        {
+            playerCountText.richText = true;
+            playerCountText.text = GameManager.IsPolicePlayer
+                ? $"OFFICERS: {aliveP}"
+                : SquadSummary();
+        }
         if (landscapeLayout && enemyCountText) enemyCountText.text = $"RIVALS: {aliveE}";
         EnsureSquadSelectToggle();
     }
@@ -281,12 +324,13 @@ public class BattleUIController : MonoBehaviour
         var allAgents = BattleManager.instance != null
             ? BattleManager.instance.PlayerAgents
             : new List<AgentController>();
+        var ordered = allAgents.Where(a => a).OrderBy(SquadRank).ThenBy(a => a.Data != null ? a.Data.AgentName : "").ToList();
 
-        for (int i = 0; i < allAgents.Count; i++)
+        for (int i = 0; i < ordered.Count; i++)
         {
-            var agent = allAgents[i];
-            if (agent == null || !agent.IsAlive) continue;
-            bool isSelected = selected.Contains(agent);
+            var agent = ordered[i];
+            if (agent == null) continue;
+            bool isSelected = agent.IsAlive && selected.Contains(agent);
 
             var cardGO = Instantiate(portraitCardPrefab, portraitStrip);
             SizePortraitCard(cardGO);
@@ -316,7 +360,13 @@ public class BattleUIController : MonoBehaviour
             var button = cardGO.GetComponent<Button>() ?? cardGO.AddComponent<Button>();
             button.targetGraphic = cardGO.GetComponent<Graphic>();
             LandscapeUI.Colors(button);
-            button.onClick.AddListener(() => AgentSelectionManager.instance?.ToggleSelect(agent));
+            var capturedCard = card;
+            var captured = agent;
+            button.onClick.AddListener(() =>
+            {
+                if (capturedCard) capturedCard.NotifyTap();
+                else if (captured && captured.IsAlive) AgentSelectionManager.instance?.ToggleSelect(captured);
+            });
         }
 
         // Rebuild content width and keep scroll usable on touch.

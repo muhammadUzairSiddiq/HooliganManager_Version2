@@ -16,7 +16,9 @@ public sealed class InjuryNotifications : MonoBehaviour
         if (pending.Count == 0 || GamePopup.AnyOpen || CityActionSystem.TaxiSessionActive || Time.timeScale == 0) return;
         var agent = pending.Dequeue();
         if (agent.CurrentHp >= agent.MaxHp) return;
-        GamePopup.Instance.Show(agent.IsAlive ? "MEMBER INJURED" : "MEMBER DOWN", agent.AgentName + (agent.IsAlive ? " is badly injured." : " is out of action.") + " They remain in your squad. Recover them at headquarters or the recovery point for £" + GameplayTuning.Current.recoveryCost + ".",
-            new GamePopup.Option("UNDERSTOOD", LandscapeUI.PanelColor, null));
+        string line = agent.IsAlive
+            ? agent.AgentName + " is badly injured."
+            : agent.AgentName + " is down.";
+        BattleUIController.instance?.ShowAlert(line, 2.4f);
     }
 }

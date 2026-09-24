@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -80,6 +81,25 @@ public class AgentPortraitCard : MonoBehaviour
     private AgentController _agent;
     private float           _pulseTimer;
     private bool            _isPulsing;
+    Image _background;
+    Image _statusBar;
+    Outline _outline;
+    TextMeshProUGUI _statusLabel;
+    TextMeshProUGUI _selectedBadge;
+    bool _chromeReady;
+    Coroutine _tapWait;
+
+    public static readonly Color FreeColor = new Color(0.24f, 0.86f, 0.43f, 1f);
+    public static readonly Color BusyColor = new Color(0.94f, 0.78f, 0.22f, 1f);
+    public static readonly Color HurtColor = new Color(0.95f, 0.52f, 0.12f, 1f);
+    public static readonly Color DownColor = new Color(0.86f, 0.18f, 0.16f, 1f);
+    public static readonly Color SelectedColor = new Color(1f, 0.88f, 0.28f, 1f);
+
+    public static bool IsInjured(AgentController agent)
+    {
+        return agent && agent.IsAlive && agent.Data != null && agent.Data.MaxHp > 0f
+            && agent.CurrentHp > 0f && agent.CurrentHp <= agent.Data.MaxHp * 0.30f;
+    }
 
     // ─────────────────────────────────────────────────────────────────────
 
@@ -120,9 +140,8 @@ public class AgentPortraitCard : MonoBehaviour
         if (agent.Data != null)
             RefreshHP(agent.CurrentHp, agent.Data.MaxHp);
 
-        // ── Selection glow ────────────────────────────────────────────────
-        if (selectionGlow != null)
-            selectionGlow.gameObject.SetActive(false);
+        EnsureChrome();
+        ApplyPresentation();
     }
 
     // ── Public API ────────────────────────────────────────────────────────
@@ -130,8 +149,36 @@ public class AgentPortraitCard : MonoBehaviour
     /// <summary>Show or hide the selection highlight border.</summary>
     public void SetSelected(bool selected)
     {
-        if (selectionGlow != null)
-            selectionGlow.gameObject.SetActive(selected);
+        ApplyPresentation();
+    }
+
+    /// <summary>One tap selects. A second tap within the window jumps the camera to this member.</summary>
+    public void NotifyTap()
+    {
+        if (_tapWait != null)
+        {
+            StopCoroutine(_tapWait);
+            _tapWait = null;
+            GoToMember();
+            return;
+        }
+        _tapWait = StartCoroutine(SingleTap());
+    }
+
+    IEnumerator SingleTap()
+    {
+        yield return new WaitForSecondsRealtime(0.32f);
+        _tapWait = null;
+        if (_agent && _agent.IsAlive)
+            AgentSelectionManager.instance?.ToggleSelect(_agent);
+    }
+
+    void GoToMember()
+    {
+        if (!_agent) return;
+        CameraPanTouchOnly.Instance?.FocusOn(_agent.transform.position);
+        string name = _agent.Data != null ? _agent.Data.AgentName.ToUpperInvariant() : "MEMBER";
+        BattleUIController.instance?.ShowAlert(name + "  ·  " + Duty(_agent), 1.8f);
     }
 
     /// <summary>Force an immediate HP refresh (call externally if needed).</summary>
@@ -159,19 +206,12 @@ public class AgentPortraitCard : MonoBehaviour
     {
         if (_agent == null) return;
 
-        // Hide when dead
-        if (!_agent.IsAlive)
-        {
-            gameObject.SetActive(false);
-            return;
-        }
-
-        // Keep HP in sync each frame
         if (_agent.Data != null)
-            RefreshHP(_agent.CurrentHp, _agent.Data.MaxHp);
+            RefreshHP(_agent.IsAlive ? _agent.CurrentHp : 0f, _agent.Data.MaxHp);
+        ApplyPresentation();
 
         // Low-HP pulse: card scales gently to draw attention
-        if (_isPulsing)
+        if (_isPulsing && !_agent.IsSelected)
         {
             _pulseTimer += Time.deltaTime * 4f;
             float pulse = 1f + 0.04f * Mathf.Sin(_pulseTimer * Mathf.PI * 2f);
@@ -185,6 +225,79 @@ public class AgentPortraitCard : MonoBehaviour
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
+
+    void EnsureChrome()
+    {
+        if (_chromeReady) return;
+        _chromeReady = true;
+        _background = GetComponent<Image>();
+        _outline = gameObject.GetComponent<Outline>() ?? gameObject.AddComponent<Outline>();
+        _outline.useGraphicAlpha = false;
+        _statusBar = LandscapeUI.Image("StatusBar", transform, 0, 0, 10, 92, null, FreeColor);
+        _statusBar.raycastTarget = false;
+        _statusBar.transform.SetAsFirstSibling();
+        _statusLabel = LandscapeUI.Text("Duty", transform, "FREE", 96, 34, 130, 18, 12, FreeColor, true);
+        _selectedBadge = LandscapeUI.Text("SelectedBadge", transform, "SELECTED", 96, 70, 130, 16, 11, SelectedColor, true);
+        _selectedBadge.gameObject.SetActive(false);
+        if (nameLabel) LandscapeUI.Place(nameLabel.rectTransform, 96, 6, 130, 26);
+        if (hpLabel) LandscapeUI.Place(hpLabel.rectTransform, 96, 50, 130, 18);
+        if (hpFill) LandscapeUI.Place(hpFill.rectTransform, 96, 74, 124, 6);
+        var track = transform.Find("HealthTrack") as RectTransform;
+        if (track) LandscapeUI.Place(track, 96, 74, 124, 6);
+    }
+
+    void ApplyPresentation()
+    {
+        if (_agent == null) return;
+        EnsureChrome();
+        bool alive = _agent.IsAlive;
+        bool selected = alive && _agent.IsSelected;
+        bool hurt = IsInjured(_agent);
+        bool busy = alive && _agent.IsOnAssignment;
+        Color tone = !alive ? DownColor : hurt ? HurtColor : busy ? BusyColor : FreeColor;
+
+        if (_statusBar) _statusBar.color = tone;
+        if (_outline)
+        {
+            _outline.enabled = selected;
+            _outline.effectColor = SelectedColor;
+            _outline.effectDistance = new Vector2(4f, -4f);
+        }
+        if (_background)
+            _background.color = selected
+                ? new Color(0.28f, 0.22f, 0.05f, 0.98f)
+                : new Color(0.07f, 0.09f, 0.11f, 0.94f);
+        if (portraitImage)
+            portraitImage.color = alive ? Color.white : new Color(0.45f, 0.45f, 0.45f, 0.85f);
+        if (_selectedBadge) _selectedBadge.gameObject.SetActive(selected);
+        if (_statusLabel)
+        {
+            _statusLabel.color = selected ? SelectedColor : tone;
+            _statusLabel.text = selected ? "SELECTED · " + Duty(_agent) : Duty(_agent);
+        }
+        if (selectionGlow)
+        {
+            selectionGlow.gameObject.SetActive(selected);
+            selectionGlow.color = SelectedColor;
+        }
+    }
+
+    static string Duty(AgentController agent)
+    {
+        if (!agent || !agent.IsAlive) return "DOWN";
+        string place = CityOperationsSystem.AssignmentFor(agent);
+        if (!string.IsNullOrEmpty(place) && place.Length > 16) place = place.Substring(0, 15) + "…";
+        if (IsInjured(agent))
+            return string.IsNullOrEmpty(place) ? "INJURED" : "HURT · " + place;
+        if (!string.IsNullOrEmpty(place)) return place;
+        if (agent.IsOnAssignment)
+        {
+            if (agent.CurrentState == AgentController.State.AutoAttacking) return "IN A FIGHT";
+            if (agent.CurrentState == AgentController.State.Retreating) return "RETREATING";
+            return "ON THE WAY";
+        }
+        return "FREE";
+    }
 
     private Color HPColour(float ratio)
     {

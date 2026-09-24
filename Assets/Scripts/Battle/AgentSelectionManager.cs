@@ -217,6 +217,11 @@ public class AgentSelectionManager : MonoBehaviour
 
             if (enemy != null && enemy.IsAlive)
             {
+                if (_selected.Count > 0 && enemy.firmName != "POLICE")
+                {
+                    PresentFightChoice(enemy.firmName);
+                    return;
+                }
                 if (!enemy.isHostile)
                 {
                     // Tapped a passive rival gang member. Open recruiting options!
@@ -313,12 +318,6 @@ public class AgentSelectionManager : MonoBehaviour
         if (groundHit && UnityEngine.AI.NavMesh.SamplePosition(groundPoint,out var walkHit,3f,UnityEngine.AI.NavMesh.AllAreas))
         {
             groundPoint=walkHit.position;
-            // If nothing is currently selected, auto-select all alive units to make movement default
-            if (_selected.Count == 0)
-            {
-                SelectAll();
-            }
-
             if (_selected.Count > 0)
             {
                 CommandSelectedMoveTo(groundPoint);
@@ -387,13 +386,13 @@ public class AgentSelectionManager : MonoBehaviour
             var target = enemies.OrderBy(e => (e.transform.position - a.transform.position).sqrMagnitude).FirstOrDefault();
             if (target != null) { a.CommandAttackTarget(target); marked ??= target; }
         }
+        ReleaseOrdered(_selected.ToList());
         if (marked) CreateCommandMarker(marked.transform.position, new Color(1f, .18f, .12f, .95f), "ATTACK");
         NotifyCommand("ATTACK ORDER CONFIRMED");
     }
 
     public void CommandSelectedRetreat()
     {
-        CameraPanTouchOnly.Instance?.FollowSelection();
         if (_selected.Count == 0) { NotifyCommand("SELECT A CREW MEMBER FIRST"); return; }
         bool safeTransport = GameManager.Data != null && GameManager.Data.TransportPrepared;
         foreach (var a in _selected)
@@ -404,6 +403,7 @@ public class AgentSelectionManager : MonoBehaviour
                 if (safeTransport) a.ApplyTemporaryBoost(BoostType.Speed, .30f, 12f);
                 a.CommandRetreat();
             }
+        ReleaseOrdered(_selected.ToList());
         var retreat = BattleManager.instance != null && BattleManager.instance.retreatPoint
             ? BattleManager.instance.retreatPoint.position : Vector3.zero;
         CreateCommandMarker(retreat, new Color(.20f, .60f, 1f, .95f), "RETREAT");
@@ -418,7 +418,6 @@ public class AgentSelectionManager : MonoBehaviour
         var path=new UnityEngine.AI.NavMeshPath();
         if(!UnityEngine.AI.NavMesh.CalculatePath(leader.transform.position,worldPoint,UnityEngine.AI.NavMesh.AllAreas,path) || path.status!=UnityEngine.AI.NavMeshPathStatus.PathComplete)
         {CityGameplay.Instance?.PostEvent("DESTINATION BLOCKED - CHOOSE A STREET APPROACH");return;}
-        CameraPanTouchOnly.Instance?.FollowSelection();
         Debug.DrawRay(worldPoint, Vector3.up*10, Color.green, 3f);
         CreateCommandMarker(worldPoint, new Color(0.25f, 1f, 0.55f, 0.9f), "MOVE");
         // Use a roomy two-row formation so affiliation rings remain distinct.
@@ -433,13 +432,49 @@ public class AgentSelectionManager : MonoBehaviour
             Vector3 target = worldPoint + new Vector3(column * spacing - width * .5f, 0f, row * spacing);
             _selected[i].CommandMoveTo(target);
         }
+        ReleaseOrdered(_selected.ToList());
         NotifyCommand("MOVE ORDER CONFIRMED");
+    }
+
+    /// <summary>Drop ordered crew from the selection. Their ring turns yellow until they finish or you select them again.</summary>
+    public void ReleaseOrdered(List<AgentController> agents)
+    {
+        if (agents == null) return;
+        bool changed = false;
+        foreach (var agent in agents)
+        {
+            if (!agent || !_selected.Contains(agent)) continue;
+            _selected.Remove(agent);
+            agent.SetSelected(false);
+            changed = true;
+        }
+        if (changed) NotifyUI();
+    }
+
+    void PresentFightChoice(string gangName)
+    {
+        var crew = _selected.Where(a => a && a.IsAlive && !a.IsActivityLocked).ToList();
+        if (crew.Count == 0)
+        {
+            NotifyCommand("SELECT THE CREW FOR THIS FIGHT");
+            return;
+        }
+        GamePopup.Instance.Show(
+            gangName.ToUpperInvariant() + " TURF",
+            "Send the selected crew in. Everyone already on a job keeps going.",
+            new GamePopup.Option("HAVE IT!", new Color(0.7f, 0.15f, 0.15f), () =>
+            {
+                BattleManager.instance?.AttackGang(gangName, crew);
+                ReleaseOrdered(crew);
+            }),
+            new GamePopup.Option("MOVE ON", new Color(0.25f, 0.32f, 0.4f), () => { })
+        );
     }
 
     public void ArmMoveCommand()
     {
-        if (_selected.Count == 0) SelectAll();
-        _moveCommandArmed = _selected.Count > 0;
+        if (_selected.Count == 0) { NotifyCommand("SELECT A CREW MEMBER FIRST"); return; }
+        _moveCommandArmed = true;
         NotifyCommand(_moveCommandArmed ? "MOVE READY - TAP A STREET" : "NO CREW AVAILABLE");
     }
 

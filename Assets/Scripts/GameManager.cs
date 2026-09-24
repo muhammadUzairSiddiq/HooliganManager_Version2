@@ -68,27 +68,83 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Continue button — load the saved campaign straight into gameplay.
+    /// Continue button — resume the last home, away, or police session.
+    /// Does nothing when no campaign has been saved yet.
     /// </summary>
     public void ContinueIntoGameplay()
     {
         if (!HasSaveData()) return;
 
-        var d = GameData.instance.PlayerData;
-        string dest = string.IsNullOrEmpty(d.LastSelectedDestination) ? "East Docks" : d.LastSelectedDestination;
-        d.LastSelectedDestination = dest;
+        var d = Data;
+        string mode = d?.LastSessionMode;
+        if (string.IsNullOrEmpty(mode))
+        {
+            if (string.Equals(d?.PlayerFaction, "Police", System.StringComparison.OrdinalIgnoreCase)) mode = "Police";
+            else if (d != null && d.BattleSessionActive && !d.BattleStartHomeMode) mode = "Away";
+            else if (d != null && d.BattleSessionActive && d.BattleStartHomeMode) mode = "Home";
+            else mode = "AwayPlan";
+        }
 
-        EnterHomeTerritory();
+        switch (mode)
+        {
+            case "Home":
+                ReloadHomeTerritory("CONTINUE", "Back on your streets.");
+                break;
+            case "Away":
+                ResumeAwayCity();
+                break;
+            case "Police":
+                LoadScene(SCENE_DASHBOARD, "POLICE COMMAND", "Deploy your unit and secure the city.");
+                break;
+            default:
+                TryOpenAwayTrip(null);
+                break;
+        }
+    }
+
+    /// <summary>Away trips stay locked until every home-territory mission is finished.</summary>
+    public void TryOpenAwayTrip(ClubRegistry registry)
+    {
+        if (!CampaignMissions.HomeCleared(Data))
+        {
+            var progress = CampaignMissions.Progress(Data, 1);
+            string detail = Data == null
+                ? "Start on your own streets and clear the home list."
+                : $"Home territory is {progress.complete}/{progress.total}. Finish that list before the firm travels.";
+            GamePopup.Instance.Show(
+                "HOME TERRITORY FIRST",
+                "Away trips stay locked until every home territory mission is finished.\n\n" + detail,
+                new GamePopup.Option("PLAY HOME", LandscapeUI.Green, () => EnterHomeTerritoryOrStartNew(registry)),
+                new GamePopup.Option("BACK", LandscapeUI.PanelColor, null));
+            return;
+        }
+        OpenAwayPlanner();
+    }
+
+    /// <summary>Away mode from the title: the trip planner, not a new fight.</summary>
+    public void OpenAwayPlanner()
+    {
+        if (!CampaignMissions.HomeCleared(Data))
+        {
+            TryOpenAwayTrip(null);
+            return;
+        }
+        RememberSession("AwayPlan");
+        LoadScene(SCENE_DASHBOARD, "AWAY TRIP", "Pick a destination and take the crew.");
     }
 
     /// <summary>
-    /// New Game — auto-select the first club and open the dashboard.
-    /// Team change is available on the dashboard via Change Team.
+    /// New Game — auto-select the first club and start on the home streets.
+    /// Away trips stay locked until that home list is finished.
     /// </summary>
     public void StartNewGameWithDefaultClub(ClubRegistry registry)
     {
         CreateDefaultCampaign(registry);
-        LoadScene(SCENE_DASHBOARD, "YOUR FIRM", "Pick a trip and hit the streets.");
+        var d = GameData.instance?.PlayerData;
+        if (d != null && string.IsNullOrEmpty(d.LastSelectedDestination)) d.LastSelectedDestination = "East Docks";
+        GameData.instance?.SaveData();
+        CityGameplay.HomeMode = true;
+        ReloadHomeTerritory("ENTERING HOME TERRITORY", "Your firm starts here. Take the streets.");
     }
 
     /// <summary>
@@ -98,7 +154,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void EnterHomeTerritoryOrStartNew(ClubRegistry registry)
     {
-        if (HasSaveData()) { ContinueIntoGameplay(); return; }
+        if (HasSaveData()) { ReloadHomeTerritory("ENTERING HOME TERRITORY", "Your firm starts here. Take the streets."); return; }
         CreateDefaultCampaign(registry);
         var d = GameData.instance?.PlayerData;
         if (d != null && string.IsNullOrEmpty(d.LastSelectedDestination)) d.LastSelectedDestination = "East Docks";
@@ -135,7 +191,7 @@ public class GameManager : MonoBehaviour
         }
 
         var d = GameData.instance.PlayerData;
-        if (d != null) { d.CurrentLevel = 1; d.PoliceHeat = 7; CampaignMissions.Ensure(d); }
+        if (d != null) { d.CurrentLevel = 1; d.PoliceHeat = 7; d.LastSessionMode = "AwayPlan"; CampaignMissions.Ensure(d); }
         GameData.instance.SaveData();
     }
 
@@ -165,6 +221,7 @@ public class GameManager : MonoBehaviour
                     if (d.RecruitedAgents[i] != null)
                         d.RecruitedAgents[i].AgentName = $"Officer {i + 1:00}";
         }
+        if (Data != null) Data.LastSessionMode = "Police";
         GameData.instance.SaveData();
         LoadScene(SCENE_DASHBOARD, "POLICE COMMAND", "Deploy your unit and secure the city.");
     }
@@ -185,7 +242,7 @@ public class GameManager : MonoBehaviour
             fans, strength, reputation, policeHeat, ranking, money);
 
         var d = GameData.instance.PlayerData;
-        if (d != null) { d.CurrentLevel = 1; d.PoliceHeat = 7; CampaignMissions.Ensure(d); }
+        if (d != null) { d.CurrentLevel = 1; d.PoliceHeat = 7; d.LastSessionMode = "AwayPlan"; CampaignMissions.Ensure(d); }
         GameData.instance.SaveData();
 
         LoadScene(SCENE_DASHBOARD, "YOUR FIRM", "Pick a trip and hit the streets.");
@@ -208,6 +265,7 @@ public class GameManager : MonoBehaviour
     public void StartRivalFight(int enemyCount, int enemyStrength, int reward, string enemyFirmName = "")
     {
         CityGameplay.HomeMode = false;
+        if (Data != null) Data.LastSessionMode = "Away";
         // New away session — refresh mode context so Try Again never reuses a stale HQ snapshot.
         GameData.instance?.RefreshBattleSessionContext(homeMode: false);
 
@@ -232,6 +290,7 @@ public class GameManager : MonoBehaviour
     public void StartPoliceRaid()
     {
         CityGameplay.HomeMode=false;
+        if (Data != null) Data.LastSessionMode = "Away";
         GameData.instance?.RefreshBattleSessionContext(homeMode: false);
         // Derive officer params from registry (falls back to hardcoded if manager missing)
         int heat = GameData.instance?.PlayerData?.PoliceHeat ?? 10;
@@ -311,9 +370,32 @@ public class GameManager : MonoBehaviour
         LoadScene(SCENE_BATTLE, "TRY AGAIN", sub);
     }
 
+    void ResumeAwayCity()
+    {
+        var d = Data;
+        CityGameplay.HomeMode = false;
+        if (d != null) d.LastSessionMode = "Away";
+        PendingBattleMode = BattleManager.BattleMode.RivalFight;
+        if (PendingEnemyCount <= 0) PendingEnemyCount = 6;
+        if (PendingEnemyStrength <= 0) PendingEnemyStrength = 30;
+        string dest = string.IsNullOrEmpty(d?.LastSelectedDestination) ? "East Docks" : d.LastSelectedDestination;
+        if (d != null) d.LastSelectedDestination = dest;
+        GameData.instance?.SaveData();
+        string sub = string.IsNullOrEmpty(PendingEnemyFirmName) ? dest.ToUpperInvariant() : PendingEnemyFirmName;
+        LoadScene(SCENE_BATTLE, "CONTINUE", sub);
+    }
+
+    static void RememberSession(string mode)
+    {
+        if (Data == null || Data.LastSessionMode == mode) return;
+        Data.LastSessionMode = mode;
+        GameData.instance?.SaveData();
+    }
+
     void ReloadHomeTerritory(string title, string subtitle)
     {
         CityGameplay.HomeMode = true;
+        if (Data != null) Data.LastSessionMode = "Home";
         GameData.instance?.RefreshBattleSessionContext(homeMode: true);
         PendingBattleMode = BattleManager.BattleMode.RivalFight;
         PendingEnemyCount = 6;
@@ -324,6 +406,23 @@ public class GameManager : MonoBehaviour
     }
 
     // ── Utility ───────────────────────────────────────────────────────────
+    /// <summary>One line under CONTINUE: where the last session left off.</summary>
+    public static string LastSaveCaption()
+    {
+        if (!HasSaveData()) return "NO CAMPAIGN SAVED";
+        var d = Data;
+        string where = d.LastSessionMode switch
+        {
+            "Home" => "HOME TERRITORY",
+            "Away" => string.IsNullOrEmpty(d.LastSelectedDestination) ? "AWAY CITY" : d.LastSelectedDestination.ToUpperInvariant(),
+            "AwayPlan" => "AWAY TRIP PLANNER",
+            "Police" => "POLICE COMMAND",
+            _ => "SAVED CAMPAIGN"
+        };
+        string firm = string.IsNullOrEmpty(d.FirmName) ? "YOUR FIRM" : d.FirmName.ToUpperInvariant();
+        return where + "    ·    MATCHDAY " + d.MatchDay.ToString("00") + "    ·    " + firm;
+    }
+
     public static bool HasSaveData()
     {
         return SaveDataInLocal.HasSavedCampaign()

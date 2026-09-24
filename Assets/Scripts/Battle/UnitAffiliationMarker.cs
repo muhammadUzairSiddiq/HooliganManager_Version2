@@ -8,6 +8,7 @@ public sealed class UnitAffiliationMarker : MonoBehaviour
     Color baseColor;
     float radius;
     bool showArrows;
+    public bool KeepVisibleWhenIdle;
 
     public Color AffiliationColor => baseColor;
     public bool HasDirectionalArrows => showArrows && arrows[0];
@@ -90,11 +91,20 @@ public sealed class UnitAffiliationMarker : MonoBehaviour
         }
     }
 
+    public void ApplyColor(Color color)
+    {
+        baseColor = color;
+        if (!ring) return;
+        ring.startColor = ring.endColor = color;
+        for (int i = 0; i < arrows.Length; i++)
+            if (arrows[i]) arrows[i].startColor = arrows[i].endColor = color;
+    }
+
     public void SetSelected(bool selected)
     {
         if (!ring) return;
-        // Player rings only appear while selected — always-on rings read as noise.
-        bool show = !showArrows || selected;
+        // Green while chosen. Yellow stays visible for a crew already on an order.
+        bool show = !showArrows || selected || KeepVisibleWhenIdle;
         ring.enabled = show;
         ring.gameObject.SetActive(show);
         if (!show)

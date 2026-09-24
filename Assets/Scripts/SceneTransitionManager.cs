@@ -46,10 +46,13 @@ public class SceneTransitionManager : MonoBehaviour
     private CanvasGroup _group;
     private Image _barFill;
     private Image _backgroundImage;
+    private Image _backgroundBlackout;
+    private bool _artFading;
     private TextMeshProUGUI _percentLabel;
     private TextMeshProUGUI _titleLabel;
     private TextMeshProUGUI _subtitleLabel;
-    private Texture2D[] _loadingArt;
+    private Sprite[] _loadingArt;
+    private int _artIndex;
     private float _nextArtSwap;
 
     private bool _battleHold;
@@ -81,8 +84,10 @@ public class SceneTransitionManager : MonoBehaviour
         {
             StopAllCoroutines();
             _transitioning = false;
+            _artFading = false;
             _battleHold = false;
             _battleReady = false;
+            if (_backgroundBlackout) _backgroundBlackout.color = new Color(0f, 0f, 0f, 0f);
         }
         _transitioning = true;
         GameAudio.Play("loading");
@@ -206,8 +211,16 @@ public class SceneTransitionManager : MonoBehaviour
         // Full-screen background
         var bg = NewImage("Background", canvasGo.transform);
         Stretch(bg.rectTransform);
-        bg.color = new Color(0.055f, 0.06f, 0.08f, 1f);
+        bg.color = Color.white;
+        bg.preserveAspect = false;
+        var cover = bg.gameObject.AddComponent<AspectRatioFitter>();
+        cover.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
         _backgroundImage = bg;
+        var black = NewImage("BackgroundBlackout", canvasGo.transform);
+        Stretch(black.rectTransform);
+        black.color = new Color(0f, 0f, 0f, 0f);
+        black.raycastTarget = false;
+        _backgroundBlackout = black;
         LoadLoadingArt();
         SwapLoadingArt(true);
         var shade=NewImage("Readability",canvasGo.transform);
@@ -264,22 +277,69 @@ public class SceneTransitionManager : MonoBehaviour
 
     private void LoadLoadingArt()
     {
-        var all = Resources.LoadAll<Texture2D>("CityPresentation");
-        var list = new System.Collections.Generic.List<Texture2D>();
-        foreach (var texture in all)
-            if (texture != null && texture.name.StartsWith("CityLoading"))
-                list.Add(texture);
-        _loadingArt = list.ToArray();
+        var theme = LandscapeTheme.Current;
+        _loadingArt = theme != null ? theme.presentationBackgrounds : null;
+        _artIndex = _loadingArt != null && _loadingArt.Length > 0 ? Random.Range(0, _loadingArt.Length) : 0;
     }
 
     private void SwapLoadingArt(bool force)
     {
-        if (_backgroundImage == null || _loadingArt == null || _loadingArt.Length == 0) return;
+        if (_artFading || _backgroundImage == null || _loadingArt == null || _loadingArt.Length == 0) return;
         if (!force && Time.unscaledTime < _nextArtSwap) return;
-        _nextArtSwap = Time.unscaledTime + 1.4f;
-        var art = _loadingArt[Random.Range(0, _loadingArt.Length)];
-        _backgroundImage.sprite = Sprite.Create(art, new Rect(0, 0, art.width, art.height), new Vector2(.5f, .5f));
+        if (force)
+        {
+            ApplyLoadingArt(_loadingArt[_artIndex]);
+            _nextArtSwap = Time.unscaledTime + Random.Range(3f, 6f);
+            return;
+        }
+        StartCoroutine(FadeLoadingArt());
+    }
+
+    private IEnumerator FadeLoadingArt()
+    {
+        _artFading = true;
+        _artIndex = (_artIndex + 1) % _loadingArt.Length;
+        var next = _loadingArt[_artIndex];
+        const float outTime = 0.62f;
+        const float hold = 0.14f;
+        const float inTime = 0.78f;
+        if (_backgroundBlackout != null)
+        {
+            for (float t = 0f; t < outTime; t += Time.unscaledDeltaTime)
+            {
+                _backgroundBlackout.color = new Color(0f, 0f, 0f, EaseBlackout(t / outTime));
+                yield return null;
+            }
+            _backgroundBlackout.color = Color.black;
+        }
+        ApplyLoadingArt(next);
+        yield return new WaitForSecondsRealtime(hold);
+        if (_backgroundBlackout != null)
+        {
+            for (float t = 0f; t < inTime; t += Time.unscaledDeltaTime)
+            {
+                _backgroundBlackout.color = new Color(0f, 0f, 0f, 1f - EaseBlackout(t / inTime));
+                yield return null;
+            }
+            _backgroundBlackout.color = new Color(0f, 0f, 0f, 0f);
+        }
+        _nextArtSwap = Time.unscaledTime + Random.Range(3f, 6f);
+        _artFading = false;
+    }
+
+    static float EaseBlackout(float t)
+    {
+        t = Mathf.Clamp01(t);
+        return t * t * t * (t * (t * 6f - 15f) + 10f);
+    }
+
+    void ApplyLoadingArt(Sprite art)
+    {
+        if (!art || _backgroundImage == null) return;
+        _backgroundImage.sprite = art;
         _backgroundImage.color = Color.white;
+        var cover = _backgroundImage.GetComponent<AspectRatioFitter>();
+        if (cover && art.rect.height > 1f) cover.aspectRatio = art.rect.width / art.rect.height;
     }
 
     private static Image NewImage(string name, Transform parent)

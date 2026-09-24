@@ -7,11 +7,10 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// Live police for rival fights:
-///   • Patrol vans stick to a coloured road spline.
-///   • Gang fight → heat 0→10 in ~4s → world freezes → car cutscene →
-///     officers spawn in front of the player → bribe OR fight.
-///   • Bribe deactivates police for the rest of the current level.
+/// Live police for the living city:
+///   • Patrol vans keep moving.
+///   • Heat brings one skippable car shot to the group that was fighting.
+///   • Bribe or fight applies only to that group. Everyone else keeps their orders.
 /// </summary>
 public class LivePoliceSystem : MonoBehaviour
 {
@@ -65,8 +64,11 @@ public class LivePoliceSystem : MonoBehaviour
     private CanvasGroup _heatPlusGroup;
     private GameObject _popupRoot;
     private TextMeshProUGUI _popupTitle, _popupBody;
-    private Button _fightBtn, _bribeBtn;
+    private Button _fightBtn, _bribeBtn, _skipBtn;
     private TextMeshProUGUI _fightLabel, _bribeLabel;
+    private bool _skipCutscene;
+    private bool _arrestAnnounced;
+    private readonly List<AgentController> _trouble = new List<AgentController>();
 
     public IReadOnlyList<PoliceCarChaser> ActivePatrolCars => _patrolCars;
     public GameObject ResponseCar => _responseCar;
@@ -118,13 +120,6 @@ public class LivePoliceSystem : MonoBehaviour
     private void TryStartPoliceArrival()
     {
         if (_state != PoliceState.Idle || _heat < maxHeat) return;
-        if (BattleManager.instance != null && BattleManager.instance.IsRivalGangFightActive())
-        {
-            _pendingArrival = true;
-            Debug.Log("[LivePolice] Heat maxed — waiting for gang fight to end before arrival.");
-            return;
-        }
-
         _pendingArrival = false;
         StartCoroutine(ArrivalRoutine());
     }
@@ -237,12 +232,16 @@ public class LivePoliceSystem : MonoBehaviour
         _state = PoliceState.Cutscene;
         _wave++;
         _heat = maxHeat;
+        _skipCutscene = false;
+        _arrestAnnounced = false;
         UpdateHeatBar();
 
-        // 1) Everything stops.
-        FreezeWorld();
+        _trouble.Clear();
+        _trouble.AddRange(FindFightingGroup());
+        HoldTrouble(true);
+        ShowSkip(true);
 
-        Vector3 playerPos = BattleManager.instance.GetPlayerCentroid();
+        Vector3 playerPos = TroubleCentroid();
         PoliceCarChaser nearest = FindNearestPatrolCar(playerPos);
 
         if (nearest != null)
@@ -257,35 +256,143 @@ public class LivePoliceSystem : MonoBehaviour
             nearest = _responseCar != null ? _responseCar.GetComponent<PoliceCarChaser>() : null;
         }
 
-        // 2) Park car beside the player. Camera tracks this road arrival closely.
-        Vector3 forward = GetPlayerForward();
+        Vector3 forward = TroubleForward();
         Vector3 carPark = playerPos - forward * 6f + Vector3.right * 2.5f;
-        int roadMask=gameObject.scene.name=="Gameplay" ? 1<<3 : NavMesh.AllAreas;
+        int roadMask = gameObject.scene.name == "Gameplay" ? 1 << 3 : NavMesh.AllAreas;
         if (NavMesh.SamplePosition(carPark, out var carHit, 60f, roadMask))
             carPark = carHit.position;
 
-        if(nearest!=null && gameObject.scene.name=="Gameplay")
-            yield return StartCoroutine(PoliceCarCutscene(nearest,carPark));
-        else if (nearest != null)
+        if (nearest != null && !_skipCutscene)
+            yield return StartCoroutine(PoliceCarCutscene(nearest, carPark));
+        if (_skipCutscene && nearest != null)
             nearest.ParkAt(carPark, forward);
-        else if (_responseCar != null)
+        else if (nearest == null && _responseCar != null)
             _responseCar.transform.position = carPark;
 
-        // 3) Hide rival gangs — only player + police remain.
-        HideRivalGangs();
-
-        // 4) Officers step out. Hold on their close-up before any popup appears.
         SpawnOfficersInFrontOfPlayer(playerPos, forward);
-        yield return StartCoroutine(PoliceOfficerCutscene(playerPos,forward));
+        if (!_skipCutscene)
+            yield return WaitOrSkip(0.35f);
 
-        // 5) Camera back to the player.
-        yield return StartCoroutine(ReturnCameraToPlayer());
-
-        // 6) Red/blue vignette + choice popup.
+        ShowSkip(false);
+        if (CameraPanTouchOnly.Instance != null)
+            CameraPanTouchOnly.Instance.enabled = true;
+        CameraPanTouchOnly.Instance?.FocusOn(playerPos);
         SetVignette(true);
         _state = PoliceState.AwaitingChoice;
         ShowPopup();
-        // Keep world frozen until the player chooses.
+    }
+
+    private IEnumerator WaitOrSkip(float seconds)
+    {
+        float t = 0f;
+        while (t < seconds && !_skipCutscene)
+        {
+            t += Time.unscaledDeltaTime;
+            yield return null;
+        }
+    }
+
+    private void RequestSkip() => _skipCutscene = true;
+
+    private List<AgentController> FindFightingGroup()
+    {
+        var result = new List<AgentController>();
+        var bm = BattleManager.instance;
+        if (bm == null) return result;
+        foreach (var a in bm.PlayerAgents)
+            if (Eligible(a) && a.CurrentState == AgentController.State.AutoAttacking)
+                result.Add(a);
+        if (result.Count == 0)
+        {
+            foreach (var a in bm.PlayerAgents)
+            {
+                if (!Eligible(a)) continue;
+                var enemy = bm.GetNearestEnemy(a.transform.position);
+                if (enemy != null && enemy.IsAlive && enemy.firmName != "POLICE" &&
+                    Vector3.Distance(a.transform.position, enemy.transform.position) <= 14f)
+                    result.Add(a);
+            }
+        }
+        if (result.Count == 0 && AgentSelectionManager.instance != null)
+        {
+            foreach (var a in AgentSelectionManager.instance.SelectedAgents)
+                if (Eligible(a) && !result.Contains(a)) result.Add(a);
+        }
+        if (result.Count == 0)
+        {
+            AgentController nearest = null;
+            float best = float.MaxValue;
+            Vector3 origin = bm.GetPlayerCentroid();
+            foreach (var a in bm.PlayerAgents)
+            {
+                if (!Eligible(a)) continue;
+                float d = Vector3.SqrMagnitude(a.transform.position - origin);
+                if (d < best) { best = d; nearest = a; }
+            }
+            if (nearest != null) result.Add(nearest);
+        }
+        if (result.Count > 0)
+        {
+            Vector3 center = Vector3.zero;
+            foreach (var a in result) center += a.transform.position;
+            center /= result.Count;
+            foreach (var a in bm.PlayerAgents)
+            {
+                if (!Eligible(a) || result.Contains(a)) continue;
+                if (Vector3.Distance(a.transform.position, center) <= 12f) result.Add(a);
+            }
+        }
+        return result;
+    }
+
+    private static bool Eligible(AgentController a) => a != null && a.IsAlive && !a.IsActivityLocked;
+
+    private void HoldTrouble(bool hold)
+    {
+        foreach (var a in _trouble)
+            if (a != null) a.SetCinematicIdle(hold);
+    }
+
+    private Vector3 TroubleCentroid()
+    {
+        if (_trouble.Count == 0) return BattleManager.instance.GetPlayerCentroid();
+        Vector3 c = Vector3.zero;
+        int n = 0;
+        foreach (var a in _trouble)
+            if (a != null && a.IsAlive) { c += a.transform.position; n++; }
+        return n == 0 ? BattleManager.instance.GetPlayerCentroid() : c / n;
+    }
+
+    private Vector3 TroubleForward()
+    {
+        foreach (var a in _trouble)
+        {
+            if (a == null) continue;
+            Vector3 f = a.transform.forward;
+            f.y = 0f;
+            if (f.sqrMagnitude > 0.01f) return f.normalized;
+        }
+        return GetPlayerForward();
+    }
+
+    private AgentController NearestTrouble(Vector3 pos)
+    {
+        AgentController best = null;
+        float bestD = float.MaxValue;
+        foreach (var a in _trouble)
+        {
+            if (a == null || !a.IsAlive) continue;
+            float d = Vector3.SqrMagnitude(a.transform.position - pos);
+            if (d < bestD) { bestD = d; best = a; }
+        }
+        return best;
+    }
+
+    private bool AnyTroubleAlive()
+    {
+        foreach (var a in _trouble)
+            if (a != null && a.IsAlive) return true;
+        return false;
     }
 
     private PoliceCarChaser FindNearestPatrolCar(Vector3 playerPos)
@@ -328,22 +435,25 @@ public class LivePoliceSystem : MonoBehaviour
         bool wasEnabled = camCtl != null && camCtl.enabled;
         if (camCtl != null) camCtl.enabled = false;
 
+        float frameHeight = Mathf.Max(18f, cam.transform.position.y);
         Vector3 focus=car?car.transform.position:destination;
-        Vector3 focusPos=FrameFromRotation(cam.transform.rotation,focus,cutsceneHeight);
+        Vector3 focusPos=FrameFromRotation(cam.transform.rotation,focus,frameHeight);
         if(gameObject.scene.name=="Gameplay")focusPos=CameraPanTouchOnly.SafeCityPosition(focus,focusPos);
         yield return MoveCamRealtime(cam,cam.transform.position,focusPos,.45f);
-        if(car!=null)
+        float height = Mathf.Max(18f, cam.transform.position.y);
+        if(car!=null && !_skipCutscene)
         {
             var drive=car.DriveArrival(destination);
-            while(drive.MoveNext())
+            while(drive.MoveNext() && !_skipCutscene)
             {
-                Vector3 follow=FrameFromRotation(cam.transform.rotation,car.transform.position,cutsceneHeight);
+                Vector3 follow=FrameFromRotation(cam.transform.rotation,car.transform.position,height);
                 if(gameObject.scene.name=="Gameplay")follow=CameraPanTouchOnly.SafeCityPosition(car.transform.position,follow);
                 cam.transform.position=Vector3.Lerp(cam.transform.position,follow,Time.unscaledDeltaTime*6f);
                 yield return drive.Current;
             }
         }
-        yield return new WaitForSecondsRealtime(.45f);
+        if (_skipCutscene && car != null) car.ParkAt(destination, car.transform.forward);
+        else if (!_skipCutscene) yield return WaitOrSkip(.35f);
 
         if (camCtl != null) camCtl.enabled = wasEnabled;
     }
@@ -385,13 +495,13 @@ public class LivePoliceSystem : MonoBehaviour
     private IEnumerator MoveCamRealtime(Camera cam, Vector3 a, Vector3 b, float dur)
     {
         float t = 0f;
-        while (t < dur)
+        while (t < dur && !_skipCutscene)
         {
             t += Time.unscaledDeltaTime;
             cam.transform.position = Vector3.Lerp(a, b, Mathf.SmoothStep(0f, 1f, t / dur));
             yield return null;
         }
-        cam.transform.position = b;
+        if (!_skipCutscene) cam.transform.position = b;
     }
 
     private static Vector3 FrameFromRotation(Quaternion rot, Vector3 target, float height)
@@ -419,18 +529,11 @@ public class LivePoliceSystem : MonoBehaviour
     }
 
     // ── Freeze / hide ────────────────────────────────────────────────────
-    private void FreezeWorld()
-    {
-        BattleManager.instance?.SetAllAgentsCinematicIdle(true);
-        foreach (var c in _patrolCars)
-            if (c != null) c.StopAndIdle();
-        if (CameraPanTouchOnly.Instance != null)
-            CameraPanTouchOnly.Instance.enabled = false;
-    }
+    private void FreezeWorld() => HoldTrouble(true);
 
     private void UnfreezeWorld()
     {
-        BattleManager.instance?.SetAllAgentsCinematicIdle(false);
+        HoldTrouble(false);
         if (CameraPanTouchOnly.Instance != null)
             CameraPanTouchOnly.Instance.enabled = true;
     }
@@ -468,20 +571,32 @@ public class LivePoliceSystem : MonoBehaviour
     private void OnFight()
     {
         HidePopup();
-        UnfreezeWorld();
-        // Keep gangs hidden during the police fight.
+        HoldTrouble(false);
         foreach (var o in _waveOfficers)
         {
             if (o == null) continue;
             o.isHostile = true;
-            var player = BattleManager.instance.GetNearestAgent(o.transform.position);
+            var player = NearestTrouble(o.transform.position);
             if (player != null) o.AlertToTarget(player);
+        }
+        foreach (var a in _trouble)
+        {
+            if (a == null || !a.IsAlive) continue;
+            EnemyController officer = null;
+            float best = float.MaxValue;
+            foreach (var o in _waveOfficers)
+            {
+                if (o == null || !o.IsAlive) continue;
+                float d = Vector3.Distance(a.transform.position, o.transform.position);
+                if (d < best) { best = d; officer = o; }
+            }
+            if (officer != null) a.CommandAttackTarget(officer);
         }
 
         if (_responseCar != null)
         {
             var chaser = _responseCar.GetComponent<PoliceCarChaser>();
-            var target = BattleManager.instance.GetNearestAgent(_responseCar.transform.position);
+            var target = NearestTrouble(_responseCar.transform.position);
             if (chaser != null && target != null) chaser.SetTarget(target.transform);
         }
 
@@ -523,12 +638,7 @@ public class LivePoliceSystem : MonoBehaviour
         }
 
         UpdateHeatBar();
-
-        GamePopup.Instance?.Show(
-            "POLICE PAID OFF",
-            "Heat dropped to 5. They're looking the other way for the rest of this level.",
-            new GamePopup.Option("SORTED", new Color(0.15f, 0.4f, 0.7f), null)
-        );
+        BattleUIController.instance?.ShowAlert("POLICE PAID OFF. THIS GROUP IS CLEAR.", 2.6f);
     }
 
     private int BribeCost() => bribeBaseCost + bribeCostPerWave * Mathf.Max(0, _wave - 1);
@@ -577,6 +687,13 @@ public class LivePoliceSystem : MonoBehaviour
         foreach (var o in _waveOfficers)
             if (o != null && o.IsAlive) { anyAlive = true; break; }
 
+        if (anyAlive && !AnyTroubleAlive() && !_arrestAnnounced)
+        {
+            _arrestAnnounced = true;
+            HoldTrouble(false);
+            BattleUIController.instance?.ShowAlert("THAT GROUP WAS ARRESTED. THE REST OF THE CREW IS CLEAR.", 3.2f);
+        }
+
         if (!anyAlive && _popupRoot != null && !_popupRoot.activeSelf)
         {
             DespawnWave();
@@ -584,6 +701,7 @@ public class LivePoliceSystem : MonoBehaviour
             SSetVignetteOff();
             _heat = Mathf.Clamp(startingHeat, 0, maxHeat);
             _state = PoliceState.Idle;
+            _trouble.Clear();
             UpdateHeatBar();
             if (_patrolCars.Count < patrolCarCount)
                 SpawnPatrolCars();
@@ -673,7 +791,7 @@ public class LivePoliceSystem : MonoBehaviour
         _popupRoot.SetActive(true);
         if (_popupTitle != null) _popupTitle.text = "POLICE!";
         if (_popupBody != null)
-            _popupBody.text = "The patrol is on you. Bribe them off for this level, or stand and fight.";
+            _popupBody.text = "Police are on the group that was fighting. Bribe them off, or that group stands and fights. Everyone else keeps moving.";
         if (_fightLabel != null) _fightLabel.text = "STAND & FIGHT";
         if (_bribeBtn != null) _bribeBtn.interactable = true;
         if (_bribeLabel != null) _bribeLabel.text = $"BRIBE (\u00A3{BribeCost():n0})";
@@ -700,6 +818,7 @@ public class LivePoliceSystem : MonoBehaviour
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 20000;
         LandscapeUI.ConfigureLandscapeScaler(canvasGo.GetComponent<CanvasScaler>());
+        canvasGo.AddComponent<MobileSafeArea>();
 
         var vig = new GameObject("Vignette", typeof(RectTransform), typeof(CanvasGroup));
         vig.transform.SetParent(canvasGo.transform, false);
@@ -810,7 +929,22 @@ public class LivePoliceSystem : MonoBehaviour
         _bribeBtn = BuildButton(_popupRoot.transform, new Vector2(165f, -120f), new Color(0.15f, 0.4f, 0.7f, 1f), "BRIBE", out _bribeLabel);
         _bribeBtn.onClick.AddListener(OnBribe);
 
+        TextMeshProUGUI skipLabel;
+        _skipBtn = BuildButton(parent, new Vector2(0f, -280f), new Color(0.12f, 0.14f, 0.16f, 0.94f), "SKIP", out skipLabel);
+        var skipRt = _skipBtn.GetComponent<RectTransform>();
+        skipRt.anchorMin = skipRt.anchorMax = new Vector2(1f, 1f);
+        skipRt.pivot = new Vector2(1f, 1f);
+        skipRt.anchoredPosition = new Vector2(-36f, -36f);
+        skipRt.sizeDelta = new Vector2(220f, 84f);
+        _skipBtn.onClick.AddListener(RequestSkip);
+        _skipBtn.gameObject.SetActive(false);
+
         _popupRoot.SetActive(false);
+    }
+
+    private void ShowSkip(bool visible)
+    {
+        if (_skipBtn != null) _skipBtn.gameObject.SetActive(visible);
     }
 
     private Button BuildButton(Transform parent, Vector2 anchoredPos, Color color, string text, out TextMeshProUGUI label)

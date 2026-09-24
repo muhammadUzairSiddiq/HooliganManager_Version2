@@ -669,6 +669,7 @@ MonoBehaviour:
   label: {fileID: 804025496}
   selectedGlow: {fileID: 195445426}
   selected: 0
+  primaryShine: 0
 --- !u!114 &186077896
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -999,6 +1000,7 @@ MonoBehaviour:
   label: {fileID: 1010284082}
   selectedGlow: {fileID: 570689581}
   selected: 0
+  primaryShine: 0
 --- !u!114 &219603187
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1866,6 +1868,7 @@ MonoBehaviour:
   label: {fileID: 202457421}
   selectedGlow: {fileID: 248927668}
   selected: 0
+  primaryShine: 0
 --- !u!114 &438506737
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4731,6 +4734,7 @@ MonoBehaviour:
   label: {fileID: 1329186673}
   selectedGlow: {fileID: 385293075}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1017399627
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5385,6 +5389,7 @@ MonoBehaviour:
   label: {fileID: 482215418}
   selectedGlow: {fileID: 553236506}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1180649946
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5624,7 +5629,7 @@ RectTransform:
   m_GameObject: {fileID: 1205852497}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.6, y: 1.6, z: 1.6}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 18929669}
@@ -6025,6 +6030,7 @@ MonoBehaviour:
   label: {fileID: 943667985}
   selectedGlow: {fileID: 565452978}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1253179357
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6480,7 +6486,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 8f63768ae26a95c4ea4361afe6872859, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ca217538061a06c4293ec6d953cef250, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -6997,6 +7003,7 @@ MonoBehaviour:
   label: {fileID: 460293059}
   selectedGlow: {fileID: 1414093963}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1528907553
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7886,6 +7893,7 @@ MonoBehaviour:
   label: {fileID: 706876707}
   selectedGlow: {fileID: 1207320839}
   selected: 0
+  primaryShine: 0
 --- !u!114 &1921349330
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8182,7 +8190,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameData
   PlayerData:
     PowerPackagesPurchased: 0
-    PlayerFaction:
+    PlayerFaction: 
     CityCapturedZones: []
     HomeTrainingLevel: 0
     HomeDefenceCompleted: 0
@@ -8239,15 +8247,22 @@ MonoBehaviour:
     StadiumAccessPrepared: 0
     CompletedCityOperations: []
     CampaignResourceMission: 0
-    CompletedCampaignMissions:
+    CompletedCampaignMissions: 
     CompletedCampaignSteps: []
     CampaignRivalKeys: []
     CampaignTerritoryKeys: []
+    CampaignActionKeys: []
+    CampaignStartingHeatApplied: 0
+    MatchdayPhase: 
+    MatchdayIncidentResolved: 0
+    MatchdayRivalPressure: 0
+    MatchdayPolicePresence: 0
     BattleSessionActive: 0
     BattleStartAgentIds: []
     BattleRecruitSlotsUsed: 000000000000000000000000
     BattleStartLevel: 1
     BattleStartHomeMode: 1
+    BattleStartPoliceHeat: 7
     RecentEvents: []
     RecruitedAgents: []
     BattleWins: 0
@@ -8257,6 +8272,8 @@ MonoBehaviour:
     PendingBattleHeatGain: 0
     PendingBattleRepGain: 0
     RivalBots: []
+    RecruitEchoRemainder: 0
+    RivalStreets: []
     LastOpponentFought: 
   botRegistry: {fileID: 11400000, guid: cd3a7f665c2214af08acf50f1951dc26, type: 2}
 --- !u!4 &2137002170

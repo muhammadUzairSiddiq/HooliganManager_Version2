@@ -32,6 +32,12 @@ public class AgentController : MonoBehaviour
     public float CurrentHp  { get; private set; }
     public bool  IsAlive    => CurrentHp > 0;
     public bool  IsSelected { get; private set; }
+    /// <summary>True after this member was sent on an order. They ignore later taps until selected again.</summary>
+    public bool  IsOnAssignment { get; private set; }
+    /// <summary>Scales hits during a chosen gang fight so larger firms last longer.</summary>
+    public float FightPace = 1f;
+    static readonly Color SelectedRing = new Color(.12f, 1f, .36f, 1f);
+    static readonly Color BusyRing = new Color(1f, .78f, .12f, 1f);
     public Vector3 CommandDestination => _moveTarget;
 
     // ── Inspector ─────────────────────────────────────────────────────────
@@ -66,6 +72,7 @@ public class AgentController : MonoBehaviour
     // cinematic intro so the camera can reveal each team without them fighting.
     private bool _cinematicIdle;
     private bool _activityLocked;
+    bool _jobHold;
     public bool IsActivityLocked => _activityLocked;
 
     public GameObject modelPrefab { get; private set; }
@@ -165,10 +172,44 @@ public class AgentController : MonoBehaviour
     {
         IsSelected = selected;
         if (selectionCircle) selectionCircle.SetActive(false);
-        if (_affiliationMarker != null)
+        RefreshOrderRing();
+    }
+
+    public void BeginAssignment()
+    {
+        if (!IsAlive) return;
+        IsOnAssignment = true;
+        RefreshOrderRing();
+    }
+
+    public void EndAssignment()
+    {
+        IsOnAssignment = false;
+        FightPace = 1f;
+        RefreshOrderRing();
+    }
+
+    void RefreshOrderRing()
+    {
+        if (_affiliationMarker == null) return;
+        if (IsSelected)
         {
-            _affiliationMarker.SetVisible(selected);
-            _affiliationMarker.SetSelected(selected);
+            _affiliationMarker.KeepVisibleWhenIdle = false;
+            _affiliationMarker.ApplyColor(SelectedRing);
+            _affiliationMarker.SetVisible(true);
+            _affiliationMarker.SetSelected(true);
+        }
+        else if (IsOnAssignment)
+        {
+            _affiliationMarker.KeepVisibleWhenIdle = true;
+            _affiliationMarker.ApplyColor(BusyRing);
+            _affiliationMarker.SetVisible(true);
+            _affiliationMarker.SetSelected(false);
+        }
+        else
+        {
+            _affiliationMarker.KeepVisibleWhenIdle = false;
+            _affiliationMarker.SetVisible(false);
         }
     }
 
@@ -191,6 +232,8 @@ public class AgentController : MonoBehaviour
     public void SetActivityLocked(bool locked, Vector3 facePoint)
     {
         _activityLocked = locked;
+        if (locked) BeginAssignment();
+        else if (CurrentState == State.Idle) EndAssignment();
         if (_nav != null && _nav.enabled && _nav.isOnNavMesh)
         {
             _nav.isStopped = locked;
@@ -209,6 +252,37 @@ public class AgentController : MonoBehaviour
 
     // ── Commands ──────────────────────────────────────────────────────────
 
+    /// <summary>Stay on the yellow ring while a live city job walks this member around a building.</summary>
+    public void BeginJob()
+    {
+        if (!IsAlive) return;
+        _jobHold = true;
+        BeginAssignment();
+    }
+
+    public void EndJob()
+    {
+        _jobHold = false;
+        if (CurrentState == State.Idle) EndAssignment();
+    }
+
+    /// <summary>Move during a live job without freezing on the activity lock.</summary>
+    public void JobMoveTo(Vector3 point)
+    {
+        if (!IsAlive || _cinematicIdle || _nav == null || !_nav.isOnNavMesh) return;
+        _jobHold = true;
+        _activityLocked = false;
+        _nav.isStopped = false;
+        if (!NavMesh.SamplePosition(point, out var destination, 4f, _nav.areaMask)) return;
+        var path = new NavMeshPath();
+        if (!_nav.CalculatePath(destination.position, path) || path.status != NavMeshPathStatus.PathComplete) return;
+        _moveTarget = destination.position;
+        _target = null;
+        BeginAssignment();
+        SetState(State.MovingToPoint);
+        _nav.SetDestination(destination.position);
+    }
+
     /// <summary>Move to a world-space point, then return to Idle.</summary>
     public void CommandMoveTo(Vector3 point)
     {
@@ -219,6 +293,7 @@ public class AgentController : MonoBehaviour
         point=destination.position;
         _moveTarget = point;
         _target     = null;
+        BeginAssignment();
         SetState(State.MovingToPoint);
         _nav.SetDestination(point);
     }
@@ -227,6 +302,7 @@ public class AgentController : MonoBehaviour
     public void CommandAttack()
     {
         if (!IsAlive || _activityLocked) return;
+        BeginAssignment();
         SetState(State.AutoAttacking);
     }
 
@@ -235,6 +311,7 @@ public class AgentController : MonoBehaviour
     {
         if (!IsAlive || _activityLocked) return;
         _target = target;
+        BeginAssignment();
         SetState(State.AutoAttacking);
     }
 
@@ -243,6 +320,7 @@ public class AgentController : MonoBehaviour
     {
         if (!IsAlive || _activityLocked) return;
         _target = null;
+        BeginAssignment();
         SetState(State.Retreating);
         _nav.SetDestination(_retreatPoint);
     }
@@ -257,7 +335,7 @@ public class AgentController : MonoBehaviour
     public void TakeDamage(float amount)
     {
         if (!IsAlive) return;
-        CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount));
+        CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount) * Mathf.Clamp(FightPace, 0.2f, 1f));
         SyncHpToData();
         RefreshHealthBar();
         if (CurrentHp <= 0) GameManager.Save();
@@ -275,7 +353,7 @@ public class AgentController : MonoBehaviour
                 CommandAttackTarget(nearest);
             else
                 CommandAttack();
-            BattleManager.instance?.OrderAllPlayersAttackNearestHostile();
+            BattleManager.instance?.AlertNearbyCrew(this);
         }
     }
 
@@ -338,19 +416,25 @@ public class AgentController : MonoBehaviour
 
             case State.MovingToPoint:
                 if (!_nav.pathPending && _nav.remainingDistance < 0.2f)
+                {
                     SetState(State.Idle);
+                    if (!_activityLocked && !_jobHold) EndAssignment();
+                }
                 break;
 
             case State.Retreating:
                 if (!_nav.pathPending && _nav.remainingDistance < 0.2f)
+                {
                     SetState(State.Idle);
+                    EndAssignment();
+                }
                 break;
 
             case State.AutoAttacking:
                 if (_target == null || !_target.IsAlive)
                 {
                     _target = FindNearestEnemy();
-                    if (_target == null) { SetState(State.Idle); break; }
+                    if (_target == null) { SetState(State.Idle); EndAssignment(); break; }
                 }
                 float dist = DistanceTo(_target.transform);
                 if (dist > Data.AttackRange)

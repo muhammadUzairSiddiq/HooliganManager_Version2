@@ -17,7 +17,7 @@ public sealed class CityLifeActivity:MonoBehaviour
     public static CityLifeActivity Ensure(string type,Vector3 position,int npcCount=1)
     {
         var go=new GameObject(type+" Social Activity");go.transform.position=position;
-        var activity=go.AddComponent<CityLifeActivity>();activity.activityType=type.ToUpperInvariant();activity.center=position;activity.targetCount=Mathf.Clamp(npcCount,1,2);
+        var activity=go.AddComponent<CityLifeActivity>();activity.activityType=type.ToUpperInvariant();activity.center=position;activity.targetCount=Mathf.Clamp(npcCount,1,4);
         return activity;
     }
 

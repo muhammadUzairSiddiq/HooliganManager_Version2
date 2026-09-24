@@ -108,6 +108,13 @@ public sealed class CityOperationsSystem : MonoBehaviour
     public bool AutomatedPresentationDisabled=>automatedPlaytest;
     public int CompletedCount=>CampaignMissions.Progress(GameManager.Data).complete;
     public int RunningCount=>nodes.Count(n=>n&&n.IsRunning);
+    public static string AssignmentFor(AgentController agent)
+    {
+        if(Instance==null||!agent)return null;
+        foreach(var node in Instance.nodes)
+            if(node&&node.Includes(agent))return node.Title;
+        return null;
+    }
     public string ResourceSummary=>CityOperationsLedger.Resources(GameManager.Data);
     public bool IsBoardOpen=>panel&&panel.activeInHierarchy;
 
@@ -181,22 +188,37 @@ public sealed class CityOperationsSystem : MonoBehaviour
     void CreateNodes(CityGameplay city)
     {
         if(city==null||city.Locations==null||city.Locations.Length<9)return;
-        Add(CityOperationType.ScoutDistrict,"SCOUT DISTRICT","Reveal routes and build intel.",city.Locations[6],9f,14f,"SCOUT");
-        Add(CityOperationType.SupporterRally,"ORGANIZE SUPPORTERS","Coordinate chants and supporter groups.",city.Locations[1]+new Vector3(9,0,-7),10f,13f,"ORGANIZER");
-        Add(CityOperationType.GatherSupplies,"SUPPLY RUN","Collect food, water and first-aid stock.",city.Locations[8],8f,12f,"RUNNER");
-        Add(CityOperationType.CollectTickets,"TICKET ALLOCATION","Secure entry for the active crew.",city.Locations[5]+new Vector3(-12,0,-10),8f,13f,"ORGANIZER");
-        Add(CityOperationType.CommunityEvent,"COMMUNITY EVENT","Build reputation through local social activity.",city.Locations[2]+new Vector3(9,0,8),11f,15f,"ORGANIZER");
-        Add(CityOperationType.ObservePolice,"OBSERVE PATROLS","Track police movement and reduce risk.",city.Locations[7],9f,14f,"SCOUT");
-        Add(CityOperationType.PrepareTransport,"PREPARE TRANSPORT","Plan the arrival and return route.",city.Locations[7]+new Vector3(10,0,-8),10f,15f,"RUNNER");
-        Add(CityOperationType.FirstAid,"FIRST-AID POST","Use one supply to treat assigned members.",city.Locations[4]+new Vector3(8,0,0),7f,11f,"LEADER");
-        Add(CityOperationType.PrepareStadium,"STADIUM ENTRY PLAN","Combine tickets, transport and supporter momentum.",city.Locations[5]+new Vector3(12,0,9),12f,17f,"LEADER");
+        bool home=CityGameplay.HomeMode;
+        string dest=home?"HOME":(GameManager.Data?.LastSelectedDestination??"East Docks");
+        int flavor=CampaignMissions.JobFlavor(dest);
+        Vector3 pub=CityLandmarks.Pub(city.Locations[1]).Point;
+        Vector3 gym=CityLandmarks.Gym(city.Locations[3]).Point;
+        Vector3 hospital=CityLandmarks.Hospital(city.Locations[4]).Point;
+        Vector3 dolphin=CityLandmarks.Dolphinarium(city.Locations[8]).Point;
+        Vector3 church=CityLandmarks.Church(city.Locations[6]).Point;
+        Vector3 station=CityLandmarks.Station(city.Locations[7]).Point;
+        Vector3 fire=CityLandmarks.FireStation(city.Locations[7]+new Vector3(18f,0f,-14f)).Point;
+        Vector3 barber=CityLandmarks.Barber(city.Locations[2]+new Vector3(-12f,0f,8f)).Point;
+        Vector3 police=CityLandmarks.Police(city.Locations[7]+new Vector3(-22f,0f,16f)).Point;
+        Place(CityOperationType.ScoutDistrict,dest,church,40f,9f,14f,"SCOUT",flavor);
+        Place(CityOperationType.SupporterRally,dest,pub,90f,10f,13f,"ORGANIZER",flavor);
+        Place(CityOperationType.GatherSupplies,dest,barber,140f,8f,12f,"RUNNER",flavor);
+        Place(CityOperationType.CollectTickets,dest,station,190f,8f,13f,"ORGANIZER",flavor);
+        Place(CityOperationType.CommunityEvent,dest,dolphin,230f,11f,15f,"ORGANIZER",flavor);
+        Place(CityOperationType.ObservePolice,dest,police,270f,9f,14f,"SCOUT",flavor);
+        Place(CityOperationType.PrepareTransport,dest,fire,320f,10f,15f,"RUNNER",flavor);
+        Place(CityOperationType.FirstAid,dest,hospital,20f,7f,11f,"LEADER",flavor);
+        Place(CityOperationType.PrepareStadium,dest,gym,200f,12f,17f,"LEADER",flavor);
     }
 
-    void Add(CityOperationType type,string title,string description,Vector3 point,float duration,float stamina,string role)
+    void Place(CityOperationType type,string destination,Vector3 point,float yaw,float duration,float stamina,string role,int flavor)
     {
-        Vector3 location=CityGameplay.ReachableApproach(CityGameplay.Instance.Home,point);
+        CampaignMissions.JobCopy(destination,type,out string title,out string description);
+        Vector3 pad=point+Quaternion.Euler(0f,yaw,0f)*new Vector3(0f,0f,7f);
+        Vector3 location=CityGameplay.ReachableApproach(CityGameplay.Instance.Home,pad);
         var go=new GameObject(title);go.transform.position=location;
-        var node=go.AddComponent<CityOperationNode>();node.Configure(this,type,title,description,duration,stamina,role);
+        var node=go.AddComponent<CityOperationNode>();
+        node.Configure(this,type,title,description,duration,stamina,role,flavor);
         nodes.Add(node);
     }
 
@@ -208,19 +230,17 @@ public sealed class CityOperationsSystem : MonoBehaviour
         {CityGameplay.Instance?.PostEvent(node.Title+" - "+reason.ToUpperInvariant());return;}
         var selected=AgentSelectionManager.instance?.SelectedAgents
             .Where(a=>a&&a.IsAlive&&!a.IsActivityLocked&&a.Data!=null&&a.Data.Stamina>=node.StaminaCost)
-            .Take(2).ToArray()??Array.Empty<AgentController>();
+            .ToArray()??Array.Empty<AgentController>();
         if(selected.Length==0)
         {
             var fallback=BattleManager.instance?.PlayerAgents
-                .Where(a=>a&&a.IsAlive&&!a.IsActivityLocked&&a.Data!=null&&a.Data.Stamina>=node.StaminaCost)
+                .Where(a=>a&&a.IsAlive&&!a.IsActivityLocked&&!a.IsOnAssignment&&a.Data!=null&&a.Data.Stamina>=node.StaminaCost)
                 .OrderByDescending(a=>RoleMatches(a.Data.ManagementRole,node.RecommendedRole))
                 .ThenBy(a=>Horizontal(a.transform.position,node.transform.position)).FirstOrDefault();
             if(fallback){AgentSelectionManager.instance?.DeselectAll();AgentSelectionManager.instance?.Select(fallback);selected=new[]{fallback};}
         }
         if(selected.Length==0)
         {Feedback("NO RESTED MEMBER AVAILABLE FOR "+node.Title);return;}
-        if(node.Type==CityOperationType.FirstAid&&selected.All(a=>a.CurrentHp>=a.Data.MaxHp))
-        {Feedback("ASSIGN AN INJURED MEMBER TO FIRST AID");return;}
         if(selected.Any(a=>Horizontal(a.transform.position,node.transform.position)>10f))
         {
             node.Queue(selected);
@@ -290,7 +310,7 @@ public sealed class CityOperationsSystem : MonoBehaviour
     {
         if(AgentSelectionManager.instance==null)return;
         if(AgentSelectionManager.instance.SelectedAgents.Count==0)
-        {CityGameplay.Instance?.PostEvent("SELECT ONE OR TWO CREW MEMBERS FIRST");return;}
+        {CityGameplay.Instance?.PostEvent("SELECT THE CREW FOR THIS TASK FIRST");return;}
         AgentSelectionManager.instance.CommandSelectedMoveTo(node.transform.position);
         CameraPanTouchOnly.Instance?.FocusOn(node.transform.position);
     }
@@ -418,7 +438,10 @@ public sealed class CityOperationNode:MonoBehaviour
     public string Description{get;private set;}
     public string RecommendedRole{get;private set;}
     public float StaminaCost{get;private set;}
+    public int Flavor{get;private set;}
     public bool IsRunning{get;private set;}
+    public bool Includes(AgentController agent)=>agent&&assigned.Contains(agent);
+    public bool LiveWork{get;private set;}
     public float Progress01=>duration<=0?0:Mathf.Clamp01(elapsed/duration);
     public string RequirementText
     {
@@ -429,11 +452,13 @@ public sealed class CityOperationNode:MonoBehaviour
         }
     }
 
-    public void Configure(CityOperationsSystem system,CityOperationType type,string title,string description,float seconds,float stamina,string role)
+    public void Configure(CityOperationsSystem system,CityOperationType type,string title,string description,float seconds,float stamina,string role,int flavor=0)
     {
-        owner=system;Type=type;Title=title;Description=description;baseDuration=duration=seconds;StaminaCost=stamina;RecommendedRole=role;
+        owner=system;Type=type;Title=title;Description=description;baseDuration=duration=seconds;StaminaCost=stamina;RecommendedRole=role;Flavor=flavor;
         BuildVisual();
     }
+
+    public void SetLiveStatus(string text){if(label)label.text=text;}
 
     void BuildVisual()
     {
@@ -457,10 +482,35 @@ public sealed class CityOperationNode:MonoBehaviour
     {
         assigned.Clear();assigned.AddRange(members);elapsed=0;waitingForArrival=false;
         duration=CityOperationsSystem.DurationFor(members,RecommendedRole,baseDuration);
-        foreach(var member in assigned)member.SetActivityLocked(true,transform.position);
-        IsRunning=true;awaitingDecision=true;
-        CityGameplay.Instance?.PostEvent(Title+" READY - CHOOSE AN EXECUTION PLAN");
-        owner.PresentExecutionChoice(this,assigned);
+        IsRunning=true;
+        if(owner.AutomatedPresentationDisabled)
+        {
+            foreach(var member in assigned)member.SetActivityLocked(true,transform.position);
+            awaitingDecision=true;
+            owner.PresentExecutionChoice(this,assigned);
+            return;
+        }
+        awaitingDecision=false;LiveWork=true;
+        foreach(var member in assigned)if(member)member.BeginJob();
+        CityGameplay.Instance?.PostEvent(Title+" - CREW IS ON THE GROUND");
+        var work=GetComponent<CityLandmarkWork>()??gameObject.AddComponent<CityLandmarkWork>();
+        work.Begin(this,assigned);
+    }
+
+    public void FinishLive()
+    {
+        if(!IsRunning||!LiveWork)return;
+        LiveWork=false;IsRunning=false;awaitingDecision=false;
+        foreach(var member in assigned)if(member)member.EndJob();
+        owner.Complete(this,assigned);
+        Release();
+    }
+
+    public void CancelLive(string reason)
+    {
+        if(!LiveWork&&!IsRunning)return;
+        LiveWork=false;
+        Cancel(reason);
     }
 
     public void StartExecution(float durationMultiplier,int heatDelta,int cashDelta,string outcome)
@@ -494,6 +544,11 @@ public sealed class CityOperationNode:MonoBehaviour
             if(label)label.text=CityOperationsLedger.IsComplete(GameManager.Data,Type)?Title+"\nCOMPLETE":Title+"\nTAP FOR TASK";
             return;
         }
+        if(LiveWork)
+        {
+            if(assigned.Any(a=>!a||!a.IsAlive))CancelLive("ASSIGNED MEMBER UNAVAILABLE");
+            return;
+        }
         if(awaitingDecision){if(label)label.text=Title+"\nCHOOSE EXECUTION PLAN";return;}
         if(assigned.Any(a=>!a||!a.IsAlive)){Cancel("ASSIGNED MEMBER UNAVAILABLE");return;}
         elapsed+=Time.deltaTime;
@@ -503,7 +558,12 @@ public sealed class CityOperationNode:MonoBehaviour
         Release();
     }
 
-    void Cancel(string reason){IsRunning=false;waitingForArrival=false;awaitingDecision=false;CityGameplay.Instance?.PostEvent(Title+" CANCELLED - "+reason);Release();}
+    void Cancel(string reason)
+    {
+        LiveWork=false;IsRunning=false;waitingForArrival=false;awaitingDecision=false;
+        foreach(var member in assigned)if(member)member.EndJob();
+        CityGameplay.Instance?.PostEvent(Title+" CANCELLED - "+reason);Release();
+    }
     void Release(){foreach(var member in assigned)if(member)member.SetActivityLocked(false,transform.position);assigned.Clear();}
     static float HorizontalDistance(Vector3 a,Vector3 b){a.y=0;b.y=0;return Vector3.Distance(a,b);}
     void OnDestroy(){Release();}
