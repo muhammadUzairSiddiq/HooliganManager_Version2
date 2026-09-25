@@ -63,6 +63,7 @@ public class AgentController : MonoBehaviour
     private Vector3           _moveTarget;
     private Vector3           _retreatPoint;
     private float             _attackTimer;
+    int _hitsTaken;
     private float             _scanTimer;
     private UnitAffiliationMarker _affiliationMarker;
 
@@ -115,13 +116,13 @@ public class AgentController : MonoBehaviour
             selectionCircle.transform.localScale *= 2f;
             selectionCircle.SetActive(false);
         }
-        _affiliationMarker = UnitAffiliationMarker.Attach(transform, new Color(.12f, 1f, .36f, 1f), 1.02f, true);
+        _affiliationMarker = UnitAffiliationMarker.Attach(transform, new Color(.12f, 1f, .36f, 1f), 1.28f, true);
         _affiliationMarker?.SetVisible(false);
 
         // Make controlled people and their tap targets clearly readable on phones.
         // NavMesh spacing stays unchanged so larger visuals do not block streets.
         var capsule = GetComponent<CapsuleCollider>();
-        if (capsule != null) { capsule.radius = .45f; capsule.height = 2.7f; capsule.center = Vector3.up * 1.35f; }
+        if (capsule != null) { capsule.radius = .58f; capsule.height = 3.2f; capsule.center = Vector3.up * 1.6f; }
 
         SetState(State.Idle);
     }
@@ -147,6 +148,7 @@ public class AgentController : MonoBehaviour
 
         GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
         GameplayTuning.ScaleModel(spawnedCharacter.transform);
+        CrewKit.PaintShirt(spawnedCharacter.transform, new Color(0.55f, 1f, 0.45f));
 
         // Add the Animator component dynamically
         animator = spawnedCharacter.GetComponent<Animator>();
@@ -260,6 +262,8 @@ public class AgentController : MonoBehaviour
         BeginAssignment();
     }
 
+    public bool IsOnLiveJob => _jobHold;
+
     public void EndJob()
     {
         _jobHold = false;
@@ -286,7 +290,9 @@ public class AgentController : MonoBehaviour
     /// <summary>Move to a world-space point, then return to Idle.</summary>
     public void CommandMoveTo(Vector3 point)
     {
-        if (!IsAlive || _cinematicIdle || _activityLocked || _nav == null || !_nav.isOnNavMesh) return;
+        if (!IsAlive || _cinematicIdle || _nav == null || !_nav.isOnNavMesh) return;
+        if (_jobHold) EndJob();
+        if (_activityLocked) return;
         if (!NavMesh.SamplePosition(point,out var destination,3f,_nav.areaMask)) return;
         var path=new NavMeshPath();
         if (!_nav.CalculatePath(destination.position,path) || path.status!=NavMeshPathStatus.PathComplete) return;
@@ -301,7 +307,9 @@ public class AgentController : MonoBehaviour
     /// <summary>Switch to aggressive auto-attack mode.</summary>
     public void CommandAttack()
     {
-        if (!IsAlive || _activityLocked) return;
+        if (!IsAlive) return;
+        if (_jobHold) EndJob();
+        if (_activityLocked) return;
         BeginAssignment();
         SetState(State.AutoAttacking);
     }
@@ -309,7 +317,9 @@ public class AgentController : MonoBehaviour
     /// <summary>Target a specific enemy to attack.</summary>
     public void CommandAttackTarget(EnemyController target)
     {
-        if (!IsAlive || _activityLocked) return;
+        if (!IsAlive) return;
+        if (_jobHold) EndJob();
+        if (_activityLocked) return;
         _target = target;
         BeginAssignment();
         SetState(State.AutoAttacking);
@@ -318,7 +328,9 @@ public class AgentController : MonoBehaviour
     /// <summary>Move back to spawn / retreat zone.</summary>
     public void CommandRetreat()
     {
-        if (!IsAlive || _activityLocked) return;
+        if (!IsAlive) return;
+        if (_jobHold) EndJob();
+        if (_activityLocked) return;
         _target = null;
         BeginAssignment();
         SetState(State.Retreating);
@@ -335,14 +347,17 @@ public class AgentController : MonoBehaviour
     public void TakeDamage(float amount)
     {
         if (!IsAlive) return;
-        CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount) * Mathf.Clamp(FightPace, 0.2f, 1f));
+        float guard = Data != null ? Mathf.Clamp(Data.Intelligence, 0, 8) * 0.03f : 0f;
+        CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount) * (1f - guard) * Mathf.Clamp(FightPace, 0.2f, 1f));
         SyncHpToData();
         RefreshHealthBar();
         if (CurrentHp <= 0) GameManager.Save();
 
         if (CurrentHp <= 0) { Die(); return; }
 
-        _anim?.PlayHit();
+        _hitsTaken++;
+        if (_hitsTaken % 4 == 0) _anim?.PlayKnockdown();
+        else _anim?.PlayHit();
         if (!_injuryReported && CurrentHp <= Data.MaxHp * .3f) { _injuryReported = true; InjuryNotifications.Report(Data); }
 
         // Always fight back when punched — even if the turf popup was skipped.
@@ -478,7 +493,9 @@ public class AgentController : MonoBehaviour
         _impactPending = false;
         if (!IsAlive || _cinematicIdle || CurrentState != State.AutoAttacking || !_pendingTarget || !_pendingTarget.IsAlive) return;
         if (DistanceTo(_pendingTarget.transform) > Data.AttackRange + .35f) return;
-        _pendingTarget.TakeDamage(Mathf.Max(1, (Data.Strength + Random.Range(-1f, 1f)) * GameplayTuning.Current.playerDamageMultiplier * _strengthMultiplier), this);
+        float staminaCap = Data != null && Data.MaxStamina > 1f ? Data.MaxStamina : 100f;
+        float tired = Data != null && Data.Stamina / staminaCap < 0.35f ? 0.75f : 1f;
+        _pendingTarget.TakeDamage(Mathf.Max(1, (Data.Strength + Random.Range(-1f, 1f)) * GameplayTuning.Current.playerDamageMultiplier * _strengthMultiplier * tired), this);
         GameAudio.Play("impact");
     }
     public void RestoreFromData()
@@ -492,7 +509,7 @@ public class AgentController : MonoBehaviour
         StopAllCoroutines(); _injuryReported = false; _activeBoosts.Clear(); _strengthMultiplier = 1; _impactPending = false;
         gameObject.SetActive(true); CurrentHp = Data.CurrentHp;
         _nav.enabled = true; if (_nav.isOnNavMesh) _nav.ResetPath();
-        _nav.speed = Data.Speed; _nav.isStopped = false; _target = null; _cinematicIdle = false; _activityLocked = false;
+        ApplyRosterStats(); _nav.isStopped = false; _target = null; _cinematicIdle = false; _activityLocked = false;
         _anim = new AgentAnimController(animator); SetState(State.Idle); RefreshHealthBar();
     }
 
@@ -545,6 +562,25 @@ public class AgentController : MonoBehaviour
 
     /// <summary>Snapshot runtime HP back into AgentData before saving.</summary>
     public void SyncHpToData() { if (Data != null) Data.CurrentHp = CurrentHp; }
+
+    /// <summary>Push saved health, power and speed onto the live crew member.</summary>
+    public void ApplyRosterStats()
+    {
+        if (Data == null) return;
+        if (Data.MaxStamina < 1f) Data.MaxStamina = 100f;
+        CurrentHp = Mathf.Clamp(Data.CurrentHp, 0f, Data.MaxHp);
+        if (_nav) _nav.speed = Data.Speed;
+        RefreshHealthBar();
+    }
+
+    public void ApplyGrowth()
+    {
+        if (Data == null) return;
+        CurrentHp = Mathf.Min(Data.MaxHp, CurrentHp + 8f);
+        SyncHpToData();
+        if (_nav) _nav.speed = Data.Speed;
+        RefreshHealthBar();
+    }
 
     // ── Building Interactions ──────────────────────────────────────────────
 
@@ -638,5 +674,68 @@ public class AgentController : MonoBehaviour
         {
             Arikan.MiniMapView.Instance.UnfollowTarget(transform);
         }
+    }
+}
+
+public static class CrewKit
+{
+    public static void PaintShirt(Transform model, Color color)
+    {
+        if (!model) return;
+        foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
+        {
+            var mats = renderer.materials;
+            bool painted = false;
+            for (int i = 0; i < mats.Length; i++)
+            {
+                if (!mats[i] || IsPantsOrSkin(mats[i].name) || IsPantsOrSkin(renderer.name)) continue;
+                if (!IsShirt(mats[i].name) && !IsShirt(renderer.name) && mats.Length > 1) continue;
+                mats[i].color = color;
+                if (mats[i].HasProperty("_BaseColor")) mats[i].SetColor("_BaseColor", color);
+                painted = true;
+            }
+            if (!painted && mats.Length > 0 && mats[0] && !IsPantsOrSkin(mats[0].name))
+            {
+                mats[0].color = color;
+                if (mats[0].HasProperty("_BaseColor")) mats[0].SetColor("_BaseColor", color);
+            }
+        }
+    }
+
+    static bool IsShirt(string name)
+    {
+        name = name.ToLowerInvariant();
+        return name.Contains("shirt") || name.Contains("top") || name.Contains("torso") || name.Contains("jacket") || name.Contains("jersey") || name.Contains("body") || name.Contains("cloth");
+    }
+
+    static bool IsPantsOrSkin(string name)
+    {
+        name = name.ToLowerInvariant();
+        return name.Contains("pant") || name.Contains("trouser") || name.Contains("leg") || name.Contains("shoe") || name.Contains("boot") || name.Contains("hair") || name.Contains("head") || name.Contains("face") || name.Contains("skin") || name.Contains("eye");
+    }
+
+    public static void KeepGap(Transform self, float gap)
+    {
+        if (!self || BattleManager.instance == null) return;
+        Vector3 pos = self.position;
+        Vector3 push = Vector3.zero;
+        void Consider(Vector3 other)
+        {
+            Vector3 delta = pos - other;
+            delta.y = 0f;
+            float dist = delta.magnitude;
+            if (dist < 0.05f) delta = new Vector3(0.4f, 0f, 0.2f);
+            else if (dist >= gap) return;
+            push += delta.normalized * (gap - dist);
+        }
+        foreach (var agent in BattleManager.instance.PlayerAgents)
+            if (agent && agent.IsAlive && agent.transform != self) Consider(agent.transform.position);
+        foreach (var enemy in BattleManager.instance.EnemyAgents)
+            if (enemy && enemy.IsAlive && enemy.transform != self) Consider(enemy.transform.position);
+        if (push.sqrMagnitude < 0.0001f) return;
+        pos += push;
+        var nav = self.GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (nav && nav.enabled && nav.isOnNavMesh) nav.Warp(pos);
+        else self.position = pos;
     }
 }

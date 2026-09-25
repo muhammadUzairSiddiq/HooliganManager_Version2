@@ -6,9 +6,8 @@ using UnityEngine.InputSystem.EnhancedTouch;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 /// <summary>
-/// Handles tap-to-select and tap-to-deselect for player agents.
-/// On mobile: single tap → toggle selection on tapped agent.
-/// Tap on empty space → deselect all.
+/// Tap a crew member to add them. Tap the same member again to remove only them.
+/// A ground tap orders whoever is still selected. They stay selected after the order.
 /// Updates BattleUIController with the current selected list.
 ///
 /// Attach to a singleton GameObject in BattleScene.
@@ -43,18 +42,16 @@ public class AgentSelectionManager : MonoBehaviour
     private bool _touchDragged, _touchStartedOnUI;
     private int _fingersDown;
 
-    // Double-tap: skip the unit-order tap when camera consumed a recenter double-tap.
-    private static bool _doubleTapConsumed;
-    private float _pendingTapTime = -1f;
-    private Vector2 _pendingTapPos;
-    private const float DoubleTapDelay = 0.28f;
+        // A second tap close to the first recentres the camera. The first tap is handled immediately.
+    private float _lastTapTime = -1f;
+    private Vector2 _lastTapPos;
     private bool _moveCommandArmed;
     float _ignoreWorldTapUntil;
     public bool IsMoveCommandArmed => _moveCommandArmed;
 
     public static void ConsumeUiPointer()
     {
-        if (instance) instance._ignoreWorldTapUntil = Time.unscaledTime + .55f;
+        if (instance) instance._ignoreWorldTapUntil = Time.unscaledTime + .16f;
     }
 
     public static bool BlocksWorldTap()
@@ -67,10 +64,7 @@ public class AgentSelectionManager : MonoBehaviour
         return false;
     }
 
-    public static void NotifyDoubleTapConsumed()
-    {
-        _doubleTapConsumed = true;
-    }
+    public static void NotifyDoubleTapConsumed() { }
 
     void Awake()
     {
@@ -88,7 +82,7 @@ public class AgentSelectionManager : MonoBehaviour
 
     void OnDisable()
     {
-        _pendingTapTime=-1;_mouseTap=false;_fingersDown=0;
+        _lastTapTime=-1;_mouseTap=false;_fingersDown=0;
         Touch.onFingerDown -= OnFingerDown;
         Touch.onFingerUp -= OnFingerUp;
     }
@@ -114,14 +108,6 @@ public class AgentSelectionManager : MonoBehaviour
         }
         foreach(var touch in Touch.activeTouches)
             if(Vector2.Distance(touch.screenPosition,touch.startScreenPosition)>dragThresholdPixels)_touchDragged=true;
-        // Fire deferred single-tap only if a double-tap never arrived.
-        if (_pendingTapTime > 0f && Time.unscaledTime >= _pendingTapTime)
-        {
-            _pendingTapTime = -1f;
-            if (!_doubleTapConsumed)
-                HandleTap(_pendingTapPos);
-            _doubleTapConsumed = false;
-        }
     }
 
     private void OnFingerDown(Finger finger)
@@ -158,18 +144,14 @@ public class AgentSelectionManager : MonoBehaviour
             ConsumeUiPointer();
             return;
         }
-        // Resolve both mouse and touch taps here, independent of camera Update order.
-        if (_pendingTapTime > 0f && Time.unscaledTime < _pendingTapTime && Vector2.Distance(position,_pendingTapPos)<55)
-        {
-            _pendingTapTime = -1f;
-            _doubleTapConsumed = true;
-            CameraPanTouchOnly.Instance?.CenterOnSelection();
-            return;
-        }
-
-        _doubleTapConsumed = false;
-        _pendingTapPos = position;
-        _pendingTapTime = Time.unscaledTime + 0.34f;
+        bool second = _lastTapTime > 0f && Time.unscaledTime - _lastTapTime < 0.28f && Vector2.Distance(position, _lastTapPos) < 55f;
+        _lastTapTime = Time.unscaledTime;
+        _lastTapPos = position;
+        bool onPerson = false;
+        if (_cam != null && Physics.Raycast(_cam.ScreenPointToRay(position), out var personHit, 2500f, LayerMask.GetMask("Agent")))
+            onPerson = personHit.collider.GetComponentInParent<AgentController>() != null || personHit.collider.GetComponentInParent<EnemyController>() != null;
+        HandleTap(position);
+        if (second && !onPerson) CameraPanTouchOnly.Instance?.CenterOnSelection();
     }
 
     // ── Tap handling ──────────────────────────────────────────────────────
@@ -183,12 +165,26 @@ public class AgentSelectionManager : MonoBehaviour
 
         // City operation pads are world interactions. Resolve them before the
         // generic ground order so tapping a task never accidentally moves the crew.
-        var operationHit=Physics.RaycastAll(ray,2500f,~0,QueryTriggerInteraction.Collide)
-            .OrderBy(h=>h.distance).Select(h=>h.collider.GetComponentInParent<CityOperationNode>()).FirstOrDefault(n=>n);
-        if(operationHit)
+        foreach (var hitInfo in Physics.RaycastAll(ray, 2500f, ~0, QueryTriggerInteraction.Collide).OrderBy(h => h.distance))
         {
-            operationHit.OpenInteraction();
-            return;
+            var choice = hitInfo.collider.GetComponentInParent<WorldChoiceButton>();
+            if (choice && choice.IsLive)
+            {
+                choice.Press();
+                return;
+            }
+            var bubble = hitInfo.collider.GetComponentInParent<WorldInteractBubble>();
+            if (bubble && bubble.IsLive)
+            {
+                bubble.Activate();
+                return;
+            }
+            var operationHit = hitInfo.collider.GetComponentInParent<CityOperationNode>();
+            if (operationHit)
+            {
+                operationHit.OpenInteraction();
+                return;
+            }
         }
         
         // ── 1. Check if we hit an Agent (Player or Enemy) ──
@@ -219,62 +215,14 @@ public class AgentSelectionManager : MonoBehaviour
             {
                 if (_selected.Count > 0 && enemy.firmName != "POLICE")
                 {
-                    PresentFightChoice(enemy.firmName);
+                    WorldChoiceBar.Present(enemy.transform, enemy.firmName,
+                        ("FIGHT", new Color(0.72f, 0.14f, 0.14f), () => BattleManager.instance?.AttackGang(enemy.firmName)),
+                        ("MOVE ON", new Color(0.16f, 0.38f, 0.62f), () => { }));
                     return;
                 }
                 if (!enemy.isHostile)
                 {
-                    // Tapped a passive rival gang member. Open recruiting options!
-                    int playerUnits = BattleManager.instance.PlayerAgents.Count(a => a.IsAlive);
-                    string gangName = enemy.firmName;
-                    int enemyUnits = BattleManager.instance.EnemyAgents.Count(e => e != null && e.IsAlive && e.firmName == gangName);
-
-                    float baseChance = 0.4f;
-                    float ratio = (float)playerUnits / Mathf.Max(1, enemyUnits);
-                    float chance = baseChance * ratio;
-                    if (GameData.instance?.PlayerData != null)
-                    {
-                        chance *= (float)GameData.instance.PlayerData.Strength / 40f;
-                    }
-                    chance = Mathf.Clamp(chance, 0.1f, 0.9f);
-
-                    BattleUIController.instance?.ShowGangInteractionPanel(
-                        gangName,
-                        playerUnits,
-                        enemyUnits,
-                        chance,
-                        onAttack: () => {
-                            BattleUIController.instance?.ShowGangResponsePanel(
-                                gangName,
-                                "Oh, do you really want to fight?!",
-                                "FIGHT!",
-                                () => BattleManager.instance?.AttackGang(gangName)
-                            );
-                        },
-                        onRecruit: () => {
-                            bool success = UnityEngine.Random.value <= chance;
-                            if (success)
-                            {
-                                BattleUIController.instance?.ShowGangResponsePanel(
-                                    gangName,
-                                    "Yeah, we will join your gang!",
-                                    "WELCOME!",
-                                    () => BattleManager.instance?.RecruitGang(gangName, true)
-                                );
-                            }
-                            else
-                            {
-                                BattleUIController.instance?.ShowGangResponsePanel(
-                                    gangName,
-                                    "Nah, your team is too weak!",
-                                    "FIGHT!",
-                                    () => BattleManager.instance?.RecruitGang(gangName, false)
-                                );
-                            }
-                        },
-                        onClose: () => {
-                        }
-                    );
+                    NotifyCommand("SELECT THE CREW, THEN TAP THE YELLOW MARKER");
                 }
                 else
                 {
@@ -386,7 +334,6 @@ public class AgentSelectionManager : MonoBehaviour
             var target = enemies.OrderBy(e => (e.transform.position - a.transform.position).sqrMagnitude).FirstOrDefault();
             if (target != null) { a.CommandAttackTarget(target); marked ??= target; }
         }
-        ReleaseOrdered(_selected.ToList());
         if (marked) CreateCommandMarker(marked.transform.position, new Color(1f, .18f, .12f, .95f), "ATTACK");
         NotifyCommand("ATTACK ORDER CONFIRMED");
     }
@@ -403,7 +350,6 @@ public class AgentSelectionManager : MonoBehaviour
                 if (safeTransport) a.ApplyTemporaryBoost(BoostType.Speed, .30f, 12f);
                 a.CommandRetreat();
             }
-        ReleaseOrdered(_selected.ToList());
         var retreat = BattleManager.instance != null && BattleManager.instance.retreatPoint
             ? BattleManager.instance.retreatPoint.position : Vector3.zero;
         CreateCommandMarker(retreat, new Color(.20f, .60f, 1f, .95f), "RETREAT");
@@ -432,7 +378,6 @@ public class AgentSelectionManager : MonoBehaviour
             Vector3 target = worldPoint + new Vector3(column * spacing - width * .5f, 0f, row * spacing);
             _selected[i].CommandMoveTo(target);
         }
-        ReleaseOrdered(_selected.ToList());
         NotifyCommand("MOVE ORDER CONFIRMED");
     }
 
@@ -461,11 +406,10 @@ public class AgentSelectionManager : MonoBehaviour
         }
         GamePopup.Instance.Show(
             gangName.ToUpperInvariant() + " TURF",
-            "Send the selected crew in. Everyone already on a job keeps going.",
+            "CONFRONT starts a fight with the crew you have selected.\nMOVE ON leaves them where they are.\nAnyone you deselected is not sent.",
             new GamePopup.Option("HAVE IT!", new Color(0.7f, 0.15f, 0.15f), () =>
             {
                 BattleManager.instance?.AttackGang(gangName, crew);
-                ReleaseOrdered(crew);
             }),
             new GamePopup.Option("MOVE ON", new Color(0.25f, 0.32f, 0.4f), () => { })
         );

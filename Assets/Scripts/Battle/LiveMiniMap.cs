@@ -29,6 +29,9 @@ public class LiveMiniMap : MonoBehaviour
     private RectTransform _iconLayer;
     private RectTransform _frame;
     private RectTransform _borderRt;
+    private RectTransform _feedRt;
+    private RectTransform _washRt;
+    private RectTransform _dragRt;
     private Canvas _canvas;
     private GameObject _expandedRoot;
     private GameObject _closeBtn;
@@ -50,16 +53,60 @@ public class LiveMiniMap : MonoBehaviour
     private GangArea[] _gangAreas = new GangArea[0];
     private RecruitArea[] _recruitAreas = new RecruitArea[0];
     private TerritoryControlPoint[] _territoryPoints = new TerritoryControlPoint[0];
+    private MatchdayGroupMarker[] _matchdayGroups = new MatchdayGroupMarker[0];
+    private Vector2 _lastFrameSize = new Vector2(-1f, -1f);
 
     private Vector3 _panFocus;
     private bool _dragging;
     private Vector2 _lastPointer;
-    private float _savedTimeScale = 1f;
     private bool _savedCamEnabled = true;
     private bool _savedSelectionEnabled = true;
 
     /// <summary>True while the fullscreen town map is open (main camera frozen).</summary>
     public static bool IsExpanded => Instance != null && Instance._expanded;
+    public int ActiveLabelCount => _labelUsed;
+    public bool LabelPoolHealthy
+    {
+        get
+        {
+            var seen = new HashSet<TextMeshProUGUI>();
+            foreach (var label in _labelPool)
+                if (label == null || !seen.Add(label)) return false;
+            return true;
+        }
+    }
+
+    public bool RunDragResponseSelfCheck()
+    {
+        if (_miniCam == null || _frame == null) return false;
+        bool wasExpanded = _expanded;
+        Vector3 savedFocus = _panFocus;
+        float savedZoom = _miniCam.orthographicSize;
+        if (!wasExpanded) Expand();
+        SnapCamToPan();
+        RefreshIcons();
+        TextMeshProUGUI visible = null;
+        foreach (var label in _labelPool)
+            if (label && label.transform.parent.gameObject.activeInHierarchy) { visible = label; break; }
+        if (!visible)
+        {
+            if (!wasExpanded) Collapse();
+            return false;
+        }
+        var host = visible.transform.parent as RectTransform;
+        Vector2 before = host.anchorMin;
+        OnMapPointerDown(Vector2.zero);
+        OnMapPointerDrag(new Vector2(96f, 48f));
+        LayoutCachedMarks();
+        OnMapPointerUp();
+        bool moved = (host.anchorMin - before).sqrMagnitude > .000001f;
+        _panFocus = savedFocus;
+        _miniCam.orthographicSize = savedZoom;
+        SnapCamToPan();
+        LayoutCachedMarks();
+        if (!wasExpanded) Collapse();
+        return moved && LabelPoolHealthy;
+    }
 
     private readonly List<Image> _iconPool = new List<Image>();
     private readonly List<TextMeshProUGUI> _labelPool = new List<TextMeshProUGUI>();
@@ -90,7 +137,7 @@ public class LiveMiniMap : MonoBehaviour
     {
         if(gameObject.scene.name=="Gameplay")
         {
-            cameraHeight=300;orthographicSize=100;expandedOrthoSize=260;
+            cameraHeight=300;orthographicSize=46;expandedOrthoSize=70;
             _minExpandedZoom=55f;_maxExpandedZoom=480f;
         }
         else {_minExpandedZoom=12f;_maxExpandedZoom=90f;}
@@ -113,7 +160,7 @@ public class LiveMiniMap : MonoBehaviour
 
     private void BuildCamera()
     {
-        _rt = new RenderTexture(textureSize, textureSize, 16, RenderTextureFormat.ARGB32);
+        _rt = new RenderTexture(512, 512, 16, RenderTextureFormat.ARGB32);
         _rt.antiAliasing = 1;
         _rt.Create();
 
@@ -122,6 +169,7 @@ public class LiveMiniMap : MonoBehaviour
         _miniCam = camGo.AddComponent<Camera>();
         _miniCam.orthographic = true;
         _miniCam.orthographicSize = orthographicSize;
+        _miniCam.aspect = 1f;
         _miniCam.nearClipPlane = 0.3f;
         _miniCam.farClipPlane = 1500f;
         _miniCam.clearFlags = CameraClearFlags.SolidColor;
@@ -152,9 +200,9 @@ public class LiveMiniMap : MonoBehaviour
         // Gameplay: leave bottom-right margin; stack CAMERA / RECENTRE under the map.
         if (gameObject.scene.name == "Gameplay")
         {
-            _compactSize = new Vector2(200f, 190f);
+            _compactSize = new Vector2(220f, 220f);
             // Aligns with camera buttons stacked under the map (bottom margin ~22).
-            _compactPos = new Vector2(-24f, -588f);
+            _compactPos = new Vector2(-24f, -430f);
         }
         else
         {
@@ -207,7 +255,8 @@ public class LiveMiniMap : MonoBehaviour
 
         var rawGo = new GameObject("Feed", typeof(RectTransform), typeof(RawImage));
         rawGo.transform.SetParent(frameGo.transform, false);
-        Stretch(rawGo.GetComponent<RectTransform>());
+        _feedRt = rawGo.GetComponent<RectTransform>();
+        Stretch(_feedRt);
         _raw = rawGo.GetComponent<RawImage>();
         _raw.texture = _rt;
         _raw.color = Color.white;
@@ -217,15 +266,17 @@ public class LiveMiniMap : MonoBehaviour
         // with the high-contrast squad, rival, police and objective symbols.
         var washGo = new GameObject("TacticalWash", typeof(RectTransform), typeof(Image));
         washGo.transform.SetParent(frameGo.transform, false);
-        Stretch(washGo.GetComponent<RectTransform>());
+        _washRt = washGo.GetComponent<RectTransform>();
+        Stretch(_washRt);
         var wash = washGo.GetComponent<Image>();
-        wash.color = new Color(0.015f, 0.04f, 0.055f, 0.42f);
+        wash.color = new Color(0.01f, 0.02f, 0.03f, 0.08f);
         wash.raycastTarget = false;
 
         // Drag catcher on the feed (expanded only uses this for pan).
         var dragGo = new GameObject("DragCatcher", typeof(RectTransform), typeof(Image));
         dragGo.transform.SetParent(frameGo.transform, false);
-        Stretch(dragGo.GetComponent<RectTransform>());
+        _dragRt = dragGo.GetComponent<RectTransform>();
+        Stretch(_dragRt);
         var dragImg = dragGo.GetComponent<Image>();
         dragImg.color = new Color(1f, 1f, 1f, 0.01f);
         dragImg.raycastTarget = true;
@@ -346,15 +397,14 @@ public class LiveMiniMap : MonoBehaviour
         _closeBtn.transform.SetAsLastSibling();
         _zoomInBtn.transform.SetAsLastSibling();
         _zoomOutBtn.transform.SetAsLastSibling();
-        _legend.gameObject.SetActive(true);
-        _legend.transform.SetAsLastSibling();
-        _hint.gameObject.SetActive(true);
-        _hint.transform.SetAsLastSibling();
+        _legend.gameObject.SetActive(false);
+        _hint.gameObject.SetActive(false);
         _closeBtn.transform.SetAsLastSibling();
 
         // Full-screen map (small margins for hint + legend + X).
-        StretchFull(_frame, left: 8f, bottom: 58f, right: 8f, top: 70f);
-        StretchFull(_borderRt, left: 0f, bottom: 50f, right: 0f, top: 62f);
+        StretchFull(_expandedRoot.GetComponent<RectTransform>(), left: 0f, bottom: 128f, right: 0f, top: 0f);
+        StretchFull(_frame, left: 8f, bottom: 136f, right: 8f, top: 70f);
+        StretchFull(_borderRt, left: 0f, bottom: 128f, right: 0f, top: 62f);
 
         var borderImg = _borderRt.GetComponent<Image>();
         borderImg.sprite = _uiSprite;
@@ -370,8 +420,15 @@ public class LiveMiniMap : MonoBehaviour
         if (btn != null) btn.enabled = false;
 
         if (_miniCam != null)
+        {
+            _panFocus = GetPlayerFocus();
             _miniCam.orthographicSize = expandedOrthoSize;
+            _miniCam.aspect = 1f;
+        }
         SnapCamToPan();
+        _nextIconRefresh = 0f;
+        _nextMapRender = 0f;
+        RefreshIcons();
     }
 
     private void Collapse()
@@ -447,10 +504,6 @@ public class LiveMiniMap : MonoBehaviour
     {
         if (freeze)
         {
-            _savedTimeScale = Time.timeScale;
-            if (_savedTimeScale <= 0.001f) _savedTimeScale = 1f;
-            Time.timeScale = 0f;
-
             var cam = CameraPanTouchOnly.Instance;
             if (cam != null)
             {
@@ -467,8 +520,6 @@ public class LiveMiniMap : MonoBehaviour
         }
         else
         {
-            Time.timeScale = _savedTimeScale > 0.001f ? _savedTimeScale : 1f;
-
             var cam = CameraPanTouchOnly.Instance;
             if (cam != null) cam.enabled = _savedCamEnabled;
 
@@ -503,10 +554,12 @@ public class LiveMiniMap : MonoBehaviour
         _lastPointer = screenPos;
 
         // Screen drag → world XZ (orthographic top-down). Only moves minimap cam.
+        float mapW = Mathf.Max(200f, _frame.rect.width);
         float mapH = Mathf.Max(200f, _frame.rect.height);
-        float worldPerPixel = (_miniCam.orthographicSize * 2f) / mapH;
-        _panFocus.x -= delta.x * worldPerPixel;
-        _panFocus.z -= delta.y * worldPerPixel;
+        float halfH = _miniCam.orthographicSize;
+        float halfW = halfH * Mathf.Max(0.5f, _miniCam.aspect);
+        _panFocus.x -= delta.x * (halfW * 2f) / mapW;
+        _panFocus.z -= delta.y * (halfH * 2f) / mapH;
         // Soft town bounds so you can explore the whole map.
         _panFocus.x = Mathf.Clamp(_panFocus.x, -1000f, 1450f);
         _panFocus.z = Mathf.Clamp(_panFocus.z, -600f, 450f);
@@ -529,6 +582,74 @@ public class LiveMiniMap : MonoBehaviour
         if (!_expanded || _miniCam == null) return;
         _miniCam.orthographicSize = Mathf.Clamp(
             _miniCam.orthographicSize * multiplier, _minExpandedZoom, _maxExpandedZoom);
+        _nextMapRender = 0f;
+        LayoutCachedMarks();
+    }
+
+    void FitMapFrame()
+    {
+        if (_frame == null || _miniCam == null) return;
+        float w = _frame.rect.width;
+        float h = _frame.rect.height;
+        if (w < 8f || h < 8f) return;
+        Vector2 size = new Vector2(w, h);
+        if ((size - _lastFrameSize).sqrMagnitude < .01f) return;
+        _lastFrameSize = size;
+        foreach (var rt in new[] { _feedRt, _washRt, _dragRt, _iconLayer })
+        {
+            if (!rt) continue;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.anchoredPosition = Vector2.zero;
+        }
+        _miniCam.aspect = w / h;
+    }
+
+    void FrameWholeCity()
+    {
+        float minX = float.MaxValue, maxX = float.MinValue, minZ = float.MaxValue, maxZ = float.MinValue;
+        int n = 0;
+        void Enc(Vector3 p)
+        {
+            minX = Mathf.Min(minX, p.x); maxX = Mathf.Max(maxX, p.x);
+            minZ = Mathf.Min(minZ, p.z); maxZ = Mathf.Max(maxZ, p.z);
+            n++;
+        }
+        var city = CityGameplay.Instance;
+        if (city != null && city.Locations != null)
+            foreach (var p in city.Locations) Enc(p);
+        foreach (var g in FindObjectsByType<GangArea>(FindObjectsSortMode.None))
+            if (g) Enc(g.transform.position);
+        if (BattleManager.instance != null)
+            foreach (var a in BattleManager.instance.PlayerAgents)
+                if (a && a.IsAlive) Enc(a.transform.position);
+        if (n == 0 || _miniCam == null) return;
+        _panFocus = new Vector3((minX + maxX) * 0.5f, 0f, (minZ + maxZ) * 0.5f);
+        float span = Mathf.Max(maxX - minX, maxZ - minZ);
+        _miniCam.orthographicSize = Mathf.Clamp(span * 0.62f + 12f, 48f, 420f);
+    }
+
+    static string MapName(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        value = value.ToUpperInvariant();
+        return value.Length <= 14 ? value : value.Substring(0, 13);
+    }
+
+    static Color AreaColor(int index)
+    {
+        switch (index)
+        {
+            case 0: return new Color(0.25f, 0.85f, 1f);
+            case 1: return new Color(1f, 0.55f, 0.15f);
+            case 2: return new Color(1f, 0.82f, 0.15f);
+            case 4: return new Color(0.35f, 1f, 0.7f);
+            case 5: return new Color(0.95f, 0.95f, 1f);
+            default: return new Color(0.55f, 0.75f, 1f);
+        }
     }
 
     private void SnapCamToPan()
@@ -540,6 +661,7 @@ public class LiveMiniMap : MonoBehaviour
     private void LateUpdate()
     {
         if (_miniCam == null) return;
+        FitMapFrame();
         UpdatePinchZoom();
         if (!_expanded)
             UpdateCameraFollow();
@@ -548,8 +670,14 @@ public class LiveMiniMap : MonoBehaviour
         RenderMapWhenDue();
         if (Time.unscaledTime >= _nextIconRefresh)
         {
-            _nextIconRefresh = Time.unscaledTime + (_expanded ? 0.08f : 0.12f);
+            _nextIconRefresh = Time.unscaledTime + (_expanded ? 0.06f : 0.12f);
             RefreshIcons();
+        }
+        else if (_expanded && _dragging)
+        {
+            // The world snapshot need not be rebuilt every frame, but UI-space
+            // positions must track the camera immediately while dragging.
+            LayoutCachedMarks();
         }
     }
 
@@ -586,7 +714,15 @@ public class LiveMiniMap : MonoBehaviour
     {
         Vector3 focus = Vector3.zero;
         int n = 0;
-        if (BattleManager.instance != null)
+        var selected = AgentSelectionManager.instance != null ? AgentSelectionManager.instance.SelectedAgents : null;
+        if (selected != null)
+        {
+            foreach (var a in selected)
+            {
+                if (a != null && a.IsAlive) { focus += a.transform.position; n++; }
+            }
+        }
+        if (n == 0 && BattleManager.instance != null)
         {
             foreach (var a in BattleManager.instance.PlayerAgents)
             {
@@ -608,9 +744,12 @@ public class LiveMiniMap : MonoBehaviour
 
     private void RefreshIcons()
     {
-        _iconUsed = 0;
-        _labelUsed = 0;
-        if (BattleManager.instance == null) { HideUnused(); return; }
+        if (BattleManager.instance == null)
+        {
+            _marks.Clear();
+            LayoutCachedMarks();
+            return;
+        }
 
         float blink = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4f));
         RefreshSceneMarkerCache();
@@ -626,7 +765,7 @@ public class LiveMiniMap : MonoBehaviour
                 color = GameManager.IsPolicePlayer
                     ? new Color(0.28f, 0.58f, 1f, blink)
                     : new Color(0.25f, 1f, 0.55f, blink),
-                size = _expanded ? 40f : 20f,
+                size = _expanded ? 22f : 14f,
                 label = null
             });
         }
@@ -638,9 +777,9 @@ public class LiveMiniMap : MonoBehaviour
             {
                 world = g.transform.position,
                 sprite = _gangSprite,
-                color = new Color(1f, 0.25f, 0.15f, blink),
-                size = _expanded ? 44f : 24f,
-                label = null
+                color = g.ZoneColor.a > 0.2f ? g.ZoneColor : new Color(1f, 0.25f, 0.15f, blink),
+                size = _expanded ? 34f : 18f,
+                label = MapName(g.GangName)
             });
         }
 
@@ -652,8 +791,8 @@ public class LiveMiniMap : MonoBehaviour
                 world = r.transform.position,
                 sprite = _recruitSprite,
                 color = new Color(1f, 0.85f, 0.15f, blink),
-                size = _expanded ? 42f : 22f,
-                label = null
+                size = _expanded ? 30f : 16f,
+                label = MapName(r.AreaName)
             });
         }
 
@@ -665,8 +804,23 @@ public class LiveMiniMap : MonoBehaviour
                 world = objective.transform.position,
                 sprite = _objectiveSprite,
                 color = new Color(1f, 0.82f, 0.12f, blink),
-                size = _expanded ? 38f : 21f,
-                label = null
+                size = _expanded ? 26f : 14f,
+                label = MapName(objective.zoneName)
+            });
+        }
+
+        foreach (var group in _matchdayGroups)
+        {
+            if (group == null || !group.gameObject.activeInHierarchy) continue;
+            bool police = group.Role == MatchdayUnitRole.Police;
+            bool home = group.Role == MatchdayUnitRole.HomeSupporter;
+            _marks.Add(new Mark
+            {
+                world = group.transform.position,
+                sprite = police ? _policeSprite : (home ? _playerSprite : _gangSprite),
+                color = group.GroupColor,
+                size = _expanded ? 32f : 17f,
+                label = MapName(group.GroupName)
             });
         }
 
@@ -680,8 +834,8 @@ public class LiveMiniMap : MonoBehaviour
                     world = car.transform.position,
                     sprite = _policeSprite,
                     color = new Color(0.25f, 0.55f, 1f, blink),
-                    size = _expanded ? 40f : 20f,
-                    label = null
+                    size = _expanded ? 28f : 16f,
+                    label = "POLICE"
                 });
             }
             if (LivePoliceSystem.Instance.ResponseCar != null)
@@ -691,27 +845,71 @@ public class LiveMiniMap : MonoBehaviour
                     world = LivePoliceSystem.Instance.ResponseCar.transform.position,
                     sprite = _policeSprite,
                     color = new Color(0.15f, 0.45f, 1f, blink),
-                    size = _expanded ? 42f : 22f,
+                    size = _expanded ? 28f : 16f,
+                    label = "POLICE"
+                });
+            }
+        }
+
+        foreach (var e in BattleManager.instance.EnemyAgents)
+        {
+            if (e == null || !e.IsAlive) continue;
+            bool police = e.firmName == "POLICE" || e.MatchdayRole == MatchdayUnitRole.Police;
+            bool home = e.MatchdayRole == MatchdayUnitRole.HomeSupporter;
+            _marks.Add(new Mark
+            {
+                world = e.transform.position,
+                sprite = police ? _policeSprite : (home ? _playerSprite : _gangSprite),
+                color = police
+                    ? new Color(0.35f, 0.65f, 1f)
+                    : (e.primaryColor.a > 0.01f ? e.primaryColor : new Color(0.95f, 0.2f, 0.2f)),
+                size = _expanded ? 26f : 16f
+            });
+        }
+
+        if (CityOperationsSystem.Instance != null)
+        {
+            foreach (var node in CityOperationsSystem.Instance.Nodes)
+            {
+                if (node == null || !node.gameObject.activeInHierarchy) continue;
+                if (CityOperationsLedger.IsComplete(GameManager.Data, node.Type)) continue;
+                _marks.Add(new Mark
+                {
+                    world = node.transform.position,
+                    sprite = _objectiveSprite,
+                    color = node.IsRunning ? new Color(0.2f, 1f, 0.85f, blink) : new Color(1f, 0.82f, 0.12f, blink),
+                    size = _expanded ? 18f : 12f,
                     label = null
                 });
             }
         }
 
-        if (!_expanded)
+        if (CityGameplay.Instance != null && CityGameplay.Instance.Locations != null)
         {
-            foreach (var e in BattleManager.instance.EnemyAgents)
+            var names = CityGameplay.Instance.LocationNames;
+            var spots = CityGameplay.Instance.Locations;
+            for (int i = 0; i < spots.Length; i++)
             {
-                if (e == null || !e.IsAlive) continue;
-                if (e.firmName == "POLICE")
-                    _marks.Add(new Mark { world = e.transform.position, sprite = _policeSprite, color = new Color(0.35f, 0.65f, 1f), size = 14f });
-                else
-                    _marks.Add(new Mark { world = e.transform.position, sprite = _gangSprite, color = e.primaryColor.a > 0.01f ? e.primaryColor : new Color(0.95f, 0.2f, 0.2f), size = 14f });
+                string name = names != null && i < names.Length ? names[i] : "AREA";
+                _marks.Add(new Mark
+                {
+                    world = spots[i],
+                    sprite = _objectiveSprite,
+                    color = AreaColor(i),
+                    size = _expanded ? 22f : 12f,
+                    label = MapName(name)
+                });
             }
         }
 
-        foreach (var m in _marks)
-            PlaceMark(m);
+        LayoutCachedMarks();
+    }
 
+    private void LayoutCachedMarks()
+    {
+        _iconUsed = 0;
+        _labelUsed = 0;
+        foreach (var mark in _marks) PlaceMark(mark);
         HideUnused();
     }
 
@@ -722,6 +920,7 @@ public class LiveMiniMap : MonoBehaviour
         _gangAreas = FindObjectsByType<GangArea>(FindObjectsSortMode.None);
         _recruitAreas = FindObjectsByType<RecruitArea>(FindObjectsSortMode.None);
         _territoryPoints = FindObjectsByType<TerritoryControlPoint>(FindObjectsSortMode.None);
+        _matchdayGroups = FindObjectsByType<MatchdayGroupMarker>(FindObjectsSortMode.None);
     }
 
     private void PlaceMark(Mark m)
@@ -729,9 +928,10 @@ public class LiveMiniMap : MonoBehaviour
         if (_miniCam == null || _iconLayer == null) return;
 
         Vector3 camPos = _miniCam.transform.position;
-        float half = _miniCam.orthographicSize;
-        float nx = (m.world.x - camPos.x) / (half * 2f) + 0.5f;
-        float ny = (m.world.z - camPos.z) / (half * 2f) + 0.5f;
+        float halfH = _miniCam.orthographicSize;
+        float halfW = halfH * Mathf.Max(0.5f, _miniCam.aspect);
+        float nx = (m.world.x - camPos.x) / (halfW * 2f) + 0.5f;
+        float ny = (m.world.z - camPos.z) / (halfH * 2f) + 0.5f;
         if (nx < -0.05f || nx > 1.05f || ny < -0.05f || ny > 1.05f) return;
 
         var img = GetIcon();
@@ -743,20 +943,21 @@ public class LiveMiniMap : MonoBehaviour
         rt.anchorMin = rt.anchorMax = new Vector2(nx, ny);
         rt.anchoredPosition = Vector2.zero;
 
-        if (!string.IsNullOrEmpty(m.label))
+        if (!string.IsNullOrEmpty(m.label) && _expanded)
         {
             var lab = GetLabel();
             lab.text = m.label;
             lab.enabled = true;
-            lab.fontSize = 24f;
+            lab.fontSize = 16f;
             lab.fontStyle = FontStyles.Bold;
             lab.color = Color.white;
-            lab.outlineWidth = 0.3f;
-            lab.outlineColor = Color.black;
-            var lrt = lab.rectTransform;
-            lrt.sizeDelta = new Vector2(260f, 40f);
-            lrt.anchorMin = lrt.anchorMax = new Vector2(nx, ny);
-            lrt.anchoredPosition = new Vector2(0f, m.size * 0.8f + 12f);
+            lab.outlineWidth = 0.25f;
+            lab.outlineColor = new Color(0f, 0f, 0f, 1f);
+            var host = lab.transform.parent as RectTransform;
+            host.sizeDelta = new Vector2(150f, 28f);
+            host.anchorMin = host.anchorMax = new Vector2(nx, ny);
+            host.anchoredPosition = new Vector2(0f, m.size * 0.55f + 10f);
+            host.gameObject.SetActive(true);
         }
     }
 
@@ -783,14 +984,24 @@ public class LiveMiniMap : MonoBehaviour
         if (_labelUsed < _labelPool.Count)
         {
             var t = _labelPool[_labelUsed++];
-            t.gameObject.SetActive(true);
+            t.transform.parent.gameObject.SetActive(true);
             return t;
         }
         var go = new GameObject("Label", typeof(RectTransform));
         go.transform.SetParent(_iconLayer, false);
-        var tmp = go.AddComponent<TextMeshProUGUI>();
+        var plateGo = new GameObject("Plate", typeof(RectTransform), typeof(Image));
+        plateGo.transform.SetParent(go.transform, false);
+        var plate = plateGo.GetComponent<Image>();
+        plate.raycastTarget = false;
+        plate.color = new Color(0.02f, 0.03f, 0.04f, 0.92f);
+        Stretch(plate.rectTransform);
+        var textGo = new GameObject("Text", typeof(RectTransform));
+        textGo.transform.SetParent(go.transform, false);
+        Stretch(textGo.GetComponent<RectTransform>());
+        var tmp = textGo.AddComponent<TextMeshProUGUI>();
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.raycastTarget = false;
+        tmp.fontStyle = FontStyles.Bold;
         _labelPool.Add(tmp);
         _labelUsed++;
         return tmp;
@@ -801,7 +1012,7 @@ public class LiveMiniMap : MonoBehaviour
         for (int i = _iconUsed; i < _iconPool.Count; i++)
             _iconPool[i].gameObject.SetActive(false);
         for (int i = _labelUsed; i < _labelPool.Count; i++)
-            _labelPool[i].gameObject.SetActive(false);
+            _labelPool[i].transform.parent.gameObject.SetActive(false);
     }
 
     private void BuildSprites()

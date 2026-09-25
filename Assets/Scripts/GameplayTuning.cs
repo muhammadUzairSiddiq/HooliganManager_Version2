@@ -6,7 +6,7 @@ public sealed class GameplayTuning : ScriptableObject
     static GameplayTuning current;
     public static GameplayTuning Current => current ? current : (current = Resources.Load<GameplayTuning>("GameplayTuning") ?? CreateInstance<GameplayTuning>());
     [Header("Characters - all factions and civilians")]
-    [Range(.5f, 3f)] public float characterScale = 1.5f;
+    [Range(.5f, 3f)] public float characterScale = 2.25f;
     [Min(.7f)] public float attackInterval = 1.35f;
     [Range(.05f, .6f)] public float impactDelay = .28f;
     [Min(.1f)] public float playerDamageMultiplier = .85f;
@@ -15,7 +15,7 @@ public sealed class GameplayTuning : ScriptableObject
     public float[] enemyHealth = { .85f, .95f, 1.05f, 1.15f, 1.25f };
     public float[] enemyDamage = { .75f, .85f, .95f, 1.05f, 1.15f };
     [Header("Camera")]
-    [Range(18, 100)] public float explorationHeight = 30;
+    [Range(18, 100)] public float explorationHeight = 32;
     [Range(18, 80)] public float combatHeight = 24;
     [Range(45, 80)] public float cameraPitch = 54;
     [Range(40, 85)] public float cameraFov = 54;

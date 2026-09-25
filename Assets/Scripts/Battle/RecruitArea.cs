@@ -16,6 +16,7 @@ public class RecruitArea : MonoBehaviour
     private float _detectRadius;
     private readonly Color _color = new Color(1f, 0.78f, 0.12f, 1f);
     private TextMeshPro _label;
+    private WorldInteractBubble _bubble;
     private float _scanTimer;
     private bool _promptArmed = true;
     private bool _wasInside;
@@ -45,6 +46,7 @@ public class RecruitArea : MonoBehaviour
         transform.position = GroundedCenter(center);
         ZoneVolumeFactory.Create(transform, _color, radius, height: 2.4f);
         _label = ZoneLabelUtil.Create(transform, _areaName, 3.6f, 11f);
+        _bubble = WorldInteractBubble.Create(transform);
         SpawnCiviliansExact(RemainingSlots);
         MiniMapIconFactory.Register(transform, MiniMapIconFactory.Kind.Recruit, _areaName);
         RefreshLabel();
@@ -150,34 +152,11 @@ public class RecruitArea : MonoBehaviour
         if (_label != null && Camera.main != null)
             _label.transform.rotation = Camera.main.transform.rotation;
 
-        if (_inConversation) return;
-
-        _scanTimer += Time.deltaTime;
-        if (_scanTimer < 0.2f) return;
-        _scanTimer = 0f;
-        if (BattleManager.instance == null) return;
-
-        bool playerInside = AnyPlayerInside();
-
-        if (!playerInside)
+        if (_bubble != null)
         {
-            if (_wasInside || _mustLeaveBeforeReprompt)
-            {
-                _mustLeaveBeforeReprompt = false;
-                if (!IsExhausted) _promptArmed = true;
-            }
-            _wasInside = false;
-            return;
+            if (IsExhausted || RecruitPackagePanel.AnyOpen) _bubble.Hide();
+            else if (!_bubble.IsLive) _bubble.Show("RECRUIT", OpenCampaigns);
         }
-
-        if (!_wasInside && _promptArmed && !_mustLeaveBeforeReprompt && !IsExhausted &&
-            !GamePopup.Instance.IsOpen && !RecruitDialogBox.Instance.IsOpen && !RecruitPackagePanel.AnyOpen)
-        {
-            _promptArmed = false;
-            OpenCampaigns();
-        }
-
-        _wasInside = true;
     }
 
     private bool AnyPlayerInside()
@@ -196,17 +175,7 @@ public class RecruitArea : MonoBehaviour
     private void BeginConversation()
     {
         _inConversation = true;
-        BattleManager.instance?.SetAllAgentsCinematicIdle(true);
         SetCiviliansPaused(true);
-
-        var camCtl = CameraPanTouchOnly.Instance;
-        if (camCtl != null)
-        {
-            _camWasEnabled = camCtl.enabled;
-            camCtl.enabled = false;
-            camCtl.FocusOn(transform.position);
-        }
-        FocusCameraOnFans();
 
         RecruitDialogBox.Instance.Show(
             _areaName,
@@ -351,12 +320,5 @@ public class RecruitArea : MonoBehaviour
         _inConversation = false;
         SetCiviliansPaused(false);
         BattleManager.instance?.SetAllAgentsCinematicIdle(false);
-
-        var camCtl = CameraPanTouchOnly.Instance;
-        if (camCtl != null)
-        {
-            camCtl.enabled = _camWasEnabled;
-            camCtl.CenterOnSelection();
-        }
     }
 }

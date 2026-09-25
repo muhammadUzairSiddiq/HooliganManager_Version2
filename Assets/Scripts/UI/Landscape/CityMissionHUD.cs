@@ -56,6 +56,12 @@ public sealed class CityMissionHUD : MonoBehaviour
 
             var squadTitle = hud.Find("SquadTitle")?.GetComponent<TextMeshProUGUI>();
             if (squadTitle) { squadTitle.text = "SQUAD"; squadTitle.fontSize = 18; squadTitle.color = Color.white; }
+            var manage = LandscapeUI.Button("ManageSquad", hud, "MANAGE", 168, 156, 118, 32, "dark");
+            manage.onClick.AddListener(() =>
+            {
+                var board = SquadBoard.Instance ?? FindFirstObjectByType<CityGameplay>()?.gameObject.AddComponent<SquadBoard>();
+                board?.ShowSquad();
+            });
 
             // Restore classic cash / reputation.
             Place(hud, "Cash", 1210, 16, 196, 36);
@@ -215,19 +221,24 @@ public sealed class CityMissionHUD : MonoBehaviour
         {
             var home=hud.Find("../CityDistrict") as RectTransform;
             if(!home)home=frame.Find("CityDistrict") as RectTransform;
-            if(home){LandscapeUI.Place(home,368,18,128,50);FitNavButton(home.GetComponent<Button>(),LandscapeTheme.Current?.shield);}
+            if(home){LandscapeUI.Place(home,360,18,112,50);FitNavButton(home.GetComponent<Button>(),LandscapeTheme.Current?.shield);}
         }
         var leftover=frame.Find("TopSettings");
         if(leftover)leftover.gameObject.SetActive(false);
-        var mission=LandscapeUI.Button("TopMission",frame,"MISSION",680,18,140,50,"dark");
+        var mission=LandscapeUI.Button("TopMission",frame,"MISSION",634,18,122,50,"dark");
         mission.onClick.AddListener(()=>{missionPanel.SetActive(true);RefreshMissions();});
-        var intel=LandscapeUI.Button("TopIntel",frame,"INTEL",828,18,118,50,"dark");
+        var intel=LandscapeUI.Button("TopIntel",frame,"INTEL",762,18,108,50,"dark");
         intel.onClick.AddListener(()=>CityGameplay.Instance?.ShowIntelReport());
-        var vehicles=LandscapeUI.Button("TopVehicles",frame,"VEHICLES",954,18,148,50,"dark");
+        var vehicles=LandscapeUI.Button("TopVehicles",frame,"VEHICLES",876,18,128,50,"dark");
         vehicles.onClick.AddListener(()=>CityActionSystem.Instance?.FocusNearestTaxi());
+        var destinations=LandscapeUI.Button("TopDestinations",frame,"DESTINATIONS",1010,18,176,50,"dark");
+        destinations.onClick.AddListener(()=>CityGameplay.Instance?.ToggleDestinations());
+        var cash=FindFirstObjectByType<LandscapeBattleHUD>()?.cash;
+        if(cash)LandscapeUI.Place(cash.rectTransform,1204,24,180,32);
         FitNavButton(mission,LandscapeTheme.Current?.star);
         FitNavButton(intel,LandscapeTheme.Current?.medkit);
         FitNavButton(vehicles,LandscapeTheme.Current?.energy);
+        FitNavButton(destinations,LandscapeTheme.Current?.shield);
     }
 
     static void FitNavButton(Button button,Sprite sprite)

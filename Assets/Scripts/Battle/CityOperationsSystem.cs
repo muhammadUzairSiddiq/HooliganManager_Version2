@@ -34,7 +34,7 @@ public static class CityOperationsLedger
             for(int i=0;i<d.RecruitedAgents.Count;i++)
             {
                 var member=d.RecruitedAgents[i];if(member==null)continue;
-                member.EnsureManagementProfile(i);member.Stamina=Mathf.Min(100f,member.Stamina+35f);
+                member.EnsureManagementProfile(i);if(member.MaxStamina<1f)member.MaxStamina=100f;member.Stamina=Mathf.Min(member.MaxStamina,member.Stamina+35f);
             }
     }
 
@@ -133,7 +133,7 @@ public sealed class CityOperationsSystem : MonoBehaviour
     public void AttachHud(RectTransform root)
     {
         if(frame||!root)return;frame=root;
-        boardButton=LandscapeUI.Button("CityOperations",frame,"OPERATIONS",504,18,168,50,"dark");
+        boardButton=LandscapeUI.Button("CityOperations",frame,"OPERATIONS",478,18,150,50,"dark");
         boardButton.onClick.AddListener(OpenBoard);
         var opIcon=LandscapeTheme.Current?.lootBat;
         if(opIcon)
@@ -142,7 +142,7 @@ public sealed class CityOperationsSystem : MonoBehaviour
             var label=boardButton.transform.Find("Label")?.GetComponent<TextMeshProUGUI>();
             if(label)
             {
-                LandscapeUI.Place(label.rectTransform,30,6,132,38);
+                LandscapeUI.Place(label.rectTransform,28,6,114,38);
                 LandscapeUI.FitBoxed(label,11f);
             }
         }
@@ -471,11 +471,10 @@ public sealed class CityOperationNode:MonoBehaviour
     {
         if(IsRunning){CityGameplay.Instance?.PostEvent(Title+" - TASK IN PROGRESS");return;}
         if(CityOperationsLedger.IsComplete(GameManager.Data,Type))
-        {GamePopup.Instance.Show(Title,"Completed for this matchday.\n\n"+Description,new GamePopup.Option("CLOSE",LandscapeUI.PanelColor,null));return;}
-        GamePopup.Instance.Show(Title,"REWARD: "+CityOperationsSystem.RewardText(Type)+"\nCOST: "+StaminaCost.ToString("0")+" stamina\nROLE: "+RecommendedRole+"\n\n"+Description,
-            new GamePopup.Option("GO TO TASK",LandscapeUI.PanelColor,()=>owner.MoveSelectedTo(this)),
-            new GamePopup.Option("START TASK",LandscapeUI.Green,()=>owner.TryStart(this)),
-            new GamePopup.Option("CLOSE",LandscapeUI.PanelColor,null));
+        {CityGameplay.Instance?.PostEvent(Title+" - ALREADY COMPLETE");return;}
+        WorldChoiceBar.Present(transform,Title,
+            ("GO",LandscapeUI.PanelColor,()=>owner.MoveSelectedTo(this)),
+            ("START",LandscapeUI.Green,()=>owner.TryStart(this)));
     }
 
     public void Begin(AgentController[] members)

@@ -41,6 +41,7 @@ public class LevelSystem : MonoBehaviour
     private int _gangsRequired;
     private readonly HashSet<string> _clearedFirms = new HashSet<string>();
     private bool _transitioning;
+    private bool _defeatShown;
     private bool _combatPhaseAnnounced;
     private bool _campaignCheckQueued;
 
@@ -122,19 +123,17 @@ public class LevelSystem : MonoBehaviour
     /// <summary>Called when the player's entire squad is wiped.</summary>
     public void OnPlayerDefeated()
     {
-        if (_transitioning) return;
+        if (_defeatShown) return;
+        _defeatShown = true;
         _transitioning = true;
         StartCoroutine(DefeatSequence());
     }
 
     IEnumerator DefeatSequence()
     {
-        BattleManager.instance?.SetAllAgentsCinematicIdle(true);
         GameAudio.PlayPresentationTheme("defeat");
-        GameplayOutcomePresentation.DefeatCinematic();
-        yield return StartCoroutine(DefeatCameraSequence());
-        yield return new WaitForSecondsRealtime(.35f);
         ShowDefeatPopup();
+        yield break;
     }
 
     IEnumerator DefeatCameraSequence()
@@ -264,10 +263,13 @@ public class LevelSystem : MonoBehaviour
 
     private void ShowDefeatPopup()
     {
+        var d = GameManager.Data;
+        int cost = SquadCare.ReviveCrewCost(d);
+        bool canPay = d != null && d.Money >= cost;
         GamePopup.Instance.Show(
             "DEFEATED",
-            "Your firm got smashed. Retry from your last save, or return to HQ.",
-            new GamePopup.Option("TRY AGAIN", new Color(0.7f, 0.15f, 0.15f), RetryFromLastSave),
+            "The whole crew is down.\n\nRevive pays to restore the last checkpoint and puts everyone back at headquarters.",
+            new GamePopup.Option(canPay ? "REVIVE  £" + cost.ToString("N0") : "NEED £" + cost.ToString("N0"), new Color(0.7f, 0.15f, 0.15f), () => ReviveWithCash(cost)),
             new GamePopup.Option("HOME HQ", new Color(0.25f, 0.32f, 0.4f), () =>
             {
                 Time.timeScale = 1f;
@@ -276,6 +278,34 @@ public class LevelSystem : MonoBehaviour
                 GameManager.instance?.EnterHomeTerritory();
             })
         );
+    }
+
+    void ReviveWithCash(int cost)
+    {
+        var d = GameManager.Data;
+        if (d == null || d.Money < cost)
+        {
+            _defeatShown = false;
+            ShowDefeatPopup();
+            return;
+        }
+        d.Money -= cost;
+        GameManager.Save();
+        Time.timeScale = 1f;
+        GamePopup.Instance.Hide();
+        GameAudio.Play("loading");
+        int restoreLevel = Mathf.Clamp(d.CurrentLevel > 0 ? d.CurrentLevel : d.BattleStartLevel, 1, MaxLevels);
+        d.BattleStartHomeMode = true;
+        d.BattleStartLevel = restoreLevel;
+        GameData.instance?.RestoreBattleSessionSnapshot();
+        _defeatShown = false;
+        _transitioning = false;
+        _level = restoreLevel;
+        _gangsCleared = 0;
+        _clearedFirms.Clear();
+        _gangsRequired = GangsPerLevel[Mathf.Clamp(_level - 1, 0, MaxLevels - 1)];
+        BattleManager.instance?.StopBattleLoop();
+        GameManager.instance?.RetryLastBattleSession(true);
     }
 
     /// <summary>

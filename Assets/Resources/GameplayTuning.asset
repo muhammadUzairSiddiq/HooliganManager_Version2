@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2dc9db21c72099247a0e88ea3928cb12, type: 3}
   m_Name: GameplayTuning
   m_EditorClassIdentifier: 
-  characterScale: 1.5
-  attackInterval: 1.5
+  characterScale: 2.25
+  attackInterval: 0.75
   impactDelay: 0.28
   playerDamageMultiplier: 0.85
   turnSpeed: 420
@@ -30,7 +30,7 @@ MonoBehaviour:
   - 0.95
   - 1.05
   - 1.15
-  explorationHeight: 30
+  explorationHeight: 32
   combatHeight: 24
   cameraPitch: 54
   cameraFov: 54

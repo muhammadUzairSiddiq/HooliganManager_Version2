@@ -80,14 +80,11 @@ public sealed class CityActionSystem : MonoBehaviour
         var crew=SelectedCrew();
         if(crew.Length==0){Feedback("SELECT A CREW MEMBER FIRST");return;}
         npc.PauseForConversation(true,crew[0].transform.position);
-        GamePopup.Instance.Show(npc.DisplayName.ToUpperInvariant(),
-            "This civilian has stopped and is facing your crew.\nChoose how to handle them.",
-            ()=>npc.PauseForConversation(false,crew[0].transform.position),
-            new GamePopup.Option("TALK",new Color(.12f,.62f,.88f),()=>npc.Talk()),
-            new GamePopup.Option("ASK FOR MONEY",new Color(.80f,.58f,.12f),()=>AskForMoney(npc,crew)),
-            new GamePopup.Option("ROB BY FORCE",LandscapeUI.Red,()=>StartCoroutine(StreetFight(npc,crew,false))),
-            new GamePopup.Option("ASK TO JOIN",LandscapeUI.Green,()=>AskToJoin(npc,crew)),
-            new GamePopup.Option("KILL",new Color(.55f,.08f,.10f),()=>StartCoroutine(StreetFight(npc,crew,true))));
+        WorldChoiceBar.Present(npc.transform,npc.DisplayName,
+            ("TALK",new Color(.12f,.62f,.88f),()=>npc.Talk()),
+            ("MONEY",new Color(.80f,.58f,.12f),()=>AskForMoney(npc,crew)),
+            ("JOIN",LandscapeUI.Green,()=>AskToJoin(npc,crew)),
+            ("ROB",LandscapeUI.Red,()=>StartCoroutine(StreetFight(npc,crew,false))));
     }
 
     void AskForMoney(SocialNpc npc,AgentController[] crew)
@@ -270,14 +267,13 @@ public sealed class CityActionSystem : MonoBehaviour
         var d=GameManager.Data;
         int incomeReady=FindObjectsByType<TerritoryControlPoint>(FindObjectsSortMode.None).Count(t=>t&&t.CanCollectIncome);
         int sabotageReady=sabotageTargets.Count(t=>t&&!t.Complete);
-        GamePopup.Instance.Show("STREET ACTIONS",
-            "Choose a meaningful action. Cash actions raise risk; transport saves stamina; sabotage changes the mission map.\n\n"+
-            $"Income ready: {incomeReady}   ·   Rival vehicles: {sabotageReady}   ·   Police heat: {d?.PoliceHeat??0}/10",
-            new GamePopup.Option("SHAKE DOWN",new Color(.75f,.36f,.12f),ShakeDownNearest),
-            new GamePopup.Option("COLLECT INCOME",LandscapeUI.Green,CollectNearestIncome),
-            new GamePopup.Option("USE TAXI",new Color(.10f,.68f,.88f),UseTaxi),
-            new GamePopup.Option("SABOTAGE VEHICLE",LandscapeUI.Red,SabotageNearest),
-            new GamePopup.Option("CLOSE",LandscapeUI.PanelColor,null));
+        var crew=SelectedCrew();
+        Transform anchor=crew.Length>0?crew[0].transform:transform;
+        WorldChoiceBar.Present(anchor,"STREET",
+            ("SHAKE DOWN",new Color(.75f,.36f,.12f),ShakeDownNearest),
+            ("INCOME",LandscapeUI.Green,CollectNearestIncome),
+            ("TAXI",new Color(.10f,.68f,.88f),UseTaxi),
+            ("SABOTAGE",LandscapeUI.Red,SabotageNearest));
     }
 
     public void FocusNearestTaxi()

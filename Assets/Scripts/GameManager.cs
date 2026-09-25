@@ -355,7 +355,7 @@ public class GameManager : MonoBehaviour
 
         if (wasHome)
         {
-            ReloadHomeTerritory("TRY AGAIN", "Loading your last save…");
+            ReloadHomeTerritory("REVIVE", "Restoring the last checkpoint at headquarters…");
             return;
         }
 

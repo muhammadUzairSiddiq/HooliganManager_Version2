@@ -103,6 +103,31 @@ public sealed class CityGameplay : MonoBehaviour
         }
         yield return null;
         CityZoneClearance.Resolve();
+        PlaceRecruitButton();
+        PlaceRecoveryWard();
+    }
+
+    void PlaceRecruitButton()
+    {
+        foreach (var old in FindObjectsByType<RecruitArea>(FindObjectsSortMode.None))
+            if (old) Destroy(old.gameObject);
+        Vector3 point = ReachableApproach(Home, Home + new Vector3(12f, 0f, 8f));
+        var marker = new GameObject("RECRUITMENT");
+        marker.transform.position = point;
+        marker.AddComponent<RecruitmentPin>().Point = point;
+    }
+
+    void PlaceRecoveryWard()
+    {
+        if (Locations == null || Locations.Length < 5) return;
+        Vector3 hospital = Locations[4];
+        Vector3 point = ReachableApproach(Home, hospital + new Vector3(16f, 0f, 10f));
+        if (Vector3.Distance(point, hospital) < 8f)
+            point = ReachableApproach(Home, hospital + new Vector3(-16f, 0f, 8f));
+        var marker = new GameObject("RECOVERY WARD");
+        marker.transform.position = point;
+        marker.AddComponent<RecoveryWardPin>().Point = point;
+        if (!GetComponent<SquadBoard>()) gameObject.AddComponent<SquadBoard>();
     }
 
     void HideLegacyCameraControls()
@@ -243,7 +268,10 @@ public sealed class CityGameplay : MonoBehaviour
     void Snap(int index,CityLandmarks.Spot spot,string name)
     {
         if(index<0||index>=Locations.Length)return;
-        Locations[index]=spot.Point;
+        // Authored landmark pivots are often inside a building or on a detached
+        // decorative NavMesh island. Always expose the nearest point the crew
+        // can actually reach from headquarters.
+        Locations[index]=ReachableApproach(Home,spot.Point);
         if(!string.IsNullOrEmpty(name))LocationNames[index]=name;
     }
 
@@ -299,6 +327,7 @@ public sealed class CityGameplay : MonoBehaviour
             }
         }
         CityZoneClearance.Resolve();
+        BattleManager.instance?.FillEmptyTurfs();
     }
 
     int LocationIndexFor(string zone)
@@ -318,17 +347,27 @@ public sealed class CityGameplay : MonoBehaviour
     public static Vector3 ReachableApproach(Vector3 origin,Vector3 destination)
     {
         var path=new NavMeshPath();
-        for(int ring=0;ring<=8;ring++)
-        for(int direction=0;direction<(ring==0?1:16);direction++)
+        Vector3 best=origin;
+        float bestDistance=(destination-origin).sqrMagnitude;
+        bool found=false;
+        for(int ring=0;ring<=48;ring++)
+        for(int direction=0;direction<(ring==0?1:24);direction++)
         {
-            float angle=direction*Mathf.PI/8;
-            var candidate=destination+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*ring*8;
-            if(NavMesh.SamplePosition(candidate,out var hit,5,NavMesh.AllAreas) &&
+            float angle=direction*Mathf.PI*2f/24f;
+            var candidate=destination+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*ring*14f;
+            if(NavMesh.SamplePosition(candidate,out var hit,8f,NavMesh.AllAreas) &&
                 NavMesh.CalculatePath(origin,hit.position,NavMesh.AllAreas,path) && path.status==NavMeshPathStatus.PathComplete)
-                return hit.position;
+            {
+                float distance=(hit.position-destination).sqrMagnitude;
+                if(distance<bestDistance){bestDistance=distance;best=hit.position;found=true;}
+                // The first reachable ring is already the closest practical
+                // street band; finish it, then return without scanning the city.
+                if(ring==0)return hit.position;
+            }
+            if(direction==(ring==0?0:23)&&found)return best;
         }
-        Debug.LogError("No reachable city approach near "+destination);
-        return destination;
+        Debug.LogWarning("No connected city approach near "+destination+"; using headquarters fallback.");
+        return origin;
     }
     void BuildCameraPanel()
     {
@@ -336,14 +375,28 @@ public sealed class CityGameplay : MonoBehaviour
         LandscapeUI.Text("Heading",cameraPanel.transform,"TACTICAL CAMERA",22,14,270,36,24,null,true);
         float fov=PlayerPrefs.GetFloat("CityCameraFov",65),height=PlayerPrefs.GetFloat("CityCameraHeight",65),pitch=PlayerPrefs.GetFloat("CityCameraPitch",65),yaw=PlayerPrefs.GetFloat("CityCameraYaw",45);
         SliderRow(cameraPanel.transform,"FIELD OF VIEW",65,45,85,fov,v=>{fov=v;Apply();});
-        SliderRow(cameraPanel.transform,"HEIGHT",135,35,180,height,v=>{height=v;Apply();});
+        SliderRow(cameraPanel.transform,"HEIGHT",135,18,120,height,v=>{height=v;Apply();});
         SliderRow(cameraPanel.transform,"ANGLE",205,50,85,pitch,v=>{pitch=v;Apply();});
         SliderRow(cameraPanel.transform,"360 ROTATE",275,0,360,yaw,v=>{yaw=v;Apply();});
-        LandscapeUI.Button("Rotate45",cameraPanel.transform,"ROTATE 45",20,365,145,48).onClick.AddListener(()=>{yaw=Mathf.Repeat(yaw+45,360);Apply();});
+        LandscapeUI.Button("ResetCamera",cameraPanel.transform,"RESET",20,365,145,48).onClick.AddListener(()=>
+        {
+            var tune=GameplayTuning.Current;
+            fov=tune.cameraFov; height=tune.explorationHeight; pitch=tune.cameraPitch; yaw=45f;
+            Apply();
+            SetSlider("FIELD OF VIEW", fov);
+            SetSlider("HEIGHT", height);
+            SetSlider("ANGLE", pitch);
+            SetSlider("360 ROTATE", yaw);
+        });
         LandscapeUI.Button("Center",cameraPanel.transform,"RECENTRE",182,365,145,48).onClick.AddListener(()=>CameraPanTouchOnly.Instance?.CenterOnSelection());
         LandscapeUI.Button("Close",cameraPanel.transform,"DONE",20,425,307,48).onClick.AddListener(()=>{PlayerPrefs.Save();cameraPanel.SetActive(false);});
         cameraPanel.SetActive(false);
         void Apply()=>CameraPanTouchOnly.Instance?.ConfigureCity(fov,height,pitch,yaw);
+        void SetSlider(string name,float value)
+        {
+            var slider=cameraPanel.transform.Find(name+" Slider")?.GetComponent<UnityEngine.UI.Slider>();
+            if(slider)slider.value=value;
+        }
     }
     public void ToggleCameraSettings(){if(cameraPanel)cameraPanel.SetActive(!cameraPanel.activeSelf);}
     public void ShowIntelReport()
@@ -371,10 +424,31 @@ public sealed class CityGameplay : MonoBehaviour
         for(int i=0;i<LocationNames.Length;i++)
         {
             int location=i;
-            LandscapeUI.Button("Location"+i,districtPanel.transform,LocationNames[i],20,58+i*49,390,44).onClick.AddListener(()=>OpenLocation(location));
+            LandscapeUI.Button("Location"+i,districtPanel.transform,LocationNames[i],20,58+i*49,390,44).onClick.AddListener(()=>SendSquadTo(location));
         }
         LandscapeUI.Button("CloseDistrict",districtPanel.transform,"CLOSE",20,510,390,44).onClick.AddListener(()=>districtPanel.SetActive(false));
         districtPanel.SetActive(false);
+    }
+
+    public void ToggleDestinations()
+    {
+        if(districtPanel)districtPanel.SetActive(!districtPanel.activeSelf);
+    }
+
+    void SendSquadTo(int index)
+    {
+        if(districtPanel)districtPanel.SetActive(false);
+        if(Locations==null||index<0||index>=Locations.Length)return;
+        var selected=AgentSelectionManager.instance;
+        if(selected==null||selected.SelectedAgents==null||selected.SelectedAgents.Count==0)
+        {
+            PostEvent("SELECT THE CREW FIRST");
+            BattleUIController.instance?.ShowAlert("SELECT THE CREW FIRST",1.4f);
+            return;
+        }
+        selected.CommandSelectedMoveTo(Locations[index]);
+        CameraPanTouchOnly.Instance?.FocusOn(Locations[index]);
+        PostEvent("MOVING TO "+LocationNames[index]);
     }
 
     void BuildLocationMarker(Transform marker,int index)
@@ -388,6 +462,18 @@ public sealed class CityGameplay : MonoBehaviour
         if(Locations==null || index<0 || index>=Locations.Length)return;
         districtPanel.SetActive(false);
         CameraPanTouchOnly.Instance?.FocusOn(Locations[index]);
+        bool major=HomeMode && (index==0 || index==1 || index==3 || index==4);
+        if(!major && index!=2)
+        {
+            var marker=GameObject.Find(LocationNames[index]);
+            if(marker)
+            {
+                int place=index;
+                WorldChoiceBar.Present(marker.transform,LocationNames[index],
+                    ("MOVE",LandscapeUI.Green,()=>AgentSelectionManager.instance?.CommandSelectedMoveTo(Locations[place])));
+                return;
+            }
+        }
         var options=new System.Collections.Generic.List<GamePopup.Option>();
         options.Add(new GamePopup.Option("MOVE SELECTED",LandscapeUI.Green,()=>AgentSelectionManager.instance?.CommandSelectedMoveTo(Locations[index])));
         if(HomeMode && index==0)
@@ -402,7 +488,7 @@ public sealed class CityGameplay : MonoBehaviour
             return;
         }
         if(HomeMode && index==3)options.Add(new GamePopup.Option("TRAIN SQUAD - 300",LandscapeUI.Green,()=>Service(index,300)));
-        if(HomeMode && index==4)options.Add(new GamePopup.Option("RECOVER ALL - " + GameplayTuning.Current.recoveryCost + " EACH",LandscapeUI.Green,()=>Service(index,GameplayTuning.Current.recoveryCost)));
+        if(HomeMode && index==4)options.Add(new GamePopup.Option("RECOVERY WARD",LandscapeUI.Green,()=>GetComponent<SquadBoard>()?.ShowWard()));
         if(!HomeMode && index>0)options.Add(new GamePopup.Option("SECURE THIS AREA",LandscapeUI.Green,CaptureNearest));
         options.Add(new GamePopup.Option("CLOSE",LandscapeUI.PanelColor,null));
         string description=HomeMode

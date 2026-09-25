@@ -96,7 +96,25 @@ public class LivePoliceSystem : MonoBehaviour
     /// </summary>
     public void NotifyKill()
     {
-        // Intentionally aggregated at fight completion.
+        if (BattleManager.instance == null) return;
+        AddHeat(1, "RIVAL DOWN - POLICE HEAT +1");
+    }
+
+    public void NotifyFightStarted()
+    {
+        AddHeat(1, "FIGHT STARTED - POLICE HEAT +1");
+    }
+
+    void AddHeat(int amount, string feed)
+    {
+        if (amount <= 0 || _state == PoliceState.BribedOff) return;
+        int before = _heat;
+        _heat = Mathf.Min(maxHeat, _heat + amount);
+        if (_heat == before) return;
+        var data = GameManager.Data;
+        if (data != null) { data.PoliceHeat = _heat; GameManager.Save(); }
+        UpdateHeatBar();
+        CityGameplay.Instance?.PostEvent(feed);
     }
 
     /// <summary>Called when a rival firm wipe finishes — flush deferred police arrival.</summary>
@@ -207,6 +225,7 @@ public class LivePoliceSystem : MonoBehaviour
             Vector3 pos = spline.GetPointAtDistance(startDist);
 
             var car = Instantiate(prefab, pos, Quaternion.identity);
+            car.transform.localScale *= 2f;
             car.name = "PolicePatrolCar_" + _patrolCars.Count;
             var chaser = car.GetComponent<PoliceCarChaser>() ?? car.AddComponent<PoliceCarChaser>();
             // Prefab may serialize an old offset; force nose-along-travel.
@@ -238,8 +257,6 @@ public class LivePoliceSystem : MonoBehaviour
 
         _trouble.Clear();
         _trouble.AddRange(FindFightingGroup());
-        HoldTrouble(true);
-        ShowSkip(true);
 
         Vector3 playerPos = TroubleCentroid();
         PoliceCarChaser nearest = FindNearestPatrolCar(playerPos);
@@ -248,7 +265,6 @@ public class LivePoliceSystem : MonoBehaviour
         {
             _responseCar = nearest.gameObject;
             _patrolCars.Remove(nearest);
-            nearest.StopAndIdle();
         }
         else
         {
@@ -262,24 +278,24 @@ public class LivePoliceSystem : MonoBehaviour
         if (NavMesh.SamplePosition(carPark, out var carHit, 60f, roadMask))
             carPark = carHit.position;
 
-        if (nearest != null && !_skipCutscene)
-            yield return StartCoroutine(PoliceCarCutscene(nearest, carPark));
-        if (_skipCutscene && nearest != null)
-            nearest.ParkAt(carPark, forward);
-        else if (nearest == null && _responseCar != null)
+        if (nearest != null)
+            StartCoroutine(DriveCarWithoutCamera(nearest, carPark));
+        else if (_responseCar != null)
             _responseCar.transform.position = carPark;
 
         SpawnOfficersInFrontOfPlayer(playerPos, forward);
-        if (!_skipCutscene)
-            yield return WaitOrSkip(0.35f);
-
-        ShowSkip(false);
-        if (CameraPanTouchOnly.Instance != null)
-            CameraPanTouchOnly.Instance.enabled = true;
-        CameraPanTouchOnly.Instance?.FocusOn(playerPos);
         SetVignette(true);
         _state = PoliceState.AwaitingChoice;
         ShowPopup();
+        yield break;
+    }
+
+    IEnumerator DriveCarWithoutCamera(PoliceCarChaser car, Vector3 destination)
+    {
+        if (car == null) yield break;
+        var drive = car.DriveArrival(destination);
+        while (drive.MoveNext())
+            yield return drive.Current;
     }
 
     private IEnumerator WaitOrSkip(float seconds)
@@ -420,6 +436,7 @@ public class LivePoliceSystem : MonoBehaviour
             origin = hit.position;
 
         _responseCar = Instantiate(prefab, origin, Quaternion.identity);
+        _responseCar.transform.localScale *= 2f;
         var chaser = _responseCar.AddComponent<PoliceCarChaser>();
         chaser.yawOffsetDegrees = -90f;
         chaser.Init();
@@ -787,21 +804,20 @@ public class LivePoliceSystem : MonoBehaviour
 
     private void ShowPopup()
     {
-        if (_popupRoot == null) return;
-        _popupRoot.SetActive(true);
-        if (_popupTitle != null) _popupTitle.text = "POLICE!";
-        if (_popupBody != null)
-            _popupBody.text = "Police are on the group that was fighting. Bribe them off, or that group stands and fights. Everyone else keeps moving.";
-        if (_fightLabel != null) _fightLabel.text = "STAND & FIGHT";
-        if (_bribeBtn != null) _bribeBtn.interactable = true;
-        if (_bribeLabel != null) _bribeLabel.text = $"BRIBE (\u00A3{BribeCost():n0})";
-
+        HidePopup();
+        int cost = BribeCost();
         var pd = GameData.instance != null ? GameData.instance.PlayerData : null;
-        if (pd != null && pd.Money < BribeCost())
-        {
-            if (_bribeBtn != null) _bribeBtn.interactable = false;
-            if (_bribeLabel != null) _bribeLabel.text = "NOT ENOUGH CASH";
-        }
+        bool canPay = pd != null && pd.Money >= cost;
+        GamePopup.Instance.Show(
+            "POLICE",
+            "Police are on the group that was fighting.\n\nStand and fight, or pay them to leave.\nThe rest of the city keeps moving.",
+            () => { if (_state == PoliceState.AwaitingChoice) ShowPopup(); },
+            new GamePopup.Option("STAND & FIGHT", new Color(0.7f, 0.15f, 0.15f), OnFight),
+            new GamePopup.Option(canPay ? "BRIBE  £" + cost.ToString("N0") : "NEED £" + cost.ToString("N0"), new Color(0.15f, 0.4f, 0.7f), () =>
+            {
+                if (!canPay) ShowPopup();
+                else OnBribe();
+            }));
     }
 
     private void HidePopup()

@@ -282,8 +282,7 @@ public class BattleManager : MonoBehaviour
 
     private void SpawnRecruitAreas(System.Collections.Generic.List<Vector3> avoidCenters)
     {
-        foreach (var old in FindObjectsByType<RecruitArea>(FindObjectsSortMode.None))
-            if (old != null) Destroy(old.gameObject);
+        // Recruit pads are placed by the city next to the start and at other venues.
     }
 
     private void SpawnAmbientControlPoints()
@@ -926,7 +925,8 @@ public class BattleManager : MonoBehaviour
                 {
                     Transform pt = enemySpawnRoot.GetChild(p);
                     Vector3 carPos = pt.TransformPoint(PoliceManager.instance.policeCarOffset);
-                    Instantiate(PoliceManager.instance.policeCarPrefab, carPos, pt.rotation);
+                    var car = Instantiate(PoliceManager.instance.policeCarPrefab, carPos, pt.rotation);
+                    if (car) car.transform.localScale *= 2f;
                 }
             }
             else if (enemySpawnRoot != null)
@@ -1063,6 +1063,7 @@ public class BattleManager : MonoBehaviour
                 SpawnFirmGroup(order, center, facing, pocket, hpMul, dmgMul, false);
         }
         CityZoneClearance.Resolve();
+        FillEmptyTurfs();
         SpawnRecruitAreas(used);
     }
 
@@ -1083,6 +1084,7 @@ public class BattleManager : MonoBehaviour
             var ec = SpawnOneRival(order, pos, hp, dmg);
             if (ec == null) continue;
             ec.primaryColor = color;
+            CrewKit.PaintShirt(ec.transform, color);
             ec.transform.forward = facing.sqrMagnitude > 0.01f ? facing : Vector3.forward;
             if (ec.healthBar != null)
             {
@@ -1096,6 +1098,34 @@ public class BattleManager : MonoBehaviour
         var areaGo = new GameObject("GangRing_" + order.firmName);
         var gangArea = areaGo.AddComponent<GangArea>();
         gangArea.Setup(order.firmName, center, gangPatrolRadius, color);
+    }
+
+    /// <summary>A matchday pocket: real fighters the player can meet without moving the camera.</summary>
+    public EnemyController SpawnMatchdayFighter(Vector3 pos, string firm, Color color, float hp, float dmg,
+                                                 MatchdayUnitRole role, string groupName = null)
+    {
+        if (enemyAgentPrefab == null || string.IsNullOrEmpty(firm)) return null;
+        if (NavMesh.SamplePosition(pos, out NavMeshHit hit, 10f, NavMesh.AllAreas))
+            pos = hit.position;
+        var go = RivalBodyPool.Take(enemyAgentPrefab, pos, Quaternion.identity);
+        if (go == null) return null;
+        var ec = go.GetComponent<EnemyController>();
+        if (ec == null) return null;
+        ec.StopAllCoroutines();
+        ec.patrolRadius = 4.5f;
+        ec.detectionRadius = firm == "POLICE" ? 16f : 8f;
+        ec.Initialise(hp, dmg, 2.1f, 1f);
+        ec.firmName = firm;
+        ec.isHostile = false;
+        ec.primaryColor = color;
+        ec.ConfigureMatchdayRole(role, groupName ?? firm);
+        CrewKit.PaintShirt(ec.transform, color);
+        UnitAffiliationMarker.Attach(ec.transform, color, 1.28f, false);
+        ec.SetGangCenter(pos);
+        ec.SetCinematicIdle(false);
+        if (!_enemyAgents.Contains(ec)) _enemyAgents.Add(ec);
+        if (ec.GetComponent<MatchdayMarch>() == null) ec.gameObject.AddComponent<MatchdayMarch>();
+        return ec;
     }
 
     private EnemyController SpawnOneRival(RivalGrowthSystem.SpawnOrder order, Vector3 pos, float hp, float dmg)
@@ -1209,7 +1239,7 @@ public class BattleManager : MonoBehaviour
             bool hasColor = bot != null && ColorUtility.TryParseHtmlString(bot.primaryColor, out gangColor);
             if (!hasColor)
                 gangColor = GangPalette[g % GangPalette.Length];
-            gangColor = ShiftHue(gangColor, g * 0.12f);
+            gangColor = GangPalette[g % GangPalette.Length];
 
             var gangGroup = new System.Collections.Generic.List<EnemyController>();
 
@@ -1235,6 +1265,7 @@ public class BattleManager : MonoBehaviour
                 ec.transform.forward = facing.sqrMagnitude > 0.01f ? facing : Vector3.forward;
 
                 ec.primaryColor = gangColor;
+                CrewKit.PaintShirt(ec.transform, gangColor);
                 if (ec.healthBar != null)
                 {
                     ec.healthBar.enemyColor = gangColor;
@@ -1254,8 +1285,56 @@ public class BattleManager : MonoBehaviour
         }
 
         CityZoneClearance.Resolve();
+        FillEmptyTurfs();
         // Recruitment Center after gangs so it can avoid their turf.
         SpawnRecruitAreas(usedCenters);
+    }
+
+    /// <summary>Keeps each named turf occupied. Rings were surviving after members were pushed off them.</summary>
+    public void FillEmptyTurfs()
+    {
+        if (enemyAgentPrefab == null) return;
+        foreach (var gang in FindObjectsByType<GangArea>(FindObjectsSortMode.None))
+        {
+            if (!gang || string.IsNullOrEmpty(gang.GangName)) continue;
+            Vector3 center = gang.transform.position;
+            var members = new List<EnemyController>();
+            foreach (var enemy in _enemyAgents)
+                if (enemy && enemy.IsAlive && !enemy.IsAmbientMatchdayUnit && enemy.firmName == gang.GangName) members.Add(enemy);
+            for (int i = 0; i < members.Count; i++)
+            {
+                if (FlatDistance(members[i].transform.position, center) <= gang.Radius * 0.8f) continue;
+                PlaceOnTurf(members[i], center, i);
+            }
+            int need = Mathf.Max(0, 3 - members.Count);
+            if (need == 0) continue;
+            var order = new RivalGrowthSystem.SpawnOrder { firmName = gang.GangName, count = 3 };
+            for (int n = 0; n < need; n++)
+            {
+                var ec = SpawnOneRival(order, center, 70f, 8f);
+                if (!ec) continue;
+                ec.primaryColor = gang.ZoneColor;
+                CrewKit.PaintShirt(ec.transform, gang.ZoneColor);
+                PlaceOnTurf(ec, center, members.Count + n);
+            }
+        }
+    }
+
+    static float FlatDistance(Vector3 a, Vector3 b)
+    {
+        a.y = 0f; b.y = 0f;
+        return Vector3.Distance(a, b);
+    }
+
+    static void PlaceOnTurf(EnemyController enemy, Vector3 center, int index)
+    {
+        float angle = index * 120f * Mathf.Deg2Rad;
+        Vector3 pos = center + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.3f;
+        if (NavMesh.SamplePosition(pos, out var hit, 6f, NavMesh.AllAreas)) pos = hit.position;
+        var nav = enemy.GetComponent<NavMeshAgent>();
+        if (nav && nav.enabled && nav.isOnNavMesh) nav.Warp(pos);
+        else enemy.transform.position = pos;
+        enemy.SetGangCenter(center);
     }
 
     /// <summary>
@@ -1519,6 +1598,11 @@ public class BattleManager : MonoBehaviour
         GameManager.Save();
         GameAudio.Play("injury");
         InjuryNotifications.Report(agent.Data);
+        if (AlivePlayerCount() == 0)
+        {
+            LevelSystem.EnsureExists();
+            LevelSystem.Instance?.OnPlayerDefeated();
+        }
         BroadcastCounts();
         // Wipe detection is handled inside RunRound's per-frame check.
         // Do NOT set BattleActive = false here; doing so would bypass _roundEndedByWipe.
@@ -1526,6 +1610,13 @@ public class BattleManager : MonoBehaviour
 
     public void OnEnemyDied(EnemyController enemy)
     {
+        if (enemy != null && enemy.IsAmbientMatchdayUnit)
+        {
+            _enemyAgents.Remove(enemy);
+            BroadcastCounts();
+            RivalBodyPool.Release(enemy.gameObject);
+            return;
+        }
         _enemiesKilled++;
         BroadcastCounts();
 
@@ -1534,14 +1625,23 @@ public class BattleManager : MonoBehaviour
         sessionReputationGained += 1;
 
         // Heat only rises on rival kills (not police).
-        if (enemy != null && enemy.firmName != "POLICE")
-            LivePoliceSystem.Instance?.NotifyKill();
+        if (enemy != null && enemy.firmName != "POLICE" && enemy.firmName != "HOME SUPPORT")
+        {
+            var hitter = enemy.LastHitter;
+            if (hitter && hitter.Data != null && hitter.Data.GrantKnockout())
+            {
+                hitter.ApplyGrowth();
+                CityGameplay.Instance?.PostEvent(hitter.Data.AgentName.ToUpperInvariant() + "  LV " + hitter.Data.FightLevel + "  —  TOUGHER");
+            }
+            bool slipped = hitter && hitter.Data != null && hitter.Data.Intelligence >= 5 && Random.value < 0.5f;
+            if (!slipped) LivePoliceSystem.Instance?.NotifyKill();
+        }
 
-        if (enemy != null && !string.IsNullOrEmpty(enemy.firmName) && enemy.firmName != "POLICE")
+        if (enemy != null && !string.IsNullOrEmpty(enemy.firmName) && enemy.firmName != "POLICE" && enemy.firmName != "HOME SUPPORT")
         {
             RivalGrowthSystem.NoteMemberDown(GameData.instance?.PlayerData, enemy.firmName);
             var remaining = _enemyAgents.Count(e =>
-                e != null && e.IsAlive && e.firmName == enemy.firmName);
+                e != null && e.IsAlive && !e.IsAmbientMatchdayUnit && e.firmName == enemy.firmName);
 
             if (remaining == 0)
             {
@@ -1638,7 +1738,7 @@ public class BattleManager : MonoBehaviour
         float minDist = float.MaxValue;
         foreach (var e in _enemyAgents)
         {
-            if (e == null || !e.IsAlive || !e.isHostile) continue;
+            if (e == null || !e.IsAlive || !e.isHostile || e.IsHomeMatchdaySupporter) continue;
             float d = Vector3.Distance(from, e.transform.position);
             if (d < minDist) { minDist = d; nearest = e; }
         }
@@ -1806,6 +1906,7 @@ public class BattleManager : MonoBehaviour
     public void AlertNearbyCrew(AgentController source, float radius = 8f)
     {
         if (source == null) return;
+        radius += source.Data != null ? source.Data.Intelligence * 0.6f : 0f;
         var enemy = GetNearestEnemy(source.transform.position);
         if (enemy == null || !enemy.IsAlive) return;
         float limit = radius + 6f;
@@ -1844,6 +1945,10 @@ public class BattleManager : MonoBehaviour
                 if (a != null && a.IsAlive && !a.IsActivityLocked) squad.Add(a);
         }
         if (squad.Count == 0) return;
+        bool alreadyFighting = false;
+        foreach (var enemy in gangMembers)
+            if (enemy.isHostile) { alreadyFighting = true; break; }
+        if (!alreadyFighting) LivePoliceSystem.Instance?.NotifyFightStarted();
 
         float pace = 1f / (1.65f + 0.2f * Mathf.Max(0, gangMembers.Count - 1));
         pace = Mathf.Clamp(pace, 0.22f, 0.62f);
@@ -1937,7 +2042,8 @@ public class BattleManager : MonoBehaviour
     public int AliveEnemyCount()
     {
         int c = 0;
-        foreach (var e in _enemyAgents) if (e != null && e.IsAlive) c++;
+        foreach (var e in _enemyAgents)
+            if (e != null && e.IsAlive && !e.IsAmbientMatchdayUnit) c++;
         return c;
     }
 

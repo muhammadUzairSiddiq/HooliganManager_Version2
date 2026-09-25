@@ -3,6 +3,15 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 
+/// <summary>Separates temporary matchday crowds from campaign enemies.</summary>
+public enum MatchdayUnitRole
+{
+    None,
+    HomeSupporter,
+    RivalSupporter,
+    Police
+}
+
 /// <summary>
 /// Controls a single enemy agent (rival hooligan or riot police) in 3D.
 /// Fully autonomous — always hunts the nearest alive player agent.
@@ -29,6 +38,7 @@ public class EnemyController : MonoBehaviour
     public float AttackRange = 1.0f;
 
     public bool IsAlive => CurrentHp > 0;
+    public AgentController LastHitter { get; private set; }
 
     // ── Inspector references ──────────────────────────────────────────────
     [Header("References")]
@@ -83,6 +93,7 @@ public class EnemyController : MonoBehaviour
         else if (_targetEnemy != null) _targetEnemy.TakeDamage(amount, this);
     }
     private float              _attackTimer;
+    int _hitsTaken;
     private float              _scanTimer;
 
     private const float SCAN_INTERVAL = 0.6f;
@@ -107,6 +118,17 @@ public class EnemyController : MonoBehaviour
     public Color primaryColor = Color.blue;
     public bool isHostile = false;
     public Transform defenceObjective;
+    public MatchdayUnitRole MatchdayRole { get; private set; }
+    public string MatchdayGroupName { get; private set; }
+
+    public bool IsAmbientMatchdayUnit => MatchdayRole != MatchdayUnitRole.None;
+    public bool IsHomeMatchdaySupporter => MatchdayRole == MatchdayUnitRole.HomeSupporter;
+
+    public void ConfigureMatchdayRole(MatchdayUnitRole role, string groupName)
+    {
+        MatchdayRole = role;
+        MatchdayGroupName = string.IsNullOrWhiteSpace(groupName) ? firmName : groupName;
+    }
 
     // ─────────────────────────────────────────────────────────────────────
 
@@ -114,6 +136,8 @@ public class EnemyController : MonoBehaviour
     {
         // Passive until AttackGang / police fight / damage response flips this on.
         isHostile = false;
+        MatchdayRole = MatchdayUnitRole.None;
+        MatchdayGroupName = null;
         setup(characterPortraitRegistry);
 
         MaxHp       = maxHp;
@@ -184,8 +208,16 @@ public class EnemyController : MonoBehaviour
         GameObject characterPrefab = entry.modelPrefab;
         if (characterPrefab == null) return;
 
+        for (int i = transform.childCount - 1; i >= 0; i--)
+        {
+            var child = transform.GetChild(i);
+            if (child.name == "CrewModel") Destroy(child.gameObject);
+        }
         GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
+        spawnedCharacter.name = "CrewModel";
         GameplayTuning.ScaleModel(spawnedCharacter.transform);
+        Color shirt = firmName == "POLICE" ? new Color(0.15f, 0.35f, 0.95f) : (primaryColor.a > 0.2f ? primaryColor : new Color(0.9f, 0.15f, 0.15f));
+        CrewKit.PaintShirt(spawnedCharacter.transform, shirt);
 
         // Add the Animator component dynamically
         animator = spawnedCharacter.GetComponent<Animator>();
@@ -274,7 +306,11 @@ public class EnemyController : MonoBehaviour
             
             if (isHostile)
             {
-                if (firmName == "POLICE")
+                if (MatchdayRole != MatchdayUnitRole.None)
+                {
+                    UpdateMatchdayTarget();
+                }
+                else if (firmName == "POLICE")
                 {
                     // Cop targeting: find the nearest player or hostile rival gang member
                     MonoBehaviour nearestTarget = null;
@@ -374,24 +410,16 @@ public class EnemyController : MonoBehaviour
         {
             if (!isHostile)
             {
+                // MatchdayMarch owns group movement and formation destinations.
+                if (IsAmbientMatchdayUnit) return;
                 // Passive idle wander around the turf so gangs don't look frozen.
                 if (_nav.enabled)
                 {
                     if (!_nav.pathPending && (!_nav.hasPath || _nav.remainingDistance < 0.4f))
                     {
                         Vector3 center = _gangCenter != Vector3.zero ? _gangCenter : _spawnPosition;
-                        var stadium = CityGameplay.HomeMode ? UnityEngine.Object.FindFirstObjectByType<StadiumMatchdayActivity>() : null;
-                        Vector3 guess;
-                        if (stadium && Random.value < 0.4f)
-                        {
-                            Vector3 approach = stadium.transform.position + (center - stadium.transform.position).normalized * 14f;
-                            guess = Vector3.Lerp(center, approach, 0.65f);
-                        }
-                        else
-                        {
-                            Vector2 r = Random.insideUnitCircle * Mathf.Max(1.5f, patrolRadius * 0.55f);
-                            guess = center + new Vector3(r.x, 0f, r.y);
-                        }
+                        Vector2 r = UnityEngine.Random.insideUnitCircle * Mathf.Max(1.2f, patrolRadius * 0.45f);
+                        Vector3 guess = center + new Vector3(r.x, 0f, r.y);
                         if (UnityEngine.AI.NavMesh.SamplePosition(guess, out var hit, 4f, UnityEngine.AI.NavMesh.AllAreas))
                             _nav.SetDestination(hit.position);
                     }
@@ -438,6 +466,70 @@ public class EnemyController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Matchday actors fight the opposing crowd, not every unit in the scene.
+    /// A rival directly attacked by the player's crew may still defend itself.
+    /// </summary>
+    private void UpdateMatchdayTarget()
+    {
+        if (_targetPlayer != null && _targetPlayer.IsAlive && MatchdayRole == MatchdayUnitRole.RivalSupporter)
+        {
+            if (Vector3.Distance(transform.position, _targetPlayer.transform.position) <= detectionRadius * 1.75f)
+                return;
+            ClearTarget();
+        }
+
+        EnemyController nearest = null;
+        float minDistance = detectionRadius * 1.6f;
+        if (BattleManager.instance != null)
+        {
+            foreach (var candidate in BattleManager.instance.EnemyAgents)
+            {
+                if (!IsMatchdayOpponent(candidate)) continue;
+                float distance = Vector3.Distance(transform.position, candidate.transform.position);
+                if (distance >= minDistance) continue;
+                minDistance = distance;
+                nearest = candidate;
+            }
+        }
+
+        if (nearest != null)
+        {
+            SetTarget(nearest);
+            return;
+        }
+
+        if (MatchdayRole == MatchdayUnitRole.RivalSupporter)
+        {
+            var player = BattleManager.instance?.GetNearestAgent(transform.position);
+            if (player != null && Vector3.Distance(transform.position, player.transform.position) <= detectionRadius)
+            {
+                SetTarget(player);
+                return;
+            }
+        }
+
+        ClearTarget();
+    }
+
+    private bool IsMatchdayOpponent(EnemyController candidate)
+    {
+        if (candidate == null || candidate == this || !candidate.IsAlive || !candidate.gameObject.activeInHierarchy)
+            return false;
+        switch (MatchdayRole)
+        {
+            case MatchdayUnitRole.HomeSupporter:
+                return candidate.MatchdayRole == MatchdayUnitRole.RivalSupporter;
+            case MatchdayUnitRole.RivalSupporter:
+                return candidate.MatchdayRole == MatchdayUnitRole.HomeSupporter;
+            case MatchdayUnitRole.Police:
+                return candidate.MatchdayRole != MatchdayUnitRole.None &&
+                       candidate.MatchdayRole != MatchdayUnitRole.Police && candidate.isHostile;
+            default:
+                return false;
+        }
+    }
+
     // ── Attack ────────────────────────────────────────────────────────────
     private void TryAttack()
     {
@@ -480,9 +572,12 @@ public class EnemyController : MonoBehaviour
         CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount) * Mathf.Clamp(FightPace, 0.2f, 1f));
         healthBar?.SetHealth(CurrentHp, MaxHp);
 
+        if (attacker is AgentController hitter) LastHitter = hitter;
         if (CurrentHp <= 0) { Die(); return; }
 
-        _anim?.PlayHit();
+        _hitsTaken++;
+        if (_hitsTaken % 4 == 0) _anim?.PlayKnockdown();
+        else _anim?.PlayHit();
 
         // Target the attacker!
         if (attacker != null)
@@ -506,7 +601,9 @@ public class EnemyController : MonoBehaviour
         if (BattleManager.instance == null) return;
         foreach (var enemy in BattleManager.instance.EnemyAgents)
         {
-            if (enemy != null && enemy.IsAlive && enemy.firmName == this.firmName)
+            if (enemy != null && enemy.IsAlive && enemy.firmName == this.firmName &&
+                enemy.IsAmbientMatchdayUnit == IsAmbientMatchdayUnit &&
+                (!IsAmbientMatchdayUnit || enemy.MatchdayRole == MatchdayRole))
             {
                 enemy.isHostile = true;
                 enemy.AlertToTarget(attacker);
@@ -520,6 +617,13 @@ public class EnemyController : MonoBehaviour
         SetTarget(attacker);
     }
 
+    public void StandDown()
+    {
+        isHostile = false;
+        ClearTarget();
+        if (_nav != null && _nav.enabled && _nav.isOnNavMesh) _nav.ResetPath();
+    }
+
     private void AlertAlliesNearby(MonoBehaviour attacker)
     {
         if (BattleManager.instance == null) return;
@@ -527,6 +631,9 @@ public class EnemyController : MonoBehaviour
         {
             if (enemy != null && enemy != this && enemy.IsAlive)
             {
+                if (IsAmbientMatchdayUnit &&
+                    (enemy.MatchdayRole != MatchdayRole || enemy.firmName != firmName))
+                    continue;
                 if (Vector3.Distance(transform.position, enemy.transform.position) < 20f)
                 {
                     enemy.AlertToTarget(attacker);
@@ -621,7 +728,9 @@ public class EnemyController : MonoBehaviour
         var kind = firmName == "POLICE" ? MiniMapIconFactory.Kind.Police : MiniMapIconFactory.Kind.Gang;
         MiniMapIconFactory.Register(transform, kind, firmName);
         UnitAffiliationMarker.Attach(transform,
-            firmName == "POLICE" ? new Color(.20f, .55f, 1f, 1f) : new Color(1f, .10f, .08f, 1f), 1.02f, false);
+            firmName == "POLICE" ? new Color(.20f, .55f, 1f, 1f) : primaryColor, 1.28f, false);
+        Color shirt = firmName == "POLICE" ? new Color(0.15f, 0.35f, 0.95f) : primaryColor;
+        CrewKit.PaintShirt(transform, shirt);
     }
 
     private void OnDestroy()

@@ -55,7 +55,8 @@ public class GamePopup : MonoBehaviour
         bool longList=options.Length>3;
         var grid=buttons.GetComponent<GridLayoutGroup>();grid.constraint=GridLayoutGroup.Constraint.FixedColumnCount;
         grid.constraintCount=longList?2:Mathf.Max(1,options.Length);
-        grid.cellSize=new Vector2(longList?438:((892-14*(options.Length-1))/options.Length),68);
+        float optionWidth=longList?681f:(1376f-14f*Mathf.Max(0,options.Length-1))/Mathf.Max(1,options.Length);
+        grid.cellSize=new Vector2(optionWidth,72);
         foreach(var item in options)
         {
             var captured=item;var b=Button("Option_"+item.Label,buttons,item.Label,0,0,grid.cellSize.x,68);
@@ -90,15 +91,15 @@ public class GamePopup : MonoBehaviour
         root=Rect("Modal",frame,0,0,1600,900).gameObject;
         dimmer=Image("Dimmer",root.transform,0,0,1600,900,null,new Color(.04f,.08f,.12f,.44f));dimmer.raycastTarget=true;
         dimmer.gameObject.AddComponent<UiWorldTapBlocker>();
-        dialog=Panel("Dialog",root.transform,284,172,1032,556,true);
-        Image("TitleBand",dialog.transform,24,18,984,78,null,new Color(.01f,.02f,.03f,.52f));
-        accent=Image("Accent",dialog.transform,24,18,984,6,null,Red);
-        title=Text("Title",dialog.transform,"",43,33,880,48,38,Red,true,TextAlignmentOptions.Center);
-        var closeX=Button("CloseX",dialog.transform,"X",952,26,56,52,"red");
+        dialog=Panel("Dialog",root.transform,48,36,1504,828,true);
+        Image("TitleBand",dialog.transform,28,20,1448,96,null,new Color(.01f,.02f,.03f,.52f));
+        accent=Image("Accent",dialog.transform,28,20,1448,8,null,Red);
+        title=Text("Title",dialog.transform,"",48,36,1320,64,46,Red,true,TextAlignmentOptions.Center);
+        var closeX=Button("CloseX",dialog.transform,"X",1416,28,64,60,"red");
         closeX.onClick.AddListener(Hide);
-        body=Text("Body",dialog.transform,"",52,110,928,250,22,White,false,TextAlignmentOptions.Center);
-        body.richText=true;body.overflowMode=TextOverflowModes.Overflow;body.enableWordWrapping=true;body.fontSizeMin=16;
-        scroll=Scroll("Options",dialog.transform,50,372,932,148,grid:true);buttons=scroll.content;
+        body=Text("Body",dialog.transform,"",64,140,1376,400,30,White,false,TextAlignmentOptions.Center);
+        body.richText=true;body.overflowMode=TextOverflowModes.Overflow;body.enableWordWrapping=true;body.fontSizeMin=20;
+        scroll=Scroll("Options",dialog.transform,64,560,1376,230,grid:true);buttons=scroll.content;
         var grid=buttons.gameObject.AddComponent<GridLayoutGroup>();grid.spacing=new Vector2(14,14);grid.padding=new RectOffset(6,6,6,6);
         root.SetActive(false);
     }

@@ -88,12 +88,12 @@ public class CameraPanTouchOnly : MonoBehaviour
         if (_camera == null) _camera = Camera.main;
         if (gameObject.scene.name == "Gameplay")
         {
-            if (!PlayerPrefs.HasKey("HM.CameraProfile.v3"))
+            if (!PlayerPrefs.HasKey("HM.CameraProfile.v6"))
             {
                 PlayerPrefs.SetFloat("CityCameraHeight", GameplayTuning.Current.explorationHeight);
                 PlayerPrefs.SetFloat("CityCameraPitch", GameplayTuning.Current.cameraPitch);
                 PlayerPrefs.SetFloat("CityCameraFov", GameplayTuning.Current.cameraFov);
-                PlayerPrefs.SetInt("HM.CameraProfile.v3", 1);
+                PlayerPrefs.SetInt("HM.CameraProfile.v6", 1);
             }
             camMinHeight=18; camMaxHeight=180; defaultHeight=GameplayTuning.Current.explorationHeight;
             isometricEuler=new Vector3(PlayerPrefs.GetFloat("CityCameraPitch",GameplayTuning.Current.cameraPitch),PlayerPrefs.GetFloat("CityCameraYaw",45),0);

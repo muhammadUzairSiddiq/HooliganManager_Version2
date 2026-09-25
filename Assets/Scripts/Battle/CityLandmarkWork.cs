@@ -112,9 +112,8 @@ public sealed class CityLandmarkWork : MonoBehaviour
         foreach (var member in crew)
         {
             if (!member || !member.IsAlive || member.Data == null) continue;
-            float missing = member.Data.MaxHp - member.CurrentHp;
-            if (missing > 1f) member.HealAmount(missing);
-            member.Data.Stamina = Mathf.Min(100f, member.Data.Stamina + 30f);
+            if (member.Data.MaxStamina < 1f) member.Data.MaxStamina = 100f;
+            member.Data.Stamina = Mathf.Min(member.Data.MaxStamina, member.Data.Stamina + 30f);
             member.PlayStreetPunch();
         }
         node.SetLiveStatus(node.Title + "\nPATCHED UP");
@@ -159,11 +158,8 @@ public sealed class CityLandmarkWork : MonoBehaviour
         for (int i = crew.Count - 1; i >= 0; i--)
         {
             var member = crew[i];
-            if (!member || !member.IsAlive || member.IsSelected)
-            {
-                if (member && member.IsSelected) member.EndJob();
+            if (!member || !member.IsAlive || !member.IsOnLiveJob)
                 crew.RemoveAt(i);
-            }
         }
         if (crew.Count > 0) return true;
         if (node) node.CancelLive("CREW PULLED OFF THE JOB");

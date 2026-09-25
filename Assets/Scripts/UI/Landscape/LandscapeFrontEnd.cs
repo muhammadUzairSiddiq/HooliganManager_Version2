@@ -236,15 +236,17 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
         LayoutSize(support.gameObject, 234, 470);
         Text("SupportTitle", support.transform, "SQUAD SUPPORT", 15, 25, 204, 45, 25, null, true);
         Text("SupportBody", support.transform, "Restore injured and downed members.\n\nImprove squad strength with limited coaching packages.", 15, 85, 204, 190, 22, Muted);
-        Button("Packages", support.transform, "HEALTH / POWER", 15, 290, 204, 60, "green").onClick.AddListener(SquadCare.ShowPackages);
+        Button("Packages", support.transform, "HEALTH / POWER", 15, 290, 204, 44, "green").onClick.AddListener(SquadCare.ShowPackages);
+        Button("Abilities", support.transform, "UPGRADES", 15, 342, 204, 44, "dark").onClick.AddListener(() => { squadFilter = "upgrades"; BuildSquad(); });
         int active = 0, shown = 0;
         if (d.RecruitedAgents != null) foreach (var a in d.RecruitedAgents) if (a != null && a.IsAlive) active++;
         if (rosterSummary) rosterSummary.text = $"{active} ACTIVE MEMBERS   /   {d.PendingFansGain} ARRIVING NEXT MATCHDAY";
         if (d.RecruitedAgents != null) foreach (var agent in d.RecruitedAgents)
         {
             if (agent == null) continue;
-            if (squadFilter == "fallen" && agent.IsAlive) continue;
-            if (squadFilter == "injured" && agent.CurrentHp >= agent.MaxHp) continue;
+            if (squadFilter == "fallen" && !agent.IsDown) continue;
+            if (squadFilter == "injured" && !agent.NeedsCare) continue;
+            if (squadFilter == "upgrades" && agent == null) continue;
             var a = agent;
             var card = Panel("Member_" + a.AgentId, squadContent, 0, 0, 234, 470);
             LayoutSize(card.gameObject, 234, 470);
@@ -253,18 +255,39 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
             Image("Portrait", card.transform, 10, 10, 214, 200, portrait, Color.white, true);
             Text("Name", card.transform, a.AgentName.ToUpper(), 18, 223, 200, 32, 27, null, true);
             Text("Status", card.transform, a.IsAlive ? a.CurrentHp < a.MaxHp ? "RECOVERING" : "MATCH READY" : "FALLEN MEMBER", 18, 260, 200, 25, 17, a.IsAlive ? Green : Red, true);
-            Text("Stats", card.transform, $"STRENGTH   {a.Strength:0}\nSPEED          {a.Speed:0.0}\nHEALTH       {Mathf.Max(0,a.CurrentHp):0} / {a.MaxHp:0}", 18, 300, 200, 88, 20, Muted);
+            Text("Stats", card.transform, $"LV {a.FightLevel}   WINS {a.FightWins}\nSTR {a.Strength:0}  SPD {a.Speed:0.0}  INT {a.Intelligence}\nHP {Mathf.Max(0,a.CurrentHp):0}/{a.MaxHp:0}", 18, 292, 200, 96, 18, Muted);
             Progress(card.transform, 18, 394, 198, a.MaxHp > 0 ? a.CurrentHp / a.MaxHp : 0, a.IsAlive ? Green : Red);
-            int reviveCost = GameplayTuning.Current.recoveryCost;
-            var b = Button("MemberAction", card.transform, a.CurrentHp >= a.MaxHp ? "VIEW MEMBER" : $"RECOVER · £{reviveCost:N0}", 14, 420, 206, 40, a.IsAlive ? "dark" : "green");
-            b.interactable = a.CurrentHp >= a.MaxHp || d.Money >= reviveCost;
+            int reviveCost = SquadCare.RecoveryCost(a, d);
+            bool upgrading = squadFilter == "upgrades";
+            var b = Button("MemberAction", card.transform, upgrading ? "TRAIN" : a.CurrentHp >= a.MaxHp ? "VIEW MEMBER" : $"RECOVER · £{reviveCost:N0}", 14, 420, 206, 40, a.IsAlive ? "dark" : "green");
+            b.interactable = upgrading || a.CurrentHp >= a.MaxHp || d.Money >= reviveCost;
             b.onClick.AddListener(() =>
             {
-                if (a.CurrentHp < a.MaxHp) { if (SquadCare.Recover(a, reviveCost)) BuildSquad(); return; }
+                if (upgrading) { ShowUpgrades(a); return; }
+                if (a.CurrentHp < a.MaxHp) { if (SquadCare.Recover(a, SquadCare.RecoveryCost(a, GameManager.Data))) BuildSquad(); return; }
                 GamePopup.Instance.Show(a.AgentName.ToUpper(), $"Health {a.CurrentHp:0}/{a.MaxHp:0}  ·  Strength {a.Strength:0}  ·  Speed {a.Speed:0.0}\nChoose travelling members from the Away Trips screen. End the matchday to recover health.", new GamePopup.Option("BACK TO SQUAD", PanelColor, null));
             });
             shown++;
         }
+    void ShowUpgrades(AgentData a)
+    {
+        if (a == null) return;
+        string[] stats = { "health", "power", "speed", "stamina", "intel" };
+        string[] names = { "HEALTH", "POWER", "SPEED", "STAMINA", "INTEL" };
+        int[] ranks = { a.HealthRank, a.PowerRank, a.SpeedRank, a.StaminaRank, a.IntelRank };
+        var options = new GamePopup.Option[stats.Length + 1];
+        for (int i = 0; i < stats.Length; i++)
+        {
+            string stat = stats[i];
+            int cost = SquadCare.UpgradeCost(ranks[i]);
+            string label = ranks[i] >= 8 ? names[i] + " MAX" : names[i] + "  £" + cost.ToString("N0");
+            options[i] = new GamePopup.Option(label, LandscapeUI.Gold, () => { if (SquadCare.Upgrade(a, stat)) BuildSquad(); });
+        }
+        options[stats.Length] = new GamePopup.Option("BACK", PanelColor, null);
+        GamePopup.Instance.Show(a.AgentName.ToUpper(),
+            $"LV {a.FightLevel}  ·  WINS {a.FightWins}\nHealth takes more hits. Power hits harder. Speed moves faster.\nStamina lasts through more jobs and keeps punches strong. Intelligence shrugs off hits and can slip police heat.",
+            options);
+    }
         if (shown == 0)
         {
             var empty = Text("EmptyRoster", squadContent, squadFilter == "fallen" ? "NO FALLEN MEMBERS\nKeep your crew safe out there." : squadFilter == "injured" ? "YOUR CREW IS FIT\nEvery active member is at full health." : "YOUR FIRM NEEDS MEMBERS\nRecruit fans, then end the matchday to bring them into the squad.", 0, 0, 900, 300, 30, Muted);

@@ -23,7 +23,16 @@ public class AgentData
     [System.Runtime.Serialization.OptionalField] public bool ManagementProfileInitialized;
     [System.Runtime.Serialization.OptionalField] public string ManagementRole;
     [System.Runtime.Serialization.OptionalField] public float Stamina;
+    [System.Runtime.Serialization.OptionalField] public float MaxStamina;
     [System.Runtime.Serialization.OptionalField] public int OperationsExperience;
+    [System.Runtime.Serialization.OptionalField] public int FightExperience;
+    [System.Runtime.Serialization.OptionalField] public int FightWins;
+    [System.Runtime.Serialization.OptionalField] public int Intelligence;
+    [System.Runtime.Serialization.OptionalField] public int HealthRank;
+    [System.Runtime.Serialization.OptionalField] public int PowerRank;
+    [System.Runtime.Serialization.OptionalField] public int SpeedRank;
+    [System.Runtime.Serialization.OptionalField] public int StaminaRank;
+    [System.Runtime.Serialization.OptionalField] public int IntelRank;
 
     // ── State ─────────────────────────────────────────────────────────────
     public bool  IsAlive => CurrentHp > 0;
@@ -45,6 +54,22 @@ public class AgentData
         EnsureManagementProfile(portraitIndex);
     }
 
+    public int FightLevel => FightExperience / 3;
+    public bool NeedsCare => MaxHp <= 0f || CurrentHp < MaxHp;
+    public bool IsDown => CurrentHp <= 0f;
+
+    /// <summary>A knockout raises experience. Every third point raises max health and hitting power.</summary>
+    public bool GrantKnockout()
+    {
+        FightWins++;
+        FightExperience++;
+        if (FightExperience % 3 != 0) return false;
+        MaxHp += 8f;
+        Strength += 2f;
+        if (CurrentHp > 0f) CurrentHp = UnityEngine.Mathf.Min(MaxHp, CurrentHp + 8f);
+        return true;
+    }
+
     /// <summary>Heal by a percentage of max HP (called on matchday end).</summary>
     public void HealPercent(float percent)
     {
@@ -60,6 +85,8 @@ public class AgentData
         string[] roles = { "LEADER", "SCOUT", "ORGANIZER", "RUNNER" };
         ManagementRole = roles[Math.Abs(rosterIndex) % roles.Length];
         Stamina = 100f;
+        MaxStamina = 100f;
+        Intelligence = Math.Max(1, Intelligence);
         OperationsExperience = 0;
         ManagementProfileInitialized = true;
     }

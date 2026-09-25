@@ -216,7 +216,6 @@ public class PoliceCarChaser : MonoBehaviour
             {
                 Vector3 next=Vector3.MoveTowards(transform.position,path.corners[i],12*Time.unscaledDeltaTime);
                 ApplyFacing(next-transform.position);transform.position=next;
-                if(CameraPanTouchOnly.Instance)CameraPanTouchOnly.Instance.FocusOn(transform.position);
                 yield return null;
             }
         }

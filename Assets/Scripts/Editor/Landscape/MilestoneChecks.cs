@@ -111,10 +111,8 @@ public static class MilestoneChecks
             if(GamePopup.AnyOpen)GamePopup.Instance.Hide();
             CityOperationsSystem.Instance?.CloseBoard();
             var es=EventSystem.current;var hits=new List<RaycastResult>();
-            if(es)es.RaycastAll(new PointerEventData(es){position=new Vector2(Screen.width*.55f,Screen.height*.48f)},hits);
-            Check(es && hits.Count==0,"Open world gesture area is not blocked by HUD "+string.Join(",",hits.Select(h=>h.gameObject.name)));
-            foreach(var command in new[]{"Move","Attack","Talk","Capture","Actions","Retreat"})
-                Check(GameObject.Find(command)?.activeInHierarchy==true,"Command remains visible: "+command);
+            if(es)es.RaycastAll(new PointerEventData(es){position=new Vector2(Screen.width*.5f,Screen.height*.62f)},hits);
+            Check(es && hits.All(h=>h.gameObject.name.StartsWith("LocationPin")),"Open world gesture area is not blocked by modal HUD "+string.Join(",",hits.Select(h=>h.gameObject.name)));
             var commandRects=new List<RectTransform>();
             foreach(var command in new[]{"Move","Attack","Talk","Capture","Actions","Retreat"})
             {
@@ -125,6 +123,7 @@ public static class MilestoneChecks
                 var bounds=commandTransform?RectTransformUtility.CalculateRelativeRectTransformBounds(testFrame,commandTransform):new Bounds();
                 var image=commandTransform?commandTransform.GetComponent<Image>():null;
                 rows.Add($"INFO {command} HUD x={(commandTransform?commandTransform.anchoredPosition.x:0):F0} center={bounds.center.x:F0},{bounds.center.y:F0} size={bounds.size.x:F0}x{bounds.size.y:F0} alpha={(image?image.color.a:0):F2}");
+                Check(commandTransform!=null,"RTS command binding remains wired: "+command);
             }
             var orderedCommands=commandRects.OrderBy(r=>r.anchoredPosition.x).ToArray();
             Check(UnityEngine.Object.FindFirstObjectByType<PedestrianActionHud>()!=null,"Nearby civilians show ACTION pins instead of a bottom command strip");
@@ -132,8 +131,13 @@ public static class MilestoneChecks
             Check(affiliation.Length>=agents.Length,"Crew/rival affiliation markers are live");
             var playerMarkers=agents.Select(a=>a.GetComponent<UnitAffiliationMarker>()).Where(x=>x).ToArray();
             Check(playerMarkers.Length==agents.Length && playerMarkers.All(x=>x.IsHollow && x.HasDirectionalArrows && x.AffiliationColor.g>.8f),"Player crew uses hollow green rings with green arrows");
-            var rivalMarkers=BattleManager.instance ? BattleManager.instance.EnemyAgents.Where(e=>e&&e.firmName!="POLICE").Select(e=>e.GetComponent<UnitAffiliationMarker>()).Where(x=>x).ToArray() : System.Array.Empty<UnitAffiliationMarker>();
-            Check(rivalMarkers.Length>0 && rivalMarkers.All(x=>x.IsHollow && !x.HasDirectionalArrows && x.AffiliationColor.r>.8f),"Rival crews use hollow red rings");
+            var rivalUnits=BattleManager.instance ? BattleManager.instance.EnemyAgents.Where(e=>e&&e.firmName!="POLICE"&&!e.IsAmbientMatchdayUnit).ToArray() : System.Array.Empty<EnemyController>();
+            Check(rivalUnits.Length>0 && rivalUnits.All(e=>
+            {
+                var marker=e.GetComponent<UnitAffiliationMarker>();
+                return marker&&marker.IsHollow&&!marker.HasDirectionalArrows&&
+                    ((Vector4)marker.AffiliationColor-(Vector4)e.primaryColor).sqrMagnitude<.01f;
+            }),"Rival crews use hollow rings matching their gang colour");
             Check(UnityEngine.Object.FindFirstObjectByType<PedestrianSpawner>()!=null,"Pedestrian activity spawner is configured");
             Check(UnityEngine.Object.FindObjectsByType<PedestrianController>(FindObjectsSortMode.None).Length>0,"Pedestrians are active on city streets");
             var socialNpcs=UnityEngine.Object.FindObjectsByType<SocialNpc>(FindObjectsSortMode.None);
@@ -175,10 +179,11 @@ public static class MilestoneChecks
                     var path=new NavMeshPath();
                     Check(node&&NavMesh.CalculatePath(city.Home,node.transform.position,NavMesh.AllAreas,path)&&path.status==NavMeshPathStatus.PathComplete,"Reachable operation "+node.Title);
                 }
-                var operationNode=operations.Nodes.FirstOrDefault();
+                var operationNode=operations.Nodes.FirstOrDefault(n=>n&&!CityOperationsLedger.IsComplete(GameManager.Data,n.Type));
                 operationNode?.OpenInteraction();
-                Check(GamePopup.AnyOpen,"Tapping a city operation opens task choices");
-                if(GamePopup.AnyOpen)GamePopup.Instance.Hide();
+                var worldChoices=operationNode?operationNode.GetComponent<WorldChoiceBar>():null;
+                Check(worldChoices&&worldChoices.IsOpen,"Tapping a city operation opens its GO / START world choices");
+                worldChoices?.Hide();
                 operations.OpenBoard();
                 Check(operations.IsBoardOpen,"City operations board opens above gameplay");
             }
@@ -187,13 +192,31 @@ public static class MilestoneChecks
             Check(actionSystem&&actionSystem.ActiveSabotageTargets>=1,"Mission sabotage vehicle is active");
             var territory=UnityEngine.Object.FindObjectsByType<TerritoryControlPoint>(FindObjectsSortMode.None).FirstOrDefault();
             Check(territory&&territory.occupationTax>0&&territory.moneyReward>0,"Territory requires occupation tax and exposes later protection income");
+            var gangChoices=UnityEngine.Object.FindObjectsByType<GangScreenChoice>(FindObjectsInactive.Include,FindObjectsSortMode.None);
+            var gangAreas=UnityEngine.Object.FindObjectsByType<GangArea>(FindObjectsSortMode.None);
+            Check(gangAreas.Length>0&&gangChoices.Length>=gangAreas.Length,"Every 3D rival turf has a live Fight / Move On / Close interaction");
+            var gangChoice=gangChoices.FirstOrDefault();
+            gangChoice?.Show(()=>{},()=>{},()=>{});
+            Check(gangChoice&&gangChoice.IsOpen,"3D rival popup opens all tactical choices");
+            gangChoice?.Hide();
+            GamePopup.Instance.Show("UI FUNCTION CHECK","Shared 2D popup is interactive and layered above gameplay.",new GamePopup.Option("CLOSE",LandscapeUI.PanelColor,null));
+            Check(GamePopup.AnyOpen&&GamePopup.Instance.GetComponentInChildren<Canvas>(true)!=null,"Shared 2D popup opens with an active canvas");
+            GamePopup.Instance.Hide();
+            var liveMap=LiveMiniMap.Instance;
+            Check(liveMap!=null&&liveMap.LabelPoolHealthy,"Expanded minimap label pool contains no duplicate or stale entries");
+            Check(liveMap!=null&&liveMap.RunDragResponseSelfCheck(),"Expanded minimap labels move in the same frame as drag input");
             if(CityGameplay.HomeMode)
             {
                 var matchday=UnityEngine.Object.FindFirstObjectByType<StadiumMatchdayActivity>();
-                Check(matchday!=null && matchday.ActiveFanCount>=6,"Matchday stadium supporters are active");
+                Check(matchday!=null && matchday.ActiveFanCount>=12,"Matchday stadium has a strong home-support presence");
                 Check(matchday!=null && matchday.AtmosphereReady,"Stadium matchday facilities and atmosphere are visible");
                 Check(matchday!=null&&new[]{"ARRIVAL","BUILDUP","RIVALPRESSURE","KICKOFF","AFTERMATH"}.Contains(matchday.CurrentPhase)&&matchday.ActiveFanCount>=6,"Home matchday phase remains readable while the crowd is live");
                 Check(matchday!=null&&matchday.PolicePresenceCount>=0&&matchday.CurrentPhase!="ARRIVAL"||matchday!=null&&matchday.CurrentPhase=="ARRIVAL","Police escalation is staged and bounded by the matchday phase");
+                var matchdayGroups=UnityEngine.Object.FindObjectsByType<MatchdayGroupMarker>(FindObjectsSortMode.None);
+                Check(matchday!=null&&matchday.ActiveGroupCount>=7,"Independent home, rival and police matchday groups are active simultaneously");
+                Check(matchdayGroups.Count(g=>g.Role==MatchdayUnitRole.HomeSupporter)>=3&&matchdayGroups.Count(g=>g.Role==MatchdayUnitRole.Police)>=4,"Home supporter circles and police foot patrols are fully staffed");
+                Check(matchdayGroups.Where(g=>g.Role==MatchdayUnitRole.RivalSupporter).All(g=>!string.IsNullOrWhiteSpace(g.GroupName)&&g.GroupColor.a>.9f),"Every rival supporter circle carries its gang name and matching colour");
+                Check(matchdayGroups.All(g=>!string.IsNullOrWhiteSpace(g.CurrentTask)&&g.Radius>=5f),"Every matchday group exposes a live autonomous task inside a visible circle");
                 Check(socialActivities.Any(s=>s.Venue.Contains("PUB")&&s.ActiveNpcCount>=6&&s.VenueVisualsReady),"Pub surrounding social activity is active");
                 var stadiumModel=UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Include,FindObjectsSortMode.None).FirstOrDefault(t=>t.name=="stadium_001");
                 Check(stadiumModel&&matchday!=null&&matchday.RealModelBound,"Stadium activity is bound to the real stadium_001 model approach");

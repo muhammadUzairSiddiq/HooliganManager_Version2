@@ -162,15 +162,15 @@ public class AgentPortraitCard : MonoBehaviour
             GoToMember();
             return;
         }
-        _tapWait = StartCoroutine(SingleTap());
-    }
-
-    IEnumerator SingleTap()
-    {
-        yield return new WaitForSecondsRealtime(0.32f);
-        _tapWait = null;
         if (_agent && _agent.IsAlive)
             AgentSelectionManager.instance?.ToggleSelect(_agent);
+        _tapWait = StartCoroutine(ClearTapWindow());
+    }
+
+    IEnumerator ClearTapWindow()
+    {
+        yield return new WaitForSecondsRealtime(0.26f);
+        _tapWait = null;
     }
 
     void GoToMember()
