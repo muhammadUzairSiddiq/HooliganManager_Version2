@@ -4,7 +4,7 @@ using UnityEngine;
 /// Applies a sensible mobile/Android performance baseline at startup so the
 /// game runs smoothly on phones. Runs automatically — no scene setup needed.
 ///
-/// - Targets 60 FPS (falls back gracefully on weaker devices).
+/// - Targets 30 FPS on mobile; device profiling is still required.
 /// - Disables VSync (targetFrameRate is authoritative on mobile).
 /// - Trims shadow distance and disables soft particles where cheap wins exist.
 ///
@@ -16,9 +16,10 @@ public static class MobilePerformanceConfig
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Apply()
     {
-        // 60 FPS target; VSync off so targetFrameRate is respected on device.
+        // Mobile 30 FPS target; VSync off so targetFrameRate is respected on device.
         QualitySettings.vSyncCount = 0;
-        Application.targetFrameRate = PlayerPrefs.GetInt("HM.FrameRate", GameplayTuning.Current.targetFps);
+        bool lowMemory=Application.isMobilePlatform&&(SystemInfo.systemMemorySize<=4096||SystemInfo.graphicsMemorySize<=1024);
+        Application.targetFrameRate = Application.isMobilePlatform?30:PlayerPrefs.GetInt("HM.FrameRate", GameplayTuning.Current.targetFps);
 
         // Keep the screen awake during gameplay sessions.
         Screen.sleepTimeout = SleepTimeout.NeverSleep;
@@ -28,6 +29,8 @@ public static class MobilePerformanceConfig
         QualitySettings.skinWeights = SkinWeights.TwoBones;
         QualitySettings.softParticles = false;
         QualitySettings.realtimeReflectionProbes = false;
+        QualitySettings.streamingMipmapsActive=true;
+        QualitySettings.streamingMipmapsMemoryBudget=Application.isMobilePlatform?96f:256f;
         if (Application.isMobilePlatform)
         {
             QualitySettings.lodBias = .8f;
@@ -35,8 +38,8 @@ public static class MobilePerformanceConfig
             if (source)
             {
                 var mobile = Object.Instantiate(source);
-                mobile.renderScale = GameplayTuning.Current.renderScale;
-                mobile.msaaSampleCount = 2;
+                mobile.renderScale = lowMemory?.7f:GameplayTuning.Current.renderScale;
+                mobile.msaaSampleCount = lowMemory?1:2;
                 mobile.shadowDistance = GameplayTuning.Current.shadowDistance;
                 mobile.shadowCascadeCount = 1;
                 QualitySettings.renderPipeline = mobile;

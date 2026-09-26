@@ -141,14 +141,16 @@ public class AgentController : MonoBehaviour
 
         int index = Mathf.Clamp(Data != null ? Data.PortraitIndex : Random.Range(0, registry.entries.Count), 0, registry.entries.Count - 1);
         var entry = registry.entries[index];
-        GameObject characterPrefab = entry.modelPrefab;
+        GameObject characterPrefab = entry.optimizedModelPrefab ? entry.optimizedModelPrefab : entry.modelPrefab;
         if (characterPrefab == null) return;
 
         modelPrefab = characterPrefab;
 
         GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
         GameplayTuning.ScaleModel(spawnedCharacter.transform);
-        CrewKit.PaintShirt(spawnedCharacter.transform, new Color(0.55f, 1f, 0.45f));
+        // Friendly tactical identity is green, matching the squad markers (not the club-brand save color).
+        CrewKit.PaintShirt(spawnedCharacter.transform, new Color(.12f,.85f,.25f));
+        CityCharacterBudget.Apply(spawnedCharacter);
 
         // Add the Animator component dynamically
         animator = spawnedCharacter.GetComponent<Animator>();
@@ -679,26 +681,37 @@ public class AgentController : MonoBehaviour
 
 public static class CrewKit
 {
+    static readonly MaterialPropertyBlock kitBlock=new MaterialPropertyBlock();
+    static Material plainShirt;
+    public static bool IsShirtRenderer(string value)
+    {
+        string n=value.ToLowerInvariant();
+        return n.Contains("shirt")||n.Contains("hoodie")||n.Contains("hoody")||n.Contains("sweater")||n.Contains("jacket")||n.Contains("collar")||n.Contains("jersey");
+    }
     public static void PaintShirt(Transform model, Color color)
     {
         if (!model) return;
         foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
         {
-            var mats = renderer.materials;
-            bool painted = false;
-            for (int i = 0; i < mats.Length; i++)
+            // Never infer "body" means shirt: many atlases include exposed skin.
+            // Only an explicitly separated clothing renderer can lose its texture.
+            if(!IsShirtRenderer(renderer.name))continue;
+            if(!plainShirt)
             {
-                if (!mats[i] || IsPantsOrSkin(mats[i].name) || IsPantsOrSkin(renderer.name)) continue;
-                if (!IsShirt(mats[i].name) && !IsShirt(renderer.name) && mats.Length > 1) continue;
-                mats[i].color = color;
-                if (mats[i].HasProperty("_BaseColor")) mats[i].SetColor("_BaseColor", color);
-                painted = true;
+                plainShirt=Resources.Load<Material>("CharacterProduction/GangShirt");
+                if(!plainShirt)
+                {
+                    var shader=Shader.Find("Universal Render Pipeline/Simple Lit")??Shader.Find("Universal Render Pipeline/Lit");
+                    if(!shader)return;
+                    plainShirt=new Material(shader){name="Gang Shirt · Plain"};
+                    plainShirt.SetColor("_BaseColor",Color.white);plainShirt.SetFloat("_Smoothness",.12f);
+                }
             }
-            if (!painted && mats.Length > 0 && mats[0] && !IsPantsOrSkin(mats[0].name))
-            {
-                mats[0].color = color;
-                if (mats[0].HasProperty("_BaseColor")) mats[0].SetColor("_BaseColor", color);
-            }
+            var mats=renderer.sharedMaterials;
+            for(int i=0;i<mats.Length;i++)mats[i]=plainShirt;
+            renderer.sharedMaterials=mats;
+            kitBlock.Clear();kitBlock.SetColor("_BaseColor",color);kitBlock.SetColor("_Color",color);
+            renderer.SetPropertyBlock(kitBlock);
         }
     }
 

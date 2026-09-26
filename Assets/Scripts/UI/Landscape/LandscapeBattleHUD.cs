@@ -34,9 +34,22 @@ public sealed class LandscapeBattleHUD : MonoBehaviour
         }
         if(Time.unscaledTime>nextScan)
         {
+        }
+        if(Time.unscaledTime>=nextScan)
+        {
             nextScan=Time.unscaledTime+.35f;
-            if(!objectivePlaced) objectivePlaced=Dock("LevelPanel",objectiveSlot,260,118);
-            if(!heatPlaced) heatPlaced=Dock("HeatBar",heatSlot,260,40);
+            if(CityGameplay.Instance)
+            {
+                // The city uses the command desk and top heat indicator. Keep legacy
+                // gameplay widgets out of the hierarchy's visible layout.
+                var level=GameObject.Find("LevelPanel");if(level)level.SetActive(false);
+                var heat=GameObject.Find("HeatBar");if(heat)heat.SetActive(false);
+            }
+            else
+            {
+                if(!objectivePlaced) objectivePlaced=Dock("LevelPanel",objectiveSlot,260,118);
+                if(!heatPlaced) heatPlaced=Dock("HeatBar",heatSlot,260,40);
+            }
         }
         if(Keyboard.current!=null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {

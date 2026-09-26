@@ -27,12 +27,14 @@ public class PedestrianSpawner : MonoBehaviour
     private MeshRenderer[] _pavementMeshes;
     private List<GameObject> _activePedestrians = new List<GameObject>();
     private bool _isInitialized = false;
+    float nextPopulationCheck;
     public bool IsInitialized => _isInitialized;
 
     private int _ambientCount;
 
     private void Start()
     {
+        CityActivityStreaming.Ensure();
         int full = Mathf.Max(6, GameplayTuning.Current.maxPedestrians);
         _ambientCount = 3;
         spawnCount = _ambientCount;
@@ -88,11 +90,12 @@ public class PedestrianSpawner : MonoBehaviour
 
     private void Update()
     {
-        if (!_isInitialized) return;
+        if (!_isInitialized || Time.time<nextPopulationCheck) return;
+        nextPopulationCheck=Time.time+.5f;
 
         Camera cam = Camera.main;
         if (cam == null) return;
-        Vector3 camPos = cam.transform.position;
+        Vector3 camPos = CityActivityStreaming.GroundFocus(cam);
 
         // Clean up out of bounds pedestrians
         for (int i = _activePedestrians.Count - 1; i >= 0; i--)
@@ -118,7 +121,7 @@ public class PedestrianSpawner : MonoBehaviour
         {
             spawnTries++;
             Vector3 spawnPos = GetRandomPavementPositionNearCamera(camPos);
-            if (spawnPos != Vector3.zero)
+            if (spawnPos != Vector3.zero && CityActivityStreaming.TryReserveBody(spawnPos))
             {
                 GameObject go = Instantiate(pedestrianPrefab, spawnPos, Quaternion.identity, transform);
                 
@@ -171,6 +174,7 @@ public class PedestrianSpawner : MonoBehaviour
     public GameObject SpawnActivityPedestrian(Vector3 center, float radius, Transform parent, string venue = "CITY STREET", bool showTalkPrompt = true)
     {
         if (!_isInitialized || pedestrianPrefab == null) return null;
+        if (!CityActivityStreaming.TryReserveBody(center)) return null;
 
         for (int i = 0; i < 16; i++)
         {

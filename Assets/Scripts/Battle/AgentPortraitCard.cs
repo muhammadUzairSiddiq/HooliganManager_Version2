@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -87,7 +86,8 @@ public class AgentPortraitCard : MonoBehaviour
     TextMeshProUGUI _statusLabel;
     TextMeshProUGUI _selectedBadge;
     bool _chromeReady;
-    Coroutine _tapWait;
+    static AgentController _lastTapped;
+    static float _lastTapTime;
 
     public static readonly Color FreeColor = new Color(0.24f, 0.86f, 0.43f, 1f);
     public static readonly Color BusyColor = new Color(0.94f, 0.78f, 0.22f, 1f);
@@ -152,25 +152,19 @@ public class AgentPortraitCard : MonoBehaviour
         ApplyPresentation();
     }
 
-    /// <summary>One tap selects. A second tap within the window jumps the camera to this member.</summary>
+    /// <summary>One tap selects. A second tap on the same card recenters the camera on that member.</summary>
     public void NotifyTap()
     {
-        if (_tapWait != null)
+        bool second = _agent && _lastTapped == _agent && Time.unscaledTime - _lastTapTime <= 0.35f;
+        _lastTapped = _agent;
+        _lastTapTime = Time.unscaledTime;
+        if (second)
         {
-            StopCoroutine(_tapWait);
-            _tapWait = null;
             GoToMember();
             return;
         }
         if (_agent && _agent.IsAlive)
             AgentSelectionManager.instance?.ToggleSelect(_agent);
-        _tapWait = StartCoroutine(ClearTapWindow());
-    }
-
-    IEnumerator ClearTapWindow()
-    {
-        yield return new WaitForSecondsRealtime(0.26f);
-        _tapWait = null;
     }
 
     void GoToMember()

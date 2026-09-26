@@ -19,6 +19,9 @@ public class CharacterPortraitRegistry : ScriptableObject
     {
         [Tooltip("The character model prefab — must match the prefabs added to the Portrait Capture Tool.")]
         public GameObject modelPrefab;
+        [Tooltip("Generated reduced-mesh variant. Original source model is preserved.")]
+        public GameObject optimizedModelPrefab;
+        [HideInInspector] public string sourceModelAssetPath;
 
         [Tooltip("Animator Controller to use for this model at runtime (battle idle/run/attack). " +
                  "If null, BattleManager.characterAnimator is used as a fallback.")]

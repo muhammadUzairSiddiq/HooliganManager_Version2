@@ -12,7 +12,8 @@ public sealed class CityLifeActivity:MonoBehaviour
     int targetCount;
     public string ActivityType=>activityType;
     public bool VisualsReady{get;private set;}
-    public int ActiveNpcCount{get{people.RemoveAll(x=>!x);return people.Count;}}
+    StreamedSocialCrowd streamed;
+    public int ActiveNpcCount=>streamed?streamed.People.Count:0;
 
     public static CityLifeActivity Ensure(string type,Vector3 position,int npcCount=1)
     {
@@ -29,7 +30,7 @@ public sealed class CityLifeActivity:MonoBehaviour
         matchdayIntensity=true;
         extra=Mathf.Clamp(extra,1,6);
         targetCount+=extra;
-        if(crowdSpawned) StartCoroutine(SpawnAdditional(extra));
+        if(streamed)streamed.Count=Mathf.Min(4,targetCount);
     }
 
     IEnumerator SpawnAdditional(int count)
@@ -52,28 +53,14 @@ public sealed class CityLifeActivity:MonoBehaviour
     IEnumerator Start()
     {
         BuildVisuals();
-        PedestrianSpawner spawner=null;float timeout=12f;
-        while(timeout>0)
-        {
-            spawner=FindFirstObjectByType<PedestrianSpawner>();
-            if(spawner&&spawner.IsInitialized)break;
-            timeout-=Time.unscaledDeltaTime;yield return null;
-        }
-        if(!spawner||!spawner.IsInitialized)yield break;
-        for(int i=0;i<targetCount;i++)
-        {
-            var npc=spawner.SpawnActivityPedestrian(center,12f,transform,activityType,true);
-            if(npc){npc.name=activityType+" Visitor";people.Add(npc);}yield return null;
-        }
-        crowdSpawned=true;
-        if(matchdayIntensity && people.Count<targetCount)
-            StartCoroutine(SpawnAdditional(targetCount-people.Count));
+        streamed=gameObject.AddComponent<StreamedSocialCrowd>();
+        streamed.Venue=activityType;streamed.Count=Mathf.Min(4,targetCount);
+        yield break;
     }
 
     void BuildVisuals()
     {
-        var label=ZoneLabelUtil.Create(transform,activityType,4.4f,6.6f);
-        label.name="CityLifeActivityLabel";label.alignment=TextAlignmentOptions.Center;
+        // The destination already has a pin. Avoid a second stacked venue title.
         // Use the authored city environment plus real NPC activity. Procedural
         // cube stalls, shelters and seats were placeholder geometry and have
         // deliberately been retired for the production presentation.

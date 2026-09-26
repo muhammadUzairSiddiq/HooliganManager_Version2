@@ -3,6 +3,9 @@ using System.Collections.Generic;
 [System.Serializable]
 public class PlayerData
 {
+    [System.Runtime.Serialization.OptionalField] public List<CityDevelopmentProject> CityDevelopment;
+    [System.Runtime.Serialization.OptionalField] public float CityEconomySeconds;
+    [System.Runtime.Serialization.OptionalField] public float CityRivalGrowthSeconds;
     public int PowerPackagesPurchased;
     /// <summary>Playable side selected before the campaign starts: "Firm" or "Police".</summary>
     [System.Runtime.Serialization.OptionalField] public string PlayerFaction;

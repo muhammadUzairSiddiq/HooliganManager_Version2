@@ -97,7 +97,8 @@ public static class CityZoneClearance
     static bool Relocate(Zone zone, Vector3 desired)
     {
         if (zone.Mobility <= 0) return false;
-        if (!NavMesh.SamplePosition(desired, out var hit, 14f, NavMesh.AllAreas)) return false;
+        if (!NavMesh.SamplePosition(desired, out var hit, 14f, NavMesh.AllAreas) ||
+            !CityActivityStreaming.TryStreetPoint(hit.position,out _,.5f)) return false;
         Vector3 next = hit.position;
         if ((next - zone.Transform.position).sqrMagnitude < .04f) return false;
         Vector3 old = zone.Transform.position;
@@ -114,7 +115,7 @@ public static class CityZoneClearance
         if (!gang || bm == null) return;
         foreach (var enemy in bm.EnemyAgents)
         {
-            if (!enemy || !enemy.IsAlive || enemy.firmName != gang.GangName) continue;
+            if (!enemy || !enemy.IsAlive || enemy.IsAmbientMatchdayUnit || enemy.firmName != gang.GangName) continue;
             Vector3 pos = enemy.transform.position + shift;
             if (NavMesh.SamplePosition(pos, out var hit, 8f, NavMesh.AllAreas)) pos = hit.position;
             var nav = enemy.GetComponent<NavMeshAgent>();

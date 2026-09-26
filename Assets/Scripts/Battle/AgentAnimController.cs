@@ -43,6 +43,7 @@ public class AgentAnimController
 
     // ── Current state tracking — avoids redundant CrossFade calls ─────────
     private string _currentState = string.Empty;
+    SupporterGestureAnimation taskAnimation;
 
     // ── Crossfade durations (seconds) ─────────────────────────────────────
     private const float FadeToIdle   = 0.20f;
@@ -144,6 +145,12 @@ public class AgentAnimController
         {
             if (_anim != null) _anim.speed = 1f;
             string idleState = isFighting ? AgentAnimParams.States.BattleIdle : AgentAnimParams.States.Idle;
+            if(_anim&&!isFighting)
+            {
+                if(!taskAnimation)taskAnimation=_anim.GetComponentInParent<SupporterGestureAnimation>();
+                string requested=taskAnimation?taskAnimation.RequestedState:null;
+                if(!string.IsNullOrEmpty(requested)&&_anim.HasState(0,Animator.StringToHash(requested)))idleState=requested;
+            }
             SmoothCrossFade(idleState, FadeToIdle);
         }
     }

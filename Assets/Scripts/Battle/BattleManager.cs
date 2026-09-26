@@ -691,7 +691,7 @@ public class BattleManager : MonoBehaviour
                     Debug.Log("[BattleManager] Player squad fully wiped — defeat popup.");
                     BattleActive = false;
                     _skipEndBattle = true;
-                    LevelSystem.Instance?.OnPlayerDefeated();
+                    NotifySquadWiped();
                 }
             }
             yield return null;
@@ -1105,6 +1105,7 @@ public class BattleManager : MonoBehaviour
                                                  MatchdayUnitRole role, string groupName = null)
     {
         if (enemyAgentPrefab == null || string.IsNullOrEmpty(firm)) return null;
+        if (!CityActivityStreaming.TryReserveBody(pos)) return null;
         if (NavMesh.SamplePosition(pos, out NavMeshHit hit, 10f, NavMesh.AllAreas))
             pos = hit.position;
         var go = RivalBodyPool.Take(enemyAgentPrefab, pos, Quaternion.identity);
@@ -1114,18 +1115,26 @@ public class BattleManager : MonoBehaviour
         ec.StopAllCoroutines();
         ec.patrolRadius = 4.5f;
         ec.detectionRadius = firm == "POLICE" ? 16f : 8f;
-        ec.Initialise(hp, dmg, 2.1f, 1f);
         ec.firmName = firm;
-        ec.isHostile = false;
         ec.primaryColor = color;
+        ec.Initialise(hp, dmg, 2.1f, 1f);
+        ec.isHostile = false;
         ec.ConfigureMatchdayRole(role, groupName ?? firm);
         CrewKit.PaintShirt(ec.transform, color);
-        UnitAffiliationMarker.Attach(ec.transform, color, 1.28f, false);
+        // Group footprint is sufficient; individual rings make formations unreadable.
         ec.SetGangCenter(pos);
         ec.SetCinematicIdle(false);
         if (!_enemyAgents.Contains(ec)) _enemyAgents.Add(ec);
         if (ec.GetComponent<MatchdayMarch>() == null) ec.gameObject.AddComponent<MatchdayMarch>();
         return ec;
+    }
+
+    public void DespawnMatchdayFighter(EnemyController enemy)
+    {
+        if(!enemy || !enemy.IsAmbientMatchdayUnit)return;
+        _enemyAgents.Remove(enemy);
+        enemy.StandDown();
+        Destroy(enemy.gameObject); // Bound live memory; the data-only group owns HP and task state.
     }
 
     private EnemyController SpawnOneRival(RivalGrowthSystem.SpawnOrder order, Vector3 pos, float hp, float dmg)
@@ -1599,10 +1608,7 @@ public class BattleManager : MonoBehaviour
         GameAudio.Play("injury");
         InjuryNotifications.Report(agent.Data);
         if (AlivePlayerCount() == 0)
-        {
-            LevelSystem.EnsureExists();
-            LevelSystem.Instance?.OnPlayerDefeated();
-        }
+            NotifySquadWiped();
         BroadcastCounts();
         // Wipe detection is handled inside RunRound's per-frame check.
         // Do NOT set BattleActive = false here; doing so would bypass _roundEndedByWipe.
@@ -1612,6 +1618,7 @@ public class BattleManager : MonoBehaviour
     {
         if (enemy != null && enemy.IsAmbientMatchdayUnit)
         {
+            FindFirstObjectByType<StadiumMatchdayActivity>()?.NoteBodyDown(enemy);
             _enemyAgents.Remove(enemy);
             BroadcastCounts();
             RivalBodyPool.Release(enemy.gameObject);
@@ -2032,6 +2039,15 @@ public class BattleManager : MonoBehaviour
     }
 
     // ── Counts ────────────────────────────────────────────────────────────
+    public void NotifySquadWiped()
+    {
+        LevelSystem.EnsureExists();
+        if (LivePoliceSystem.Instance != null && LivePoliceSystem.Instance.ClaimArrestWipe())
+            LevelSystem.Instance?.OnCrewArrested();
+        else
+            LevelSystem.Instance?.OnPlayerDefeated();
+    }
+
     public int AlivePlayerCount()
     {
         int c = 0;

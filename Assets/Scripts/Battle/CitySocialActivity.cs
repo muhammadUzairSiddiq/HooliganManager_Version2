@@ -12,10 +12,11 @@ public sealed class CitySocialActivity : MonoBehaviour
     int targetCount;
     bool matchdayIntensity;
     bool crowdSpawned;
+    StreamedSocialCrowd streamed;
 
     public int ActiveNpcCount
     {
-        get { npcs.RemoveAll(x => !x); return npcs.Count; }
+        get { return streamed?streamed.People.Count:0; }
     }
     public bool VenueVisualsReady { get; private set; }
     public string Venue => venue;
@@ -26,7 +27,7 @@ public sealed class CitySocialActivity : MonoBehaviour
         extra=Mathf.Clamp(extra,1,8);
         matchdayIntensity=true;
         targetCount+=extra;
-        if(crowdSpawned) StartCoroutine(SpawnAdditional(extra));
+        if(streamed)streamed.Count=Mathf.Min(4,targetCount);
     }
 
     IEnumerator SpawnAdditional(int count)
@@ -61,32 +62,14 @@ public sealed class CitySocialActivity : MonoBehaviour
     IEnumerator Start()
     {
         BuildVenueVisuals();
-        PedestrianSpawner spawner = null;
-        float timeout = 12f;
-        while (timeout > 0f)
-        {
-            spawner = FindFirstObjectByType<PedestrianSpawner>();
-            if (spawner && spawner.IsInitialized) break;
-            timeout -= Time.unscaledDeltaTime;
-            yield return null;
-        }
-        if (!spawner || !spawner.IsInitialized) yield break;
-
-        for (int i = 0; i < targetCount; i++)
-        {
-            var npc = spawner.SpawnActivityPedestrian(center, venue.Contains("PUB") ? 15f : 19f, transform, venue, true);
-            if (npc) npcs.Add(npc);
-            yield return null;
-        }
-        crowdSpawned = true;
+        streamed=gameObject.AddComponent<StreamedSocialCrowd>();
+        streamed.Venue=venue;streamed.Count=Mathf.Min(4,targetCount);streamed.Radius=15f;
+        yield break;
     }
 
     void BuildVenueVisuals()
     {
-        string text = venue.Contains("PUB") ? "PUB" : "ARRIVAL";
-        var label = ZoneLabelUtil.Create(transform, text, 4.4f, 6.6f);
-        label.name = "SocialActivityLabel";
-        label.alignment = TextAlignmentOptions.Center;
+        // Destination pins own venue titles; social simulation adds no duplicate text.
 
         // The city scenes already contain authored street furniture. The old
         // procedural cargo/canopy cubes looked like debug geometry and are not

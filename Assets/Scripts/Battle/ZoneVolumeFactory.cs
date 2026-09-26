@@ -8,6 +8,7 @@ using UnityEngine.Rendering;
 /// </summary>
 public static class ZoneVolumeFactory
 {
+    static Material sharedRingMaterial;
     public const int RingQueue = 2450;
     public const int LabelQueue = 3200;
 
@@ -18,9 +19,7 @@ public static class ZoneVolumeFactory
         root.transform.SetParent(parent, false);
         root.transform.localPosition = Vector3.up * 0.05f;
         float outer = Mathf.Max(2.2f, footprint);
-        BuildFlatCircle(root.transform, "Glow", outer + 0.16f, 0.42f, new Color(tint.r, tint.g, tint.b, 0.22f));
-        BuildFlatCircle(root.transform, "Outer", outer, 0.22f, new Color(tint.r, tint.g, tint.b, 1f));
-        BuildFlatCircle(root.transform, "Inner", Mathf.Max(1.6f, footprint - 0.52f), 0.10f, new Color(tint.r, tint.g, tint.b, 0.85f));
+        BuildFlatCircle(root.transform, "Outer", outer, 0.12f, new Color(tint.r, tint.g, tint.b, .72f),true,48);
         return root;
     }
 
@@ -49,10 +48,10 @@ public static class ZoneVolumeFactory
         if (!line) return;
         var shader = Shader.Find("Sprites/Default") ?? Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
         if (!shader) return;
-        var mat = new Material(shader);
-        if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
-        if (mat.HasProperty("_Color")) mat.SetColor("_Color", color);
-        mat.color = color;
+        var mat = sharedRingMaterial ? sharedRingMaterial : (sharedRingMaterial=new Material(shader));
+        if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", Color.white);
+        if (mat.HasProperty("_Color")) mat.SetColor("_Color", Color.white);
+        mat.color = Color.white;
         if (mat.HasProperty("_Cull")) mat.SetFloat("_Cull", 0f);
         if (mat.HasProperty("_ZWrite")) mat.SetFloat("_ZWrite", 0f);
         if (mat.HasProperty("_ZTest")) mat.SetInt("_ZTest", (int)CompareFunction.LessEqual);
@@ -62,7 +61,7 @@ public static class ZoneVolumeFactory
         mat.SetOverrideTag("RenderType", "Transparent");
         mat.renderQueue = RingQueue;
         mat.doubleSidedGI = true;
-        line.material = mat;
+        line.sharedMaterial = mat;
         line.alignment = LineAlignment.TransformZ;
         line.textureMode = LineTextureMode.Stretch;
         line.shadowCastingMode = ShadowCastingMode.Off;

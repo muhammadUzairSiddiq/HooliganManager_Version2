@@ -38,6 +38,8 @@ public sealed class SquadBoard : MonoBehaviour
         LandscapeUI.Text("Title", panel.transform, "SQUAD", 24, 16, 520, 36, 28, null, true);
         LandscapeUI.Button("Close", panel.transform, "CLOSE", 880, 14, 136, 42)
             .onClick.AddListener(() => _root.SetActive(false));
+        var hint = LandscapeUI.Text("FocusHint", panel.transform, "DOUBLE-TAP A MEMBER TO RECENTER THE CAMERA", 24, 108, 820, 22, 15, LandscapeUI.Muted, true);
+        hint.alignment = TextAlignmentOptions.Left;
         string[] tabs = { "active", "injured", "fallen", "upgrades" };
         string[] labels = { "ACTIVE", "RECOVERING", "FALLEN", "UPGRADES" };
         for (int i = 0; i < tabs.Length; i++)
@@ -46,7 +48,7 @@ public sealed class SquadBoard : MonoBehaviour
             LandscapeUI.Button("Tab" + tab, panel.transform, labels[i], 24 + i * 168, 62, 160, 40, "dark")
                 .onClick.AddListener(() => { _ward = false; _tab = tab; Refresh(); });
         }
-        _list = LandscapeUI.Scroll("Roster", panel.transform, 16, 114, 1008, 548).content;
+        _list = LandscapeUI.Scroll("Roster", panel.transform, 16, 136, 1008, 526).content;
     }
 
     void Refresh()
@@ -80,11 +82,19 @@ public sealed class SquadBoard : MonoBehaviour
 
     void AddRow(AgentData agent, PlayerData d)
     {
-        var row = LandscapeUI.Panel("Member", _list, 0, 0, 980, _tab == "upgrades" && !_ward ? 168 : 92, true);
-        LandscapeUI.LayoutSize(row.gameObject, 980, _tab == "upgrades" && !_ward ? 168 : 92);
+        float rowH = _tab == "upgrades" && !_ward ? 188 : 112;
+        var row = LandscapeUI.Panel("Member", _list, 0, 0, 980, rowH, true);
+        LandscapeUI.LayoutSize(row.gameObject, 980, rowH);
         string state = agent.IsDown ? "DOWN" : agent.CurrentHp < agent.MaxHp ? "INJURED" : "FIT";
         Color stateColor = agent.IsDown ? LandscapeUI.Red : agent.CurrentHp < agent.MaxHp ? LandscapeUI.Gold : LandscapeUI.Green;
         LandscapeUI.Text("Name", row.transform, agent.AgentName.ToUpperInvariant(), 16, 8, 360, 28, 22, null, true);
+        var focusHint = LandscapeUI.Text("FocusLine", row.transform, "DOUBLE-TAP RECENTERS ON " + agent.AgentName.ToUpperInvariant(), 16, rowH - 28, 700, 20, 13, LandscapeUI.Muted, true);
+        focusHint.raycastTarget = false;
+        var hit = LandscapeUI.Button("FocusHit", row.transform, "", 8, 4, 720, 56, "dark");
+        var hitImage = hit.targetGraphic as Image;
+        if (hitImage) hitImage.color = new Color(1f, 1f, 1f, 0.01f);
+        var tapped = agent;
+        hit.onClick.AddListener(() => TapMember(tapped));
         LandscapeUI.Text("State", row.transform, state + "   LV " + agent.FightLevel + "   WINS " + agent.FightWins, 16, 36, 420, 22, 16, stateColor, true);
         LandscapeUI.Text("Hp", row.transform, $"HP {Mathf.Max(0, agent.CurrentHp):0}/{agent.MaxHp:0}   POW {agent.Strength:0}   SPD {agent.Speed:0.0}", 440, 12, 320, 22, 16, LandscapeUI.Muted);
         LandscapeUI.Text("Mind", row.transform, $"STA {agent.Stamina:0}/{Mathf.Max(1f, agent.MaxStamina):0}   INT {agent.Intelligence}", 440, 36, 320, 22, 16, LandscapeUI.Muted);
@@ -111,6 +121,30 @@ public sealed class SquadBoard : MonoBehaviour
             button.onClick.AddListener(() => { if (SquadCare.Upgrade(who, stat)) Refresh(); });
         }
     }
+
+    static AgentData _rowTap;
+    static float _rowTapAt;
+
+    void TapMember(AgentData data)
+    {
+        bool second = data != null && _rowTap == data && Time.unscaledTime - _rowTapAt <= 0.35f;
+        _rowTap = data;
+        _rowTapAt = Time.unscaledTime;
+        if (!second) return;
+        var body = LiveBody(data);
+        if (!body) return;
+        if (_root) _root.SetActive(false);
+        CameraPanTouchOnly.Instance?.FocusOn(body.transform.position);
+    }
+
+    static AgentController LiveBody(AgentData data)
+    {
+        var battle = BattleManager.instance;
+        if (battle == null || data == null) return null;
+        foreach (var agent in battle.PlayerAgents)
+            if (agent && agent.Data == data) return agent;
+        return null;
+    }
 }
 
 /// <summary>Screen pin for the recovery yard beside the hospital.</summary>
@@ -125,9 +159,8 @@ public sealed class RecoveryWardPin : MonoBehaviour
         if (!cam) return;
         if (!_pin)
         {
-            var hud = FindFirstObjectByType<LandscapeBattleHUD>();
-            if (!hud) return;
-            _frame = hud.frame;
+            _frame = WorldButtonLayer.Frame();
+            if (!_frame) return;
             var button = LandscapeUI.Button("RecoveryWardPin", _frame, "RECOVERY WARD", 0, 0, 230, 48);
             button.onClick.AddListener(() =>
             {
@@ -143,7 +176,9 @@ public sealed class RecoveryWardPin : MonoBehaviour
         Vector3 projected = cam.WorldToScreenPoint(transform.position + Vector3.up * 4f);
         RectTransformUtility.ScreenPointToLocalPointInRectangle(_frame, projected, null, out var local);
         float x = local.x - _frame.rect.xMin, y = _frame.rect.yMax - local.y;
-        bool visible = projected.z > 0.1f && x > 250f && x < _frame.rect.width - 190f && y > 100f && y < _frame.rect.height - 80f;
+        var pinRect = new Rect(x - 115f, y - 24f, 230f, 48f);
+        bool visible = projected.z > 0.1f && x > 250f && x < _frame.rect.width - 190f && y > 100f && y < _frame.rect.height - 80f
+            && !WorldButtonLayer.ChoiceCovers(pinRect);
         _pin.gameObject.SetActive(visible);
         if (visible) LandscapeUI.Place(_pin, x - 115f, y - 24f, 230f, 48f);
     }

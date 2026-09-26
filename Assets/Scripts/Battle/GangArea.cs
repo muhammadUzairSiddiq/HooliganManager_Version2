@@ -20,6 +20,15 @@ public class GangArea : MonoBehaviour
     public string GangName => _gangName;
     public Color ZoneColor => _color;
     public float Radius => _radius;
+    float initialRadius;
+    public void SetGrowth(int ticks)
+    {
+        if(initialRadius<=0)initialRadius=_radius;
+        _radius=initialRadius+Mathf.Clamp(ticks,0,5)*.6f;
+        _detectRadius=Mathf.Max(_detectRadius,_radius*1.7f);
+        var ring=transform.Find("ZoneRing");
+        if(ring)ring.localScale=Vector3.one*(_radius/Mathf.Max(.1f,initialRadius));
+    }
     public float DetectRadius => _detectRadius;
 
     public void Setup(string gangName, Vector3 center, float radius, Color color)
@@ -34,6 +43,7 @@ public class GangArea : MonoBehaviour
         _label = ZoneLabelUtil.Create(transform, _gangName.ToUpperInvariant() + "\n<size=68%>RIVAL TURF</size>", 4.4f, 8.2f);
         _choice = gameObject.AddComponent<GangScreenChoice>();
         MiniMapIconFactory.Register(transform, MiniMapIconFactory.Kind.Gang, _gangName);
+        SetGrowth(RivalGrowthSystem.GrowthTicks(GameManager.Data, _gangName));
     }
 
     private static Color SanitizeGangColor(Color c)
@@ -158,9 +168,8 @@ public sealed class GangScreenChoice : MonoBehaviour
     void Ensure()
     {
         if (_fight) return;
-        var hud = FindFirstObjectByType<LandscapeBattleHUD>();
-        if (!hud) return;
-        _frame = hud.frame;
+        _frame = WorldButtonLayer.ChoiceFrame();
+        if (!_frame) return;
         _fight = Make("Fight", "FIGHT", new Color(0.72f, 0.14f, 0.14f), () => _onFight?.Invoke());
         _move = Make("MoveOn", "MOVE ON", new Color(0.16f, 0.38f, 0.62f), () => _onMove?.Invoke());
         _close = Make("Close", "X", new Color(0.18f, 0.2f, 0.24f), () => _onClose?.Invoke());
@@ -191,6 +200,7 @@ public sealed class GangScreenChoice : MonoBehaviour
         LandscapeUI.Place(_fight, x - 196, y - 24, 168, 48);
         LandscapeUI.Place(_move, x - 20, y - 24, 168, 48);
         LandscapeUI.Place(_close, x + 156, y - 24, 48, 48);
+        WorldButtonLayer.CoverChoice(new Rect(x - 204f, y - 28f, 416f, 56f));
     }
 
     void SetVisible(bool on)
@@ -219,9 +229,8 @@ public sealed class RecruitmentPin : MonoBehaviour
         if (!cam) return;
         if (!_pin)
         {
-            var hud = FindFirstObjectByType<LandscapeBattleHUD>();
-            if (!hud) return;
-            _frame = hud.frame;
+            _frame = WorldButtonLayer.Frame();
+            if (!_frame) return;
             var button = LandscapeUI.Button("RecruitmentPin", _frame, "RECRUITMENT", 0, 0, 210, 48);
             button.onClick.AddListener(() => RecruitPackagePanel.Instance.Show(Point, "RECRUITMENT"));
             _pin = button.transform as RectTransform;
@@ -232,7 +241,9 @@ public sealed class RecruitmentPin : MonoBehaviour
         Vector3 projected = cam.WorldToScreenPoint(transform.position + Vector3.up * 4f);
         RectTransformUtility.ScreenPointToLocalPointInRectangle(_frame, projected, null, out var local);
         float x = local.x - _frame.rect.xMin, y = _frame.rect.yMax - local.y;
-        bool visible = projected.z > 0.1f && x > 250f && x < _frame.rect.width - 190f && y > 100f && y < _frame.rect.height - 80f;
+        var pinRect = new Rect(x - 105f, y - 24f, 210f, 48f);
+        bool visible = projected.z > 0.1f && x > 250f && x < _frame.rect.width - 190f && y > 120f && y < _frame.rect.height - 70f
+            && !WorldButtonLayer.ChoiceCovers(pinRect);
         _pin.gameObject.SetActive(visible);
         if (visible) LandscapeUI.Place(_pin, x - 105f, y - 24f, 210f, 48f);
     }
@@ -246,21 +257,27 @@ public sealed class WorldChoiceBar : MonoBehaviour
     RectTransform _frame, _title, _close;
     readonly List<RectTransform> _buttons = new List<RectTransform>();
     bool _open;
+    bool _allowClose = true;
     public bool IsOpen => _open;
 
     public static void Present(Transform anchor, string title, params (string label, Color color, Action action)[] options)
     {
+        Present(anchor, title, true, options);
+    }
+
+    public static void Present(Transform anchor, string title, bool closable, params (string label, Color color, Action action)[] options)
+    {
         if (!anchor) return;
         var bar = anchor.GetComponent<WorldChoiceBar>() ?? anchor.gameObject.AddComponent<WorldChoiceBar>();
+        bar._allowClose = closable;
         bar.Build(title, options);
     }
 
     void Build(string title, (string label, Color color, Action action)[] options)
     {
         Clear();
-        var hud = FindFirstObjectByType<LandscapeBattleHUD>();
-        if (!hud) return;
-        _frame = hud.frame;
+        _frame = WorldButtonLayer.ChoiceFrame();
+        if (!_frame) return;
         var titleGo = new GameObject("ChoiceTitle", typeof(RectTransform));
         titleGo.transform.SetParent(_frame, false);
         var text = titleGo.AddComponent<TextMeshProUGUI>();
@@ -284,11 +301,14 @@ public sealed class WorldChoiceBar : MonoBehaviour
             if (label) { label.color = Color.white; label.fontSize = 18f; }
             _buttons.Add(button.transform as RectTransform);
         }
-        var close = LandscapeUI.Button("ChoiceClose", _frame, "X", 0, 0, 48, 48, "dark");
-        var closeImage = close.targetGraphic as UnityEngine.UI.Image;
-        if (closeImage) closeImage.color = new Color(0.18f, 0.2f, 0.24f);
-        close.onClick.AddListener(Hide);
-        _close = close.transform as RectTransform;
+        if (_allowClose)
+        {
+            var close = LandscapeUI.Button("ChoiceClose", _frame, "X", 0, 0, 48, 48, "dark");
+            var closeImage = close.targetGraphic as UnityEngine.UI.Image;
+            if (closeImage) closeImage.color = new Color(0.18f, 0.2f, 0.24f);
+            close.onClick.AddListener(Hide);
+            _close = close.transform as RectTransform;
+        }
         _open = true;
     }
 
@@ -299,7 +319,8 @@ public sealed class WorldChoiceBar : MonoBehaviour
         RectTransformUtility.ScreenPointToLocalPointInRectangle(_frame, projected, null, out var local);
         float x = local.x - _frame.rect.xMin;
         float y = _frame.rect.yMax - local.y;
-        bool visible = projected.z > 0.1f;
+        float halfWidth=(164f*_buttons.Count+48f)*.5f;
+        bool visible = projected.z > 0.1f && x > 80f && x < _frame.rect.width - 80f && y > 110f && y < _frame.rect.height - 70f;
         SetOn(visible);
         if (!visible) return;
         float row = 156f * _buttons.Count + 8f * Mathf.Max(0, _buttons.Count - 1);
@@ -308,6 +329,7 @@ public sealed class WorldChoiceBar : MonoBehaviour
         for (int i = 0; i < _buttons.Count; i++)
             LandscapeUI.Place(_buttons[i], start + i * 164f, y - 24f, 156f, 48f);
         if (_close) LandscapeUI.Place(_close, start + row + 8f, y - 24f, 48f, 48f);
+        WorldButtonLayer.CoverChoice(new Rect(start - 8f, y - 86f, row + 72f, 116f));
     }
 
     public void Hide() { _open = false; SetOn(false); }

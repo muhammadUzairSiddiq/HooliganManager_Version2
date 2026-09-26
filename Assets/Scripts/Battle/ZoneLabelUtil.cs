@@ -18,7 +18,7 @@ public static class ZoneLabelUtil
         var label = labelGo.AddComponent<TextMeshPro>();
         label.text = text;
         label.richText = true;
-        label.fontSize = Mathf.Clamp(fontSize * 1.2f, 6.4f, 12.5f);
+        label.fontSize = Mathf.Clamp(fontSize * .85f, 3.4f, 6f);
         label.alignment = TextAlignmentOptions.Center;
         label.fontStyle = FontStyles.Bold;
         label.color = Color.white;
@@ -34,7 +34,7 @@ public static class ZoneLabelUtil
             mr.sortingOrder = 40;
         }
         var rt = label.GetComponent<RectTransform>();
-        if (rt != null) rt.sizeDelta = new Vector2(36f, 6.2f);
+        if (rt != null) rt.sizeDelta = new Vector2(24f, 4.5f);
         var billboard = labelGo.GetComponent<ZoneLabelBillboard>() ?? labelGo.AddComponent<ZoneLabelBillboard>();
         billboard.ForceWhite = true;
         return label;
@@ -74,18 +74,41 @@ public sealed class ZoneLabelBillboard : MonoBehaviour
 {
     public bool ForceWhite = true;
     TextMeshPro label;
+    Renderer cachedRenderer;
 
     void Awake()
     {
         label = GetComponent<TextMeshPro>();
+        cachedRenderer=GetComponent<Renderer>();
     }
 
     void LateUpdate()
     {
         var cam = Camera.main;
         if (cam) transform.rotation = cam.transform.rotation;
+        if(cachedRenderer&&cam)
+            cachedRenderer.enabled=WorldAnnotationBudget.Reserve(cam,transform.position,170f,28f);
         if (!ForceWhite) return;
         if (!label) label = GetComponent<TextMeshPro>();
         if (label) label.color = Color.white;
+    }
+}
+
+/// <summary>A small shared screen-space budget prevents world titles colliding.
+/// Full descriptions remain accessible through the command desk and task board.</summary>
+public static class WorldAnnotationBudget
+{
+    static readonly System.Collections.Generic.List<Rect> occupied=new System.Collections.Generic.List<Rect>(8);
+    static int frame=-1;
+    public static bool Reserve(Camera cam,Vector3 point,float width,float height)
+    {
+        if(frame!=Time.frameCount){occupied.Clear();frame=Time.frameCount;}
+        if(!cam||occupied.Count>=6)return false;
+        var p=cam.WorldToViewportPoint(point);
+        if(p.z<=0||p.x<.21f||p.x>.79f||p.y<.12f||p.y>.82f)return false;
+        float scale=Screen.height/900f;
+        var rect=new Rect(p.x*Screen.width-width*scale*.5f,p.y*Screen.height-height*scale*.5f,width*scale,height*scale);
+        foreach(var other in occupied)if(other.Overlaps(rect))return false;
+        occupied.Add(rect);return true;
     }
 }

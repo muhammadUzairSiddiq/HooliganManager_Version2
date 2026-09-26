@@ -250,6 +250,7 @@ public class CameraPanTouchOnly : MonoBehaviour
             _movedThisGesture = true; // pinch cancels tap
             var t1 = touches[0];
             var t2 = touches[1];
+            if(IsPointerOverUI(t1.screenPosition)||IsPointerOverUI(t2.screenPosition)){_uiGesture=true;return;}
             float prevDist = Vector2.Distance(t1.screenPosition - t1.delta, t2.screenPosition - t2.delta);
             float currDist = Vector2.Distance(t1.screenPosition, t2.screenPosition);
             float deltaDist = currDist - prevDist;

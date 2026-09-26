@@ -8,6 +8,8 @@ public sealed class CityMissionHUD : MonoBehaviour
 {
     RectTransform frame, content;
     GameObject missionPanel;
+    public static bool MissionOpen { get; private set; }
+    void OnDisable(){MissionOpen=false;}
     TextMeshProUGUI objectives, events, missionHeading, missionBriefing;
     TextMeshProUGUI[] statusValues = new TextMeshProUGUI[9];
     RectTransform statusStrip;
@@ -20,6 +22,8 @@ public sealed class CityMissionHUD : MonoBehaviour
     string lastState;
     const float CaptureRadius = 14f;
     static Sprite[] statusIcons;
+    TextMeshProUGUI advisor, situation, feedAlert;
+    Image heatFill, feedAlertPlate;
 
     public void Build(RectTransform root)
     {
@@ -32,7 +36,9 @@ public sealed class CityMissionHUD : MonoBehaviour
             Place(hud, "SquadRail", 16, 150, 286, 334);
             Place(hud, "SquadTitle", 30, 160, 258, 26);
             Place(hud, "MemberCount", 30, 184, 258, 36);
-            Place(hud, "PortraitScroll", 24, 224, 268, 248);
+            Place(hud, "PortraitScroll", 24, 242, 268, 230);
+            var focusHint = LandscapeUI.Text("SquadFocusHint", hud, "DOUBLE-TAP A MEMBER TO RECENTER", 24, 220, 268, 20, 12, LandscapeUI.Muted, true);
+            focusHint.alignment = TextAlignmentOptions.Left;
             var members = hud.Find("MemberCount")?.GetComponent<TextMeshProUGUI>();
             if (members)
             {
@@ -108,38 +114,39 @@ public sealed class CityMissionHUD : MonoBehaviour
             authoredRetreat = hud.Find("Retreat")?.gameObject;
             if (authoredRetreat) authoredRetreat.SetActive(false);
 
-            Place(hud, "EnemyCount", 1300, 150, 274, 28);
-            Place(hud, "ObjectiveSlot", 1300, 184, 274, 128);
-            Place(hud, "HeatSlot", 1300, 322, 274, 50);
+            foreach (var name in new[] { "EnemyCount", "ObjectiveSlot", "HeatSlot" })
+                if (hud.Find(name)) hud.Find(name).gameObject.SetActive(false);
             if (hud.Find("Joystick")) hud.Find("Joystick").gameObject.SetActive(false);
         }
 
         BuildStatusStrip();
         BuildTopNavigation(hud);
 
-        // Objectives under squad.
-        var objectivesCard = LandscapeUI.Panel("ObjectivesCard", frame, 16, 500, 286, 148, true);
-        var objectivesTitle = LandscapeUI.Text("ObjectivesTitle", frame, "OBJECTIVES", 30, 510, 258, 24, 18, LandscapeUI.Gold, true);
-        objectives = LandscapeUI.Text("LiveObjectives", frame, "", 30, 540, 258, 96, 15, LandscapeUI.White);
-        missionButton = LandscapeUI.Button("MissionLedger", frame, "MISSION PLAN", 22, 658, 274, 52);
-        missionButton.onClick.AddListener(() => { missionPanel.SetActive(true); RefreshMissions(); });
-
-        retreatButton = LandscapeUI.Button("LeftRetreat", frame, "RETREAT", 22, 716, 274, 48, "red");
-        retreatButton.onClick.AddListener(() =>
-        {
-            AgentSelectionManager.instance?.CommandSelectedRetreat();
-            BattleUIController.instance?.ShowAlert(
-                CityGameplay.HomeMode ? "REGROUPING AT HEADQUARTERS" : "RETREAT ORDER CONFIRMED", 1.4f);
-        });
-
-        var eventCard = LandscapeUI.Panel("EventCard", frame, 16, 772, 286, 76, true);
-        var eventTitle = LandscapeUI.Text("EventTitle", frame, "LIVE FEED", 30, 780, 258, 20, 14, LandscapeUI.Gold, true);
-        events = LandscapeUI.Text("LiveEvents", frame, "", 30, 802, 258, 38, 14, LandscapeUI.White);
-
-        BuildLeftPanelToggle(hud,
-            objectivesCard.gameObject, objectivesTitle.gameObject, objectives.gameObject,
-            missionButton.gameObject, retreatButton.gameObject,
-            eventCard.gameObject, eventTitle.gameObject, events.gameObject);
+        var command = LandscapeUI.Panel("CommandRail", frame, 0, 150, 300, 716, true).rectTransform;
+        command.anchorMin = command.anchorMax = command.pivot = new Vector2(1, 1);
+        command.anchoredPosition = new Vector2(-16, -150);
+        LandscapeUI.Text("Title", command, "COMMAND DESK", 16, 14, 268, 25, 20, LandscapeUI.Gold, true);
+        situation = LandscapeUI.Text("Situation", command, "", 16, 46, 268, 52, 15, LandscapeUI.Muted);
+        LandscapeUI.Text("NextTitle", command, "NEXT STEPS", 16, 110, 268, 22, 16, LandscapeUI.Gold, true);
+        objectives = LandscapeUI.Text("NextSteps", command, "", 16, 140, 268, 82, 16, LandscapeUI.White);
+        LandscapeUI.Button("GuideNext", command, "SHOW NEXT TASK", 16, 232, 268, 42).onClick.AddListener(GuideNext);
+        advisor = LandscapeUI.Text("Advisor", command, "", 16, 290, 268, 94, 16, LandscapeUI.White);
+        LandscapeUI.Button("Development", command, "PLAN & BUILD", 16, 394, 268, 42).onClick.AddListener(() => CityDevelopmentSystem.Instance?.OpenBoard());
+        LandscapeUI.Text("FeedTitle", command, "LIVE FEED", 16, 448, 268, 20, 16, LandscapeUI.Gold, true);
+        feedAlertPlate = LandscapeUI.Panel("FeedAlert", command, 16, 470, 268, 30, false);
+        feedAlertPlate.color = new Color(0.05f, 0.16f, 0.1f, 0.95f);
+        feedAlert = LandscapeUI.Text("AlertLabel", feedAlertPlate.transform, "MONITORING", 0, 2, 268, 26, 15, LandscapeUI.Green, true);
+        feedAlert.alignment = TextAlignmentOptions.Center;
+        feedAlert.fontStyle = FontStyles.Bold;
+        var feedScroll = LandscapeUI.Scroll("FeedScroll", command, 12, 506, 276, 194);
+        events = LandscapeUI.Text("LiveEvents", feedScroll.content, "", 0, 0, 258, 340, 14, LandscapeUI.White);
+        events.richText = true;
+        LandscapeUI.LayoutSize(events.gameObject, 258, 340);
+        events.overflowMode = TextOverflowModes.Ellipsis;
+        events.alignment=TextAlignmentOptions.TopLeft;
+        objectives.alignment=TextAlignmentOptions.TopLeft;
+        advisor.alignment=TextAlignmentOptions.TopLeft;
+        BuildLeftPanelToggle(hud);
 
         talkButton=LandscapeUI.Button("Talk",hud?hud:frame,"TALK",645,812,130,54,"dark");
         talkButton.gameObject.SetActive(false);
@@ -148,7 +155,7 @@ public sealed class CityMissionHUD : MonoBehaviour
         actionsButton=LandscapeUI.Button("Actions",hud?hud:frame,"ACTIONS",925,812,130,54,"outline");
         actionsButton.gameObject.SetActive(false);
 
-        missionPanel = LandscapeUI.Panel("CityMissionLedger", frame, 310, 125, 980, 660, true).gameObject;
+        missionPanel = LandscapeUI.Panel("CityMissionLedger", WorldButtonLayer.MissionFrame(), 310, 125, 980, 660, true).gameObject;
         missionHeading=LandscapeUI.Text("Title", missionPanel.transform, "MISSION PLAN", 22, 15, 700, 38, 28, null, true);
         LandscapeUI.Button("Close", missionPanel.transform, "CLOSE", 755, 14, 135, 42)
             .onClick.AddListener(() => missionPanel.SetActive(false));
@@ -166,7 +173,7 @@ public sealed class CityMissionHUD : MonoBehaviour
     {
         statusStrip = LandscapeUI.Panel("StatusStrip", frame, 16, 70, 1568, 52, false).rectTransform;
         statusStrip.GetComponent<Image>().color = Color.white;
-        string[] labels={"CREW","REPUTATION","HEAT","MISSION","INTEL","SUPPLIES","TICKETS","SOCIAL","TAXI"};
+        string[] labels={"CREW","REPUTATION","POLICE HEAT","MISSION","INTEL","SUPPLIES","TICKETS","SOCIAL","TAXI"};
         Color[] colors={LandscapeUI.Green,LandscapeUI.Gold,new Color(1f,.48f,.25f),new Color(.22f,.90f,.88f),new Color(.45f,.78f,1f),new Color(.39f,.90f,1f),LandscapeUI.Gold,LandscapeUI.Green,new Color(.12f,1f,.55f)};
         Sprite[] icons=StatusSprites();
         for(int i=0;i<labels.Length;i++)
@@ -184,6 +191,11 @@ public sealed class CityMissionHUD : MonoBehaviour
             LandscapeUI.FitBoxed(label,9f);
             statusValues[i]=LandscapeUI.Text("Value",cell,"--",32,22,120,20,16,colors[i],true);
             LandscapeUI.FitBoxed(statusValues[i],11f);
+            if(i==2)
+            {
+                LandscapeUI.Image("HeatTrack",cell,32,41,120,3,null,new Color(.25f,.28f,.3f));
+                heatFill=LandscapeUI.Image("HeatFill",cell,32,41,120,3,null,colors[i]);
+            }
         }
         LayoutStatusStrip(1568f);
     }
@@ -226,6 +238,7 @@ public sealed class CityMissionHUD : MonoBehaviour
         var leftover=frame.Find("TopSettings");
         if(leftover)leftover.gameObject.SetActive(false);
         var mission=LandscapeUI.Button("TopMission",frame,"MISSION",634,18,122,50,"dark");
+        missionButton=mission;
         mission.onClick.AddListener(()=>{missionPanel.SetActive(true);RefreshMissions();});
         var intel=LandscapeUI.Button("TopIntel",frame,"INTEL",762,18,108,50,"dark");
         intel.onClick.AddListener(()=>CityGameplay.Instance?.ShowIntelReport());
@@ -247,6 +260,8 @@ public sealed class CityMissionHUD : MonoBehaviour
         var buttonRect=button.transform as RectTransform;
         float width=buttonRect?buttonRect.rect.width:130f;
         float height=buttonRect?buttonRect.rect.height:50f;
+        if(button.transform.Find("Icon")) button.transform.Find("Icon").gameObject.SetActive(false);
+        sprite=null;
         if(sprite)
         {
             var existing=button.transform.Find("Icon")?.GetComponent<Image>();
@@ -322,8 +337,32 @@ public sealed class CityMissionHUD : MonoBehaviour
         if (r) LandscapeUI.Place(r, x, y, w, h);
     }
 
+    void PulseFeedAlert()
+    {
+        if (!feedAlert || !feedAlertPlate) return;
+        var city = CityGameplay.Instance;
+        bool warning = city != null && city.ActiveSignal == CityGameplay.FeedSignal.Warning && Time.unscaledTime < city.SignalUntil;
+        bool alert = city != null && city.ActiveSignal == CityGameplay.FeedSignal.Alert && Time.unscaledTime < city.SignalUntil;
+        if (!alert && !warning)
+        {
+            feedAlert.text = "MONITORING";
+            feedAlert.color = new Color(0.35f, 0.9f, 0.55f, 0.9f);
+            feedAlertPlate.color = new Color(0.04f, 0.14f, 0.09f, 0.95f);
+            return;
+        }
+        float wave = Mathf.Abs(Mathf.Sin(Time.unscaledTime * (alert ? 9f : 5.5f)));
+        feedAlert.text = city.SignalBanner;
+        Color ink = alert ? new Color(1f, 0.16f, 0.12f) : new Color(1f, 0.82f, 0.15f);
+        Color plate = alert ? new Color(0.55f, 0.04f, 0.04f) : new Color(0.45f, 0.28f, 0.02f);
+        Color dimPlate = alert ? new Color(0.16f, 0.02f, 0.02f) : new Color(0.16f, 0.1f, 0.02f);
+        feedAlert.color = Color.Lerp(new Color(ink.r, ink.g, ink.b, 0.35f), ink, wave);
+        feedAlertPlate.color = Color.Lerp(dimPlate, plate, wave);
+    }
+
     void LateUpdate()
     {
+        MissionOpen=missionPanel&&missionPanel.activeInHierarchy;
+        PulseFeedAlert();
         if(!frame||!statusStrip)return;
         float width=Mathf.Max(1568f,frame.rect.width-32f);
         if(Mathf.Abs(width-lastStatusWidth)>1f)LayoutStatusStrip(width);
@@ -351,27 +390,46 @@ public sealed class CityMissionHUD : MonoBehaviour
             d.SocialMomentum.ToString(),
             "READY"
         };
-        for(int i=0;i<statusValues.Length;i++)if(statusValues[i])statusValues[i].text=values[i];
+        for(int i=0;i<statusValues.Length;i++)if(statusValues[i]){statusValues[i].text=values[i];HudValuePulse.Watch(statusValues[i]);}
+        HudValuePulse.Watch(FindFirstObjectByType<LandscapeBattleHUD>()?.cash);
         if(missionButton)
         {
             var label=missionButton.transform.Find("Label")?.GetComponent<TextMeshProUGUI>();
-            if(label)label.text=$"MISSION {mission.number:00}  {progress.complete}/{progress.total}";
+            if(label)label.text=$"MISSION {progress.complete}/{progress.total}";
         }
+        if(heatFill)heatFill.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, Mathf.Clamp01(d.PoliceHeat/10f)*120f);
 
-        var visible = CampaignMissions.Steps(d).Where(s=>!s.Complete).Take(3);
-        objectives.text = string.Join("\n", visible.Select(s =>
+        var visible = CampaignMissions.Steps(d).Where(s=>!s.Complete).Take(2);
+        objectives.text = string.Join("\n\n", visible.Select(s =>
             $"<color=#E8BA5A>{s.title}</color>  <color=#E8F0F4>{Mathf.Min(s.progress,s.target)}/{s.target}</color>"));
         if (string.IsNullOrEmpty(objectives.text))
             objectives.text = "MISSION READY TO COMPLETE";
 
         string feed = CityGameplay.Instance?.EventText ?? "";
-        int cut = feed.IndexOf("\n\n");
-        events.text = cut > 0 ? feed.Substring(0, cut) : feed;
-        if (string.IsNullOrEmpty(events.text)) events.text = "District quiet.";
+        events.text = feed;
+        if (string.IsNullOrEmpty(events.text)) events.text = "<color=#8AA0A8>LOG  District quiet.</color>";
+        var matchday = FindFirstObjectByType<StadiumMatchdayActivity>();
+        situation.text = $"{CityOperationsSystem.Instance?.RunningCount ?? 0} crew tasks running\n" +
+            (matchday ? $"{matchday.CurrentPhase} · {matchday.ActiveConflictCount} flashpoints" : "District operations active");
+        advisor.text = d.PoliceHeat >= 7 ? "HIGH HEAT\nObserve police or organize stewards before starting another confrontation." :
+            CityOperationsSystem.Instance?.RunningCount > 0 ? "CREW AT WORK\nYou can plan upgrades or assign a different member while this task runs." :
+            "PLAN YOUR NEXT MOVE\nSelect a crew member, then open a task. Build your network to earn supplies and income.";
 
         var state = string.Join("|", CampaignMissions.Steps(d).Select(s=>$"{s.id}:{s.progress}"));
         if (missionPanel.activeSelf && state != lastState) RefreshMissions();
         lastState = state;
+    }
+
+    void GuideNext()
+    {
+        var next = CampaignMissions.Steps(GameManager.Data).FirstOrDefault(s => !s.Complete);
+        if (string.IsNullOrEmpty(next.id)) { missionPanel.SetActive(true); RefreshMissions(); return; }
+        if (next.operation.HasValue)
+        {
+            var node = CityOperationsSystem.Instance?.Nodes.FirstOrDefault(n => n && n.Type == next.operation.Value);
+            if (node) { CameraPanTouchOnly.Instance?.FocusOn(node.transform.position); node.OpenInteraction(); }
+        }
+        else Guide(next);
     }
 
     void RefreshMissions()
@@ -435,7 +493,7 @@ public sealed class CityMissionHUD : MonoBehaviour
         SetCommandVisible(talkButton, false);
         SetCommandVisible(captureButton, false);
         SetCommandVisible(actionsButton, false);
-        SetCommandVisible(retreatButton, true);
+        SetCommandVisible(retreatButton, false);
     }
 
     static void SetCommandVisible(Button button, bool visible)
@@ -475,7 +533,7 @@ public sealed class CityMissionHUD : MonoBehaviour
         var targets = new System.Collections.Generic.List<GameObject>();
         if (hud)
         {
-            foreach (var name in new[] { "SquadRail", "SquadTitle", "MemberCount", "PortraitScroll" })
+            foreach (var name in new[] { "SquadRail", "SquadTitle", "MemberCount", "PortraitScroll", "ManageSquad" })
             {
                 var t = hud.Find(name);
                 if (t) targets.Add(t.gameObject);
@@ -483,6 +541,8 @@ public sealed class CityMissionHUD : MonoBehaviour
         }
         if (extraTargets != null) targets.AddRange(extraTargets.Where(t => t != null));
         sideToggle.targets = targets.ToArray();
+        sideToggle.controlsMinimap = true;
+        sideToggle.targetNames = new[] { "CameraSetup", "RecenterCamera" };
         button.onClick.AddListener(sideToggle.Toggle);
     }
 
@@ -491,7 +551,7 @@ public sealed class CityMissionHUD : MonoBehaviour
         var button=LandscapeUI.Button("TopHudToggle",frame,"^",782,0,36,30,"dark");
         var toggle=button.gameObject.AddComponent<GameplayHudSideToggle>();toggle.label=button.GetComponentInChildren<TextMeshProUGUI>();
         toggle.shownGlyph="^";toggle.hiddenGlyph="v";toggle.root=frame;
-        toggle.targetNames=new[]{"TopBar","Heading","Cash","Reputation","StatusStrip","CityDistrict","CityOperations","TopMission","TopIntel","TopVehicles"};
+        toggle.targetNames=new[]{"TopBar","Heading","Cash","Reputation","StatusStrip","CityDistrict","CityOperations","TopMission","TopIntel","TopVehicles","TopDestinations"};
         if(toggle.label){toggle.label.fontSize=21;toggle.label.color=Color.white;}
         button.onClick.AddListener(toggle.Toggle);
     }
@@ -500,8 +560,10 @@ public sealed class CityMissionHUD : MonoBehaviour
     {
         var button=LandscapeUI.Button("RightHudToggle",frame,">",1564,414,36,72,"dark");
         var toggle=button.gameObject.AddComponent<GameplayHudSideToggle>();toggle.label=button.GetComponentInChildren<TextMeshProUGUI>();
-        toggle.shownGlyph=">";toggle.hiddenGlyph="<";toggle.root=frame;toggle.controlsMinimap=true;
-        toggle.targetNames=new[]{"EnemyCount","ObjectiveSlot","HeatSlot","CameraSetup","RecenterCamera"};
+        toggle.shownGlyph=">";toggle.hiddenGlyph="<";toggle.root=frame;
+        toggle.targetNames=new[]{"CommandRail"};
+        var rt=button.transform as RectTransform;
+        rt.anchorMin=rt.anchorMax=rt.pivot=new Vector2(1,1);rt.anchoredPosition=new Vector2(0,-414);
         if(toggle.label){toggle.label.fontSize=25;toggle.label.color=Color.white;}
         button.onClick.AddListener(toggle.Toggle);
     }

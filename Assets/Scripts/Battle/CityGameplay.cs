@@ -20,16 +20,62 @@ public sealed class CityGameplay : MonoBehaviour
     int initialRivals;
     float homeIntegrity;
     EnemyController[] intruders=System.Array.Empty<EnemyController>();
+    public enum FeedSignal { Log, Success, Warning, Alert }
     readonly System.Collections.Generic.Queue<string> eventFeed=new System.Collections.Generic.Queue<string>();
     public string EventText=>string.Join("\n\n",eventFeed.Reverse());
+    public FeedSignal ActiveSignal { get; private set; } = FeedSignal.Log;
+    public float SignalUntil { get; private set; }
+    public string SignalBanner => ActiveSignal == FeedSignal.Alert ? "!!!!  ALERT  !!!!" : ActiveSignal == FeedSignal.Warning ? "!!!!  WARNING  !!!!" : "MONITORING";
     public void PostEvent(string message)
-    { if(status)status.text=message;eventFeed.Enqueue(message);while(eventFeed.Count>3)eventFeed.Dequeue(); }
+    {
+        if(string.IsNullOrWhiteSpace(message))return;
+        if(status)status.text=message;
+        var signal = Classify(message);
+        if (signal == FeedSignal.Alert || signal == FeedSignal.Warning)
+        {
+            ActiveSignal = signal;
+            SignalUntil = Time.unscaledTime + 9f;
+        }
+        else if (signal == FeedSignal.Success)
+        {
+            ActiveSignal = FeedSignal.Success;
+            SignalUntil = 0f;
+        }
+        int clock = (int)Time.timeSinceLevelLoad;
+        string stamp = $"{clock / 60:00}:{clock % 60:00}";
+        string color = signal == FeedSignal.Alert ? "#FF3B30" : signal == FeedSignal.Warning ? "#F5C518" : signal == FeedSignal.Success ? "#3DDC97" : "#E7EEF2";
+        string tag = signal == FeedSignal.Alert ? "ALERT" : signal == FeedSignal.Warning ? "WARN" : signal == FeedSignal.Success ? "OK" : "LOG";
+        eventFeed.Enqueue($"<color=#8AA0A8>{stamp}</color>  <color={color}>{tag}  {message}</color>");
+        while(eventFeed.Count>8)eventFeed.Dequeue();
+    }
+
+    static FeedSignal Classify(string message)
+    {
+        string m = message.ToUpperInvariant();
+        if (Has(m, "BEATEN", "PAID OFF", "SEPARATED", "DEFENDED")) return FeedSignal.Success;
+        if (Has(m, "ARREST", "POLICE", "FLASHPOINT", "CLASH", "INTRUSION", "FAILED", "HEAT", "WASTED", "EMERGENCY", "SEARCHING", "RIVAL FAN"))
+            return FeedSignal.Alert;
+        if (Has(m, "COMPLETE", "SECURED", "JOINED", "TOUGHER", "RECOVERY", "QUEUED", "RESTORED", "INCOME", "HEALTHY"))
+            return FeedSignal.Success;
+        if (Has(m, "NEED", "INSUFFICIENT", "SELECT", "BLOCK", "CANCEL", "FULL", "WARNING", "RISING", "WATCH", "CHOOSE", "EXPAND", "TAX", "CLOSER"))
+            return FeedSignal.Warning;
+        return FeedSignal.Log;
+    }
+
+    static bool Has(string message, params string[] keys)
+    {
+        for (int i = 0; i < keys.Length; i++)
+            if (message.Contains(keys[i])) return true;
+        return false;
+    }
     public static void EnsureExists() { if (!Instance) BattleManager.instance.gameObject.AddComponent<CityGameplay>(); }
     void Awake() { Instance=this; }
     void OnDestroy() { if(Instance==this)Instance=null; }
     IEnumerator Start()
     {
         while(!BattleManager.instance.playerSpawnRoot)yield return null;
+        yield return null; // Let scene navigation and camera initialization finish before choosing service approaches.
+        Physics.SyncTransforms();
         ConfigureLocations();
         ResolveLandmarkLocations();
         ClearRailDistrictTrees();
@@ -73,6 +119,8 @@ public sealed class CityGameplay : MonoBehaviour
         }
         var operations=CityOperationsSystem.Ensure(this);
         CityActionSystem.Ensure(this);
+        if(!GetComponent<CityDevelopmentSystem>())gameObject.AddComponent<CityDevelopmentSystem>();
+        CityActivityStreaming.Ensure();
         while(!FindFirstObjectByType<LandscapeBattleHUD>())yield return null;
         frame=FindFirstObjectByType<LandscapeBattleHUD>().frame;
         NpcConversationUI.Ensure(frame);
@@ -150,10 +198,10 @@ public sealed class CityGameplay : MonoBehaviour
     void BuildCompactCameraControls()
     {
         // Stacked under the minimap (bottom-right), matching map width with real padding.
-        var camera = CameraTextButton("CameraSetup", "CAMERA", 24f, 70f, 200f, 40f);
+        var camera = CameraTextButton("CameraSetup", "CAMERA", 24f, 796f, 130f, 44f);
         camera.onClick.AddListener(() => cameraPanel.SetActive(!cameraPanel.activeSelf));
 
-        var recenter = CameraTextButton("RecenterCamera", "RECENTRE", 24f, 22f, 200f, 40f);
+        var recenter = CameraTextButton("RecenterCamera", "RECENTRE", 162f, 796f, 130f, 44f);
         recenter.onClick.AddListener(() => CameraPanTouchOnly.Instance?.CenterOnSelection());
     }
 
@@ -164,8 +212,8 @@ public sealed class CityGameplay : MonoBehaviour
         var rt = button.transform as RectTransform;
         if (rt)
         {
-            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1, 0);
-            rt.anchoredPosition = new Vector2(-right, bottom);
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0, 1);
+            rt.anchoredPosition = new Vector2(right, -bottom);
             rt.sizeDelta = new Vector2(w, h);
         }
         var text = button.transform.Find("Label")?.GetComponent<TextMeshProUGUI>();
@@ -271,7 +319,10 @@ public sealed class CityGameplay : MonoBehaviour
         // Authored landmark pivots are often inside a building or on a detached
         // decorative NavMesh island. Always expose the nearest point the crew
         // can actually reach from headquarters.
-        Locations[index]=ReachableApproach(Home,spot.Point);
+        Locations[index]=ReachableApproach(Home,CityLandmarks.ClearNearby(spot.Point));
+        var clear=CityLandmarks.ClearNearby(Locations[index]);
+        var path=new UnityEngine.AI.NavMeshPath();
+        if(UnityEngine.AI.NavMesh.CalculatePath(Home,clear,UnityEngine.AI.NavMesh.AllAreas,path)&&path.status==UnityEngine.AI.NavMeshPathStatus.PathComplete)Locations[index]=clear;
         if(!string.IsNullOrEmpty(name))LocationNames[index]=name;
     }
 
@@ -356,6 +407,7 @@ public sealed class CityGameplay : MonoBehaviour
             float angle=direction*Mathf.PI*2f/24f;
             var candidate=destination+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*ring*14f;
             if(NavMesh.SamplePosition(candidate,out var hit,8f,NavMesh.AllAreas) &&
+                CityActivityStreaming.TryStreetPoint(hit.position,out _,.5f) &&
                 NavMesh.CalculatePath(origin,hit.position,NavMesh.AllAreas,path) && path.status==NavMeshPathStatus.PathComplete)
             {
                 float distance=(hit.position-destination).sqrMagnitude;

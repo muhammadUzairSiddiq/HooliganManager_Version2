@@ -672,7 +672,8 @@ public class BattleUIController : MonoBehaviour
         pauseButton.interactable = true;
         var mask = pauseButton.GetComponent<RectMask2D>();
         if (mask) mask.enabled = false;
-        HudIconFactory.EnsureButtonIcon(pauseButton, isPaused ? HudIconFactory.Play() : HudIconFactory.Pause(), 26f);
+        bool cityMode=UnityEngine.SceneManagement.SceneManager.GetActiveScene().name=="Gameplay";
+        if(!cityMode)HudIconFactory.EnsureButtonIcon(pauseButton, isPaused ? HudIconFactory.Play() : HudIconFactory.Pause(), 26f);
         var label = pauseButton.transform.Find("Label")?.GetComponent<TextMeshProUGUI>() ?? pauseButton.GetComponentInChildren<TextMeshProUGUI>();
         if (!label)
         {
@@ -688,7 +689,12 @@ public class BattleUIController : MonoBehaviour
         label.overflowMode = TextOverflowModes.Overflow;
         label.gameObject.SetActive(true);
         var icon = pauseButton.transform.Find("Icon")?.GetComponent<UnityEngine.UI.Image>();
-        if (icon) { icon.color = Color.white; icon.gameObject.SetActive(true); }
+        if (icon) { icon.color = Color.white; icon.gameObject.SetActive(!cityMode); }
+        if(cityMode)
+        {
+            var rect=pauseButton.transform as RectTransform;
+            LandscapeUI.Place(label.rectTransform,8,6,rect.rect.width-16,rect.rect.height-12);
+        }
     }
 
     void OnEnable()

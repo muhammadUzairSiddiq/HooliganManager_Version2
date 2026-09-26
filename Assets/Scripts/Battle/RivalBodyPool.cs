@@ -23,8 +23,9 @@ public static class RivalBodyPool
 
     public static void Release(GameObject go)
     {
-        if (!go) return;
+        if (!go || spare.Contains(go)) return;
         go.SetActive(false);
+        if(spare.Count>=4){Object.Destroy(go);return;}
         spare.Enqueue(go);
     }
 }

@@ -38,12 +38,13 @@ public class PedestrianController : MonoBehaviour
         // --- Spawn the visual mesh ---
         if (registry != null && registry.entries != null && registry.entries.Count > 0)
         {
-            int index = Random.Range(0, registry.entries.Count);
+            int index = CityCharacterBudget.Pick(registry);
             var entry = registry.entries[index];
-            GameObject characterPrefab = entry.modelPrefab;
+            GameObject characterPrefab = entry.optimizedModelPrefab ? entry.optimizedModelPrefab : entry.modelPrefab;
             if (characterPrefab != null)
             {
                 GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
+                CityCharacterBudget.Apply(spawnedCharacter);
                 
                 GameplayTuning.ScaleModel(spawnedCharacter.transform);
                 _animator = spawnedCharacter.GetComponent<Animator>();

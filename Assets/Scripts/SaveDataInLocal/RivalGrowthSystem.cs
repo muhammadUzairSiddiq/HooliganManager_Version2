@@ -12,6 +12,7 @@ public class RivalStreetState
     public bool wiped;
     public int pending;
     public bool secondPocket;
+    public int cityGrowthTicks;
 }
 
 /// <summary>
@@ -82,6 +83,23 @@ public static class RivalGrowthSystem
         }
     }
 
+    public static void AdvanceLivingCity(PlayerData d)
+    {
+        Ensure(d);if(d?.RivalStreets==null)return;
+        int grew=0;
+        foreach(var street in d.RivalStreets)
+        {
+            if(street==null||street.wiped)continue;
+            street.cityGrowthTicks=Mathf.Min(5,street.cityGrowthTicks+1);
+            if(street.members<MaxPerFirm){street.members++;grew++;}
+            if(street.cityGrowthTicks>=2)street.secondPocket=true;
+            foreach(var area in UnityEngine.Object.FindObjectsByType<GangArea>(FindObjectsSortMode.None))
+                if(area&&BaseName(area.GangName)==BaseName(street.firmName))area.SetGrowth(street.cityGrowthTicks);
+        }
+        if(grew>0)CityGameplay.Instance?.PostEvent($"RIVAL NETWORKS EXPANDING · {grew} FIRMS HIRED · SCOUT BEFORE ATTACKING");
+        GameManager.Save();
+    }
+
     public static void NoteMemberDown(PlayerData d, string firmName)
     {
         var street = Find(d, firmName);
@@ -135,6 +153,8 @@ public static class RivalGrowthSystem
         if (street == null || street.wiped) return 0;
         return Mathf.Min(street.members, MaxPerFirm);
     }
+
+    public static int GrowthTicks(PlayerData d, string firmName) => Find(d, firmName)?.cityGrowthTicks ?? 0;
 
     static void Hire(PlayerData d, int count)
     {

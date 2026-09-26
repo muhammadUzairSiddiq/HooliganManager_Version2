@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
@@ -117,6 +118,29 @@ public class EnemyController : MonoBehaviour
     public string firmName = "";
     public Color primaryColor = Color.blue;
     public bool isHostile = false;
+    /// <summary>Response officers stand and wait. They do not pick a fight until the player chooses.</summary>
+    public bool holdFire;
+    /// <summary>When set, a police officer only chases these crew members.</summary>
+    public readonly List<AgentController> assignedCrew = new List<AgentController>();
+
+    public void HoldFire(bool hold)
+    {
+        holdFire = hold;
+        if (!hold) return;
+        isHostile = false;
+        assignedCrew.Clear();
+        ClearTarget();
+    }
+
+    public void AssignCrew(List<AgentController> crew)
+    {
+        assignedCrew.Clear();
+        if (crew != null)
+            foreach (var member in crew)
+                if (member) assignedCrew.Add(member);
+        holdFire = false;
+        isHostile = assignedCrew.Count > 0;
+    }
     public Transform defenceObjective;
     public MatchdayUnitRole MatchdayRole { get; private set; }
     public string MatchdayGroupName { get; private set; }
@@ -127,6 +151,7 @@ public class EnemyController : MonoBehaviour
     public void ConfigureMatchdayRole(MatchdayUnitRole role, string groupName)
     {
         MatchdayRole = role;
+        GetComponent<UnitAffiliationMarker>()?.SetVisible(role == MatchdayUnitRole.None);
         MatchdayGroupName = string.IsNullOrWhiteSpace(groupName) ? firmName : groupName;
     }
 
@@ -134,8 +159,17 @@ public class EnemyController : MonoBehaviour
 
     public void Initialise(float maxHp, float strength, float speed, float attackRange = 1.0f, CharacterPortraitRegistry characterPortraitRegistry = null)
     {
+        StopAllCoroutines();
+        ClearTarget();
+        LastHitter=null;
+        _hitsTaken=0;
+        _cinematicIdle=false;
+        defenceObjective=null;
+        GetComponent<MatchdayMarch>()?.SetConflictActive(false);
         // Passive until AttackGang / police fight / damage response flips this on.
         isHostile = false;
+        holdFire = false;
+        assignedCrew.Clear();
         MatchdayRole = MatchdayUnitRole.None;
         MatchdayGroupName = null;
         setup(characterPortraitRegistry);
@@ -203,9 +237,9 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
-        int index = Random.Range(0, registry.entries.Count);
+        int index = CityCharacterBudget.Pick(registry);
         var entry = registry.entries[index];
-        GameObject characterPrefab = entry.modelPrefab;
+        GameObject characterPrefab = entry.optimizedModelPrefab ? entry.optimizedModelPrefab : entry.modelPrefab;
         if (characterPrefab == null) return;
 
         for (int i = transform.childCount - 1; i >= 0; i--)
@@ -215,6 +249,7 @@ public class EnemyController : MonoBehaviour
         }
         GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
         spawnedCharacter.name = "CrewModel";
+        CityCharacterBudget.Apply(spawnedCharacter);
         GameplayTuning.ScaleModel(spawnedCharacter.transform);
         Color shirt = firmName == "POLICE" ? new Color(0.15f, 0.35f, 0.95f) : (primaryColor.a > 0.2f ? primaryColor : new Color(0.9f, 0.15f, 0.15f));
         CrewKit.PaintShirt(spawnedCharacter.transform, shirt);
@@ -233,8 +268,11 @@ public class EnemyController : MonoBehaviour
         }
 
         var capsule = GetComponent<CapsuleCollider>();
-        if (capsule != null) { capsule.radius *= 1.6f; capsule.height *= 2f; }
+        if (capsule != null && !capsuleSized) { capsule.radius *= 1.6f; capsule.height *= 2f; capsuleSized=true; }
     }
+    bool capsuleSized;
+
+    public void RestoreStreamedHealth(float hp) { CurrentHp=Mathf.Clamp(hp,0,MaxHp);healthBar?.SetHealth(CurrentHp,MaxHp); }
 
     // ── Update ────────────────────────────────────────────────────────────
     void Update()
@@ -243,9 +281,10 @@ public class EnemyController : MonoBehaviour
 
         // During the pre-battle cinematic intro enemies stand still in idle.
         // Drive animation only — skip all combat and navigation logic.
-        if (_cinematicIdle)
+        if (_cinematicIdle || holdFire)
         {
-            _anim?.Tick(0f);
+            float held = _nav != null && _nav.enabled ? _nav.velocity.magnitude : 0f;
+            _anim?.Tick(_chaseSpeed > 0f ? held / _chaseSpeed : 0f);
             return;
         }
 
@@ -309,6 +348,19 @@ public class EnemyController : MonoBehaviour
                 if (MatchdayRole != MatchdayUnitRole.None)
                 {
                     UpdateMatchdayTarget();
+                }
+                else if (firmName == "POLICE" && assignedCrew.Count > 0)
+                {
+                    AgentController nearestCrew = null;
+                    float nearestCrewDist = float.MaxValue;
+                    foreach (var player in assignedCrew)
+                    {
+                        if (player == null || !player.IsAlive) continue;
+                        float d = Vector3.Distance(transform.position, player.transform.position);
+                        if (d < nearestCrewDist) { nearestCrewDist = d; nearestCrew = player; }
+                    }
+                    if (nearestCrew != null) SetTarget(nearestCrew);
+                    else ClearTarget();
                 }
                 else if (firmName == "POLICE")
                 {
@@ -727,8 +779,9 @@ public class EnemyController : MonoBehaviour
     {
         var kind = firmName == "POLICE" ? MiniMapIconFactory.Kind.Police : MiniMapIconFactory.Kind.Gang;
         MiniMapIconFactory.Register(transform, kind, firmName);
-        UnitAffiliationMarker.Attach(transform,
-            firmName == "POLICE" ? new Color(.20f, .55f, 1f, 1f) : primaryColor, 1.28f, false);
+        if (!IsAmbientMatchdayUnit)
+            UnitAffiliationMarker.Attach(transform,
+                firmName == "POLICE" ? new Color(.20f, .55f, 1f, 1f) : primaryColor, 1.28f, false);
         Color shirt = firmName == "POLICE" ? new Color(0.15f, 0.35f, 0.95f) : primaryColor;
         CrewKit.PaintShirt(transform, shirt);
     }

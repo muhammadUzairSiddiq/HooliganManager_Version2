@@ -45,7 +45,7 @@ public class LivePoliceSystem : MonoBehaviour
     public float cutsceneHoldSeconds = 2.4f;
     public int patrolCarCount = 2;
 
-    private enum PoliceState { Idle, Cutscene, AwaitingChoice, Fighting, BribedOff }
+    private enum PoliceState { Idle, Searching, AwaitingChoice, Fighting, BribedOff }
     private PoliceState _state = PoliceState.Idle;
     private bool _pendingArrival;
     private int _heat;
@@ -68,14 +68,28 @@ public class LivePoliceSystem : MonoBehaviour
     private TextMeshProUGUI _fightLabel, _bribeLabel;
     private bool _skipCutscene;
     private bool _arrestAnnounced;
+    private bool _arrestClaimed;
+    const float GroupRadius = 8f;
     private readonly List<AgentController> _trouble = new List<AgentController>();
 
     public IReadOnlyList<PoliceCarChaser> ActivePatrolCars => _patrolCars;
     public GameObject ResponseCar => _responseCar;
     public bool IsBribedOff => _state == PoliceState.BribedOff;
     /// <summary>True while police cutscene / bribe-fight choice is up (blocks turf prompts).</summary>
-    public bool BlocksWorldPrompts =>
-        _state == PoliceState.Cutscene || _state == PoliceState.AwaitingChoice;
+    public bool BlocksWorldPrompts => _state == PoliceState.AwaitingChoice;
+
+    /// <summary>True when the last free crew member went down to this police fight, so the wipe is an arrest.</summary>
+    public bool ClaimArrestWipe()
+    {
+        if (_arrestClaimed) return true;
+        if (_state != PoliceState.Fighting) return false;
+        bool officers = false;
+        foreach (var officer in _waveOfficers)
+            if (officer != null && officer.IsAlive) { officers = true; break; }
+        if (!officers) return false;
+        _arrestClaimed = true;
+        return true;
+    }
     public bool IsAwaitingPlayerChoice => BlocksWorldPrompts || _state == PoliceState.Fighting;
     public int CurrentHeat => _heat;
 
@@ -176,33 +190,8 @@ public class LivePoliceSystem : MonoBehaviour
     {
         SyncHeatFromCampaign();
 
-        if (_state == PoliceState.BribedOff ||
-            _state == PoliceState.Cutscene ||
-            _state == PoliceState.AwaitingChoice)
-        {
-            UpdateVignette(_state == PoliceState.AwaitingChoice || _state == PoliceState.Fighting);
-            return;
-        }
-
-        if (_state == PoliceState.Fighting)
-        {
-            UpdateVignette(true);
-            MonitorWave();
-            return;
-        }
-
-        // Heat already maxed during a scrap — arrive once hostiles are cleared.
-        if (_pendingArrival && _state == PoliceState.Idle && _heat >= maxHeat)
-        {
-            if (BattleManager.instance == null || !BattleManager.instance.IsRivalGangFightActive())
-                TryStartPoliceArrival();
-        }
-        else if(_state==PoliceState.Idle&&_heat>=maxHeat)
-        {
-            // City actions and matchday choices can reach 10/10 without a gang wipe.
-            // A full bar must always produce a police response instead of silently persisting.
-            TryStartPoliceArrival();
-        }
+        if (_state != PoliceState.Idle) return;
+        if (_heat >= maxHeat) TryStartPoliceArrival();
     }
 
     // ── Patrol ───────────────────────────────────────────────────────────
@@ -248,46 +237,266 @@ public class LivePoliceSystem : MonoBehaviour
     // ── Arrival sequence ─────────────────────────────────────────────────
     private IEnumerator ArrivalRoutine()
     {
-        _state = PoliceState.Cutscene;
+        _state = PoliceState.Searching;
         _wave++;
         _heat = maxHeat;
         _skipCutscene = false;
         _arrestAnnounced = false;
+        _arrestClaimed = false;
         UpdateHeatBar();
-
         _trouble.Clear();
-        _trouble.AddRange(FindFightingGroup());
 
-        Vector3 playerPos = TroubleCentroid();
-        PoliceCarChaser nearest = FindNearestPatrolCar(playerPos);
+        var first = PickPrimary();
+        if (first == null) { _state = PoliceState.Idle; yield break; }
+        PoliceCarChaser nearest = TakeResponseCar(first.transform.position);
 
+        while (_state == PoliceState.Searching || _state == PoliceState.AwaitingChoice || _state == PoliceState.Fighting)
+        {
+            if (_state == PoliceState.BribedOff) yield break;
+            var primary = PickPrimary();
+            if (primary == null)
+            {
+                if (!_arrestClaimed && !AnyCrewAlive())
+                    BattleManager.instance?.NotifySquadWiped();
+                yield break;
+            }
+
+            if (!OfficersAlive())
+            {
+                Vector3 face = Facing(primary);
+                SpawnOfficersInFrontOfPlayer(primary.transform.position, face);
+                StandOfficersDown();
+            }
+            if (!OfficersAlive()) { _state = PoliceState.Idle; yield break; }
+
+            DropOnCrew(primary, nearest);
+            while (_state == PoliceState.AwaitingChoice) yield return null;
+            if (_state != PoliceState.Fighting) yield break;
+
+            while (OfficersAlive() && AnyTroubleAlive()) yield return null;
+            HoldTrouble(false);
+            if (!OfficersAlive())
+            {
+                ClearWave();
+                yield break;
+            }
+
+            StandOfficersDown();
+            if (!AnyCrewAlive())
+            {
+                if (!_arrestClaimed) BattleManager.instance?.NotifySquadWiped();
+                yield break;
+            }
+            CityGameplay.Instance?.PostEvent("ARRESTED · " + CrewName(primary) + " · POLICE ARE ON THE NEXT CREW");
+            _state = PoliceState.Searching;
+        }
+    }
+
+    PoliceCarChaser TakeResponseCar(Vector3 near)
+    {
+        PoliceCarChaser nearest = FindNearestPatrolCar(near);
         if (nearest != null)
         {
             _responseCar = nearest.gameObject;
             _patrolCars.Remove(nearest);
+            return nearest;
         }
-        else
-        {
-            SpawnResponseCarNear(playerPos);
-            nearest = _responseCar != null ? _responseCar.GetComponent<PoliceCarChaser>() : null;
-        }
+        SpawnResponseCarNear(near);
+        return _responseCar != null ? _responseCar.GetComponent<PoliceCarChaser>() : null;
+    }
 
-        Vector3 forward = TroubleForward();
-        Vector3 carPark = playerPos - forward * 6f + Vector3.right * 2.5f;
-        int roadMask = gameObject.scene.name == "Gameplay" ? 1 << 3 : NavMesh.AllAreas;
-        if (NavMesh.SamplePosition(carPark, out var carHit, 60f, roadMask))
-            carPark = carHit.position;
+    static Vector3 Facing(AgentController agent)
+    {
+        Vector3 face = agent ? agent.transform.forward : Vector3.forward;
+        face.y = 0f;
+        return face.sqrMagnitude < 0.04f ? Vector3.forward : face.normalized;
+    }
 
-        if (nearest != null)
-            StartCoroutine(DriveCarWithoutCamera(nearest, carPark));
-        else if (_responseCar != null)
-            _responseCar.transform.position = carPark;
-
-        SpawnOfficersInFrontOfPlayer(playerPos, forward);
-        SetVignette(true);
+    void DropOnCrew(AgentController primary, PoliceCarChaser car)
+    {
+        Vector3 face = Facing(primary);
+        Vector3 spot = primary.transform.position;
+        PlaceOfficers(spot, face);
+        Vector3 carPark = spot - face * 5.5f;
+        if (NavMesh.SamplePosition(carPark, out var park, 12f, NavMesh.AllAreas)) carPark = park.position;
+        if (car != null) car.ParkAt(carPark, face);
+        GatherGroup(primary);
+        HoldTrouble(true);
         _state = PoliceState.AwaitingChoice;
         ShowPopup();
-        yield break;
+        CityGameplay.Instance?.PostEvent("POLICE ARE ON " + CrewName(primary) + " · FIGHT OR BRIBE");
+    }
+
+    void PlaceOfficers(Vector3 spot, Vector3 forward)
+    {
+        int count = 0;
+        foreach (var officer in _waveOfficers)
+            if (officer != null && officer.IsAlive) count++;
+        int index = 0;
+        foreach (var officer in _waveOfficers)
+        {
+            if (officer == null || !officer.IsAlive) continue;
+            float side = (index - (count - 1) * 0.5f) * 1.5f;
+            Vector3 pos = spot + forward * 2.6f + Vector3.Cross(Vector3.up, forward) * side;
+            if (NavMesh.SamplePosition(pos, out var hit, 8f, NavMesh.AllAreas)) pos = hit.position;
+            officer.HoldFire(true);
+            var nav = officer.GetComponent<NavMeshAgent>();
+            if (nav != null)
+            {
+                nav.enabled = false;
+                officer.transform.position = pos;
+                nav.enabled = true;
+                if (nav.isOnNavMesh)
+                {
+                    nav.Warp(pos);
+                    nav.isStopped = true;
+                    nav.ResetPath();
+                }
+            }
+            else officer.transform.position = pos;
+            officer.transform.rotation = Quaternion.LookRotation(-forward, Vector3.up);
+            index++;
+        }
+    }
+
+    static string CrewName(AgentController agent)
+    {
+        var name = agent != null && agent.Data != null ? agent.Data.AgentName : null;
+        return string.IsNullOrWhiteSpace(name) ? "A CREW MEMBER" : name.ToUpperInvariant();
+    }
+
+    AgentController PickPrimary()
+    {
+        var bm = BattleManager.instance;
+        if (bm == null) return null;
+        AgentController fighter = null;
+        float best = float.MaxValue;
+        Vector3 from = OfficerCentroid();
+        foreach (var agent in bm.PlayerAgents)
+        {
+            if (agent == null || !agent.IsAlive || agent.CurrentState != AgentController.State.AutoAttacking) continue;
+            float d = Vector3.SqrMagnitude(agent.transform.position - from);
+            if (d < best) { best = d; fighter = agent; }
+        }
+        if (fighter != null) return fighter;
+        var last = AgentSelectionManager.LastPicked;
+        if (last != null && last.IsAlive) return last;
+        if (AgentSelectionManager.instance != null)
+            foreach (var agent in AgentSelectionManager.instance.SelectedAgents)
+                if (agent != null && agent.IsAlive) return agent;
+        AgentController any = null;
+        best = float.MaxValue;
+        foreach (var agent in bm.PlayerAgents)
+        {
+            if (agent == null || !agent.IsAlive) continue;
+            float d = Vector3.SqrMagnitude(agent.transform.position - from);
+            if (d < best) { best = d; any = agent; }
+        }
+        return any;
+    }
+
+    void GatherGroup(AgentController primary)
+    {
+        _trouble.Clear();
+        if (primary == null) return;
+        _trouble.Add(primary);
+        var bm = BattleManager.instance;
+        if (bm == null) return;
+        foreach (var agent in bm.PlayerAgents)
+        {
+            if (agent == null || !agent.IsAlive || _trouble.Contains(agent)) continue;
+            if (Vector3.Distance(agent.transform.position, primary.transform.position) <= GroupRadius)
+                _trouble.Add(agent);
+        }
+    }
+
+    void StandOfficersDown()
+    {
+        foreach (var officer in _waveOfficers)
+            if (officer != null) officer.HoldFire(true);
+    }
+
+    void OrderOfficersToward(Vector3 point)
+    {
+        foreach (var officer in _waveOfficers)
+        {
+            if (officer == null || !officer.IsAlive) continue;
+            officer.HoldFire(true);
+            var nav = officer.GetComponent<NavMeshAgent>();
+            if (nav == null || !nav.enabled || !nav.isOnNavMesh) continue;
+            nav.isStopped = false;
+            if (!nav.pathPending && nav.remainingDistance > 1.2f)
+                nav.SetDestination(point);
+            else if (!nav.hasPath)
+                nav.SetDestination(point);
+        }
+    }
+
+    float NearestOfficerDistance(Vector3 point)
+    {
+        float best = float.MaxValue;
+        foreach (var officer in _waveOfficers)
+        {
+            if (officer == null || !officer.IsAlive) continue;
+            float d = Vector3.Distance(officer.transform.position, point);
+            if (d < best) best = d;
+        }
+        return best;
+    }
+
+    Vector3 OfficerCentroid()
+    {
+        Vector3 sum = Vector3.zero;
+        int count = 0;
+        foreach (var officer in _waveOfficers)
+        {
+            if (officer == null) continue;
+            sum += officer.transform.position;
+            count++;
+        }
+        if (count > 0) return sum / count;
+        return _responseCar != null ? _responseCar.transform.position : (BattleManager.instance != null ? BattleManager.instance.GetPlayerCentroid() : Vector3.zero);
+    }
+
+    bool OfficersAlive()
+    {
+        foreach (var officer in _waveOfficers)
+            if (officer != null && officer.IsAlive) return true;
+        return false;
+    }
+
+    bool AnyCrewAlive()
+    {
+        var bm = BattleManager.instance;
+        if (bm == null) return false;
+        foreach (var agent in bm.PlayerAgents)
+            if (agent != null && agent.IsAlive) return true;
+        return false;
+    }
+
+    Vector3 RoadNear(Vector3 point)
+    {
+        var spline = PoliceRoadSpline.Instance;
+        if (spline != null && spline.IsReady)
+            return spline.GetPointAtDistance(spline.FindNearestDistance(point));
+        if (NavMesh.SamplePosition(point, out var hit, 30f, NavMesh.AllAreas))
+            return hit.position;
+        return point;
+    }
+
+    void ClearWave()
+    {
+        HoldTrouble(false);
+        DespawnWave();
+        RestoreHiddenGangs();
+        _heat = Mathf.Clamp(4, 0, maxHeat);
+        var data = GameManager.Data;
+        if (data != null) { data.PoliceHeat = _heat; GameManager.Save(); }
+        _state = PoliceState.Idle;
+        _trouble.Clear();
+        UpdateHeatBar();
+        if (_patrolCars.Count < patrolCarCount) SpawnPatrolCars();
+        CityGameplay.Instance?.PostEvent("POLICE BEATEN · THIS SEARCH IS OVER");
     }
 
     IEnumerator DriveCarWithoutCamera(PoliceCarChaser car, Vector3 destination)
@@ -592,7 +801,9 @@ public class LivePoliceSystem : MonoBehaviour
         foreach (var o in _waveOfficers)
         {
             if (o == null) continue;
-            o.isHostile = true;
+            o.AssignCrew(_trouble);
+            var nav = o.GetComponent<NavMeshAgent>();
+            if (nav != null && nav.enabled && nav.isOnNavMesh) nav.isStopped = false;
             var player = NearestTrouble(o.transform.position);
             if (player != null) o.AlertToTarget(player);
         }
@@ -619,7 +830,6 @@ public class LivePoliceSystem : MonoBehaviour
 
         BattleManager.instance.sessionHeatGained += 1;
         _state = PoliceState.Fighting;
-        SetVignette(true);
     }
 
     private void OnBribe()
@@ -643,7 +853,7 @@ public class LivePoliceSystem : MonoBehaviour
         SSetVignetteOff();
         // Bribe cools heat to halfway (5/10) — not cleared to zero.
         _heat = Mathf.Clamp(5, 0, maxHeat);
-        _state = PoliceState.BribedOff;
+        _state = PoliceState.Idle;
 
         foreach (var c in _patrolCars)
             if (c != null) c.StopAndIdle();
@@ -689,10 +899,10 @@ public class LivePoliceSystem : MonoBehaviour
             if (ec == null) continue;
 
             ec.patrolRadius = 5f;
-            ec.detectionRadius = 35f;
+            ec.detectionRadius = 12f;
             ec.Initialise(hp, dmg, 2.5f, 1.0f, portraits);
             ec.firmName = "POLICE";
-            ec.isHostile = false; // armed on Fight choice
+            ec.HoldFire(true);
             BattleManager.instance.RegisterEnemy(ec);
             _waveOfficers.Add(ec);
         }
@@ -744,18 +954,10 @@ public class LivePoliceSystem : MonoBehaviour
 
     private void UpdateVignette(bool forceOn)
     {
-        if (_vignetteGroup == null) return;
-        bool on = _vignetteOn || forceOn;
-        float heatT = maxHeat > 0 ? _heat / (float)maxHeat : 0f;
-        float target = on ? 1f : (heatT > 0.7f ? (heatT - 0.7f) * 0.5f : 0f);
-        _vignetteGroup.alpha = Mathf.MoveTowards(_vignetteGroup.alpha, target, Time.unscaledDeltaTime * 3f);
-
-        if (_vignetteGroup.alpha > 0.001f)
-        {
-            float phase = (Mathf.Sin(Time.unscaledTime * 9f) + 1f) * 0.5f;
-            if (_flashRed != null) _flashRed.color = new Color(1f, 0.08f, 0.08f, 0.22f * phase);
-            if (_flashBlue != null) _flashBlue.color = new Color(0.1f, 0.3f, 1f, 0.22f * (1f - phase));
-        }
+        _vignetteOn = false;
+        if (_vignetteGroup != null) _vignetteGroup.alpha = 0f;
+        if (_flashRed != null) _flashRed.color = new Color(1f, 0.08f, 0.08f, 0f);
+        if (_flashBlue != null) _flashBlue.color = new Color(0.1f, 0.3f, 1f, 0f);
     }
 
     private void UpdateHeatBar()
@@ -802,12 +1004,24 @@ public class LivePoliceSystem : MonoBehaviour
         _heatPlusGroup.alpha = 0f;
     }
 
+    GameObject localPoliceChoice;
     private void ShowPopup()
     {
         HidePopup();
         int cost = BribeCost();
         var pd = GameData.instance != null ? GameData.instance.PlayerData : null;
         bool canPay = pd != null && pd.Money >= cost;
+        if(CityGameplay.Instance)
+        {
+            localPoliceChoice=new GameObject("Police response choice");
+            localPoliceChoice.transform.position=TroubleCentroid();
+            WorldChoiceBar.Present(localPoliceChoice.transform, "POLICE", false,
+                ("FIGHT", LandscapeUI.Red, (System.Action)OnFight),
+                (canPay ? "BRIBE £" + cost.ToString("N0") : "NEED £" + cost.ToString("N0"), LandscapeUI.Gold, (System.Action)(() =>
+                { if (GameManager.Data != null && GameManager.Data.Money >= BribeCost()) OnBribe(); else ShowPopup(); })));
+            CityGameplay.Instance.PostEvent("POLICE ARE HERE · FIGHT OR BRIBE · ONLY THIS GROUP IS HELD");
+            return;
+        }
         GamePopup.Instance.Show(
             "POLICE",
             "Police are on the group that was fighting.\n\nStand and fight, or pay them to leave.\nThe rest of the city keeps moving.",
@@ -822,6 +1036,7 @@ public class LivePoliceSystem : MonoBehaviour
 
     private void HidePopup()
     {
+        if(localPoliceChoice)Destroy(localPoliceChoice);
         if (_popupRoot != null) _popupRoot.SetActive(false);
     }
 
@@ -835,16 +1050,6 @@ public class LivePoliceSystem : MonoBehaviour
         canvas.sortingOrder = 20000;
         LandscapeUI.ConfigureLandscapeScaler(canvasGo.GetComponent<CanvasScaler>());
         canvasGo.AddComponent<MobileSafeArea>();
-
-        var vig = new GameObject("Vignette", typeof(RectTransform), typeof(CanvasGroup));
-        vig.transform.SetParent(canvasGo.transform, false);
-        Stretch(vig.GetComponent<RectTransform>());
-        _vignetteGroup = vig.GetComponent<CanvasGroup>();
-        _vignetteGroup.alpha = 0f;
-        _vignetteGroup.blocksRaycasts = false;
-        _vignetteGroup.interactable = false;
-        _flashRed = NewImage("Red", vig.transform); Stretch(_flashRed.rectTransform); _flashRed.color = new Color(1f, 0.1f, 0.1f, 0f); _flashRed.raycastTarget = false;
-        _flashBlue = NewImage("Blue", vig.transform); Stretch(_flashBlue.rectTransform); _flashBlue.color = new Color(0.15f, 0.35f, 1f, 0f); _flashBlue.raycastTarget = false;
 
         // Compact segmented heat bar (half size) — under the full-width top HUD.
         _heatBarRoot = new GameObject("HeatBar", typeof(RectTransform));

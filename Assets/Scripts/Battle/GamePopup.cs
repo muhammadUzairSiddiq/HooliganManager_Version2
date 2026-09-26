@@ -30,6 +30,7 @@ public class GamePopup : MonoBehaviour
     public void Show(string heading,string message,params Option[] options)=>Show(heading,message,null,options);
     public void ShowTimed(string heading,string message,float seconds=1.6f)
     {
+        if(CityGameplay.Instance){CityGameplay.Instance.PostEvent(heading+" · "+message);return;}
         Show(heading,message,new Option("OK",PanelColor,null));
         autoHide=StartCoroutine(AutoHide(seconds));
     }
@@ -41,6 +42,10 @@ public class GamePopup : MonoBehaviour
     }
     public void Show(string heading,string message,Action onCancel,params Option[] options)
     {
+        // Automatic receipts belong in the feed and resource bar. Real choices retain their actions.
+        if(CityGameplay.Instance&&onCancel==null&&options!=null&&options.Length==1&&options[0].Action==null&&
+           (heading.Contains("COMPLETE")||heading.Contains("COLLECTED")||heading.Contains("HEAT")||heading.Contains("CONFIRMED")||heading.Contains("DEFEATED")))
+        {CityGameplay.Instance.PostEvent(heading+" · "+message.Replace('\n',' '));return;}
         if(!root) Build();
         if(autoHide!=null){StopCoroutine(autoHide);autoHide=null;}
         hideCallback=onCancel;

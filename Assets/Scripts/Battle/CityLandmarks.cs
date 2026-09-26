@@ -116,13 +116,42 @@ public static class CityLandmarks
         {
             if (!NavMesh.SamplePosition(guess, out var hit, 14f, NavMesh.AllAreas)) continue;
             Vector3 point = hit.position;
-            if (ContainsFlat(bounds, point)) continue;
+            if (ContainsFlat(bounds, point)||!HasTacticalClearance(point)) continue;
             float clearance = Horizontal(point, origin);
             float towardCamera = Vector3.Dot(origin - point, look);
             float score = clearance + towardCamera * 0.35f;
             if (score > bestScore) { bestScore = score; best = point; found = true; }
         }
         return found ? best : (NavMesh.SamplePosition(fallback, out var fb, 8f, NavMesh.AllAreas) ? fb.position : fallback);
+    }
+
+    public static bool HasTacticalClearance(Vector3 point)
+    {
+        if(!CityActivityStreaming.TryStreetPoint(point,out _,2f))return false;
+        // Upward rays miss one-sided mountain meshes when the point starts inside them.
+        if(Physics.Raycast(point+Vector3.up*250f,Vector3.down,out var roof,260f,~0,QueryTriggerInteraction.Ignore)&&roof.point.y>point.y+3f)return false;
+        // Test the viewing corridor too: walkable ground can still be hidden behind a mountain.
+        // Location binding can run before the camera's Start initializes its isometric pose.
+        Vector3 forward=Quaternion.Euler(PlayerPrefs.GetFloat("CityCameraPitch",65),PlayerPrefs.GetFloat("CityCameraYaw",45),0)*Vector3.forward;
+        Vector3 eye=point-forward*45f;
+        return !Physics.Linecast(point+Vector3.up*2.5f,eye,~0,QueryTriggerInteraction.Ignore);
+    }
+
+    public static Vector3 ClearNearby(Vector3 point)
+    {
+        if(HasTacticalClearance(point))return point;
+        var route=new NavMeshPath();
+        for(int ring=1;ring<=48;ring++)for(int i=0;i<16;i++)
+        {
+            float angle=i*Mathf.PI/8;
+            var guess=point+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*ring*8;
+            if(NavMesh.SamplePosition(guess,out var hit,12,NavMesh.AllAreas)&&HasTacticalClearance(hit.position))
+            {
+                if(CityGameplay.Instance&&(!NavMesh.CalculatePath(CityGameplay.Instance.Home,hit.position,NavMesh.AllAreas,route)||route.status!=NavMeshPathStatus.PathComplete))continue;
+                return hit.position;
+            }
+        }
+        return point;
     }
 
     static bool HasMesh(Transform root)

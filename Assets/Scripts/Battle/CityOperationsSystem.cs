@@ -135,7 +135,7 @@ public sealed class CityOperationsSystem : MonoBehaviour
         if(frame||!root)return;frame=root;
         boardButton=LandscapeUI.Button("CityOperations",frame,"OPERATIONS",478,18,150,50,"dark");
         boardButton.onClick.AddListener(OpenBoard);
-        var opIcon=LandscapeTheme.Current?.lootBat;
+        Sprite opIcon=null; // Text-only navigation: preserve width for the button title.
         if(opIcon)
         {
             var icon=LandscapeUI.Image("Icon",boardButton.transform,8,15,20,20,opIcon,Color.white,true);icon.raycastTarget=false;
@@ -216,6 +216,13 @@ public sealed class CityOperationsSystem : MonoBehaviour
         CampaignMissions.JobCopy(destination,type,out string title,out string description);
         Vector3 pad=point+Quaternion.Euler(0f,yaw,0f)*new Vector3(0f,0f,7f);
         Vector3 location=CityGameplay.ReachableApproach(CityGameplay.Instance.Home,pad);
+        // Keep task footprints distinct even when two buildings share an approach.
+        for(int attempt=0;attempt<12&&nodes.Any(n=>n&&(n.transform.position-location).sqrMagnitude<18f*18f);attempt++)
+        {
+            float angle=(yaw+attempt*55f)*Mathf.Deg2Rad;
+            var candidate=pad+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*(18f+attempt*4f);
+            location=CityGameplay.ReachableApproach(CityGameplay.Instance.Home,candidate);
+        }
         var go=new GameObject(title);go.transform.position=location;
         var node=go.AddComponent<CityOperationNode>();
         node.Configure(this,type,title,description,duration,stamina,role,flavor);
@@ -248,7 +255,7 @@ public sealed class CityOperationsSystem : MonoBehaviour
             CameraPanTouchOnly.Instance?.FocusOn(node.transform.position);
             AgentSelectionManager.CreateCommandMarker(node.transform.position,LandscapeUI.Green,"TASK");
             Feedback(node.Title+" ASSIGNED - CREW MOVING INTO POSITION");
-            if(!automatedPlaytest)GameplayOutcomePresentation.TaskStarted("CREW MOVING",node.Title+"\nFollow the cyan task ring.");
+            if(!automatedPlaytest)CityFeedback.At(node.transform.position,node.Title+"\nCREW ON THE WAY",new Color(.16f,.68f,1f));
             return;
         }
         node.Begin(selected);
@@ -271,7 +278,7 @@ public sealed class CityOperationsSystem : MonoBehaviour
         GameManager.Save();
         AgentSelectionManager.CreateCommandMarker(node.transform.position,LandscapeUI.Green,"COMPLETE");
         CityGameplay.Instance?.PostEvent(node.Title+" COMPLETE - "+RewardText(node.Type));
-        if(!automatedPlaytest)GameplayOutcomePresentation.TaskComplete(node.Title,RewardText(node.Type),heatBefore,d.PoliceHeat);
+        if(!automatedPlaytest)CityFeedback.At(node.transform.position,node.Title+" COMPLETE",LandscapeUI.Green);
         CityGameplay.Instance?.CheckCampaignCompletion();
         RefreshBoard();
     }
@@ -519,7 +526,7 @@ public sealed class CityOperationNode:MonoBehaviour
         var d=GameManager.Data;int heatBefore=d?.PoliceHeat??0;if(d!=null){d.PoliceHeat=Mathf.Clamp(d.PoliceHeat+heatDelta,0,10);d.Money+=cashDelta;GameManager.Save();}
         CityGameplay.Instance?.PostEvent(Title+" STARTED · "+outcome+" · "+string.Join(", ",assigned.Where(a=>a&&a.Data!=null).Select(a=>a.Data.AgentName)));
         if(!owner.AutomatedPresentationDisabled)
-            GameplayOutcomePresentation.Message("TASK IN PROGRESS",Title,outcome+(heatDelta!=0?$"\nPolice heat: {heatBefore}/10 → {d.PoliceHeat}/10":""),heatDelta>0?LandscapeUI.Gold:new Color(.16f,.68f,1f),1.45f);
+            CityFeedback.At(transform.position,Title+"\n"+outcome,heatDelta>0?LandscapeUI.Gold:new Color(.16f,.68f,1f));
     }
 
     public void Queue(AgentController[] members)

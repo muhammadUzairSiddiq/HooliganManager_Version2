@@ -54,7 +54,8 @@ public sealed class CityLandmarkWork : MonoBehaviour
                 break;
             default:
                 var school = CityLandmarks.School(transform.position + new Vector3(18f, 0f, 8f));
-                yield return TwoStop(living, transform.position, school.Point, "LOOKOUT", "FAR WALL", false);
+                var approach=CityGameplay.ReachableApproach(transform.position,school.Point);
+                yield return TwoStop(living, transform.position, approach, "LOOKOUT", "FAR WALL", false);
                 break;
         }
 
@@ -77,7 +78,11 @@ public sealed class CityLandmarkWork : MonoBehaviour
                 foreach (var member in crew) member.PlayStreetPunch();
                 yield return new WaitForSeconds(1.15f);
             }
-            else yield return new WaitForSeconds(0.8f);
+            else
+            {
+                foreach(var member in crew)SupporterGestureAnimation.Play(member,"PICKUP",.8f);
+                yield return new WaitForSeconds(0.8f);
+            }
         }
     }
 
@@ -95,7 +100,7 @@ public sealed class CityLandmarkWork : MonoBehaviour
             foreach (var member in crew)
             {
                 Face(member, center);
-                member.PlayStreetPunch();
+                SupporterGestureAnimation.Play(member,"CHANT",1.25f);
             }
             yield return new WaitForSeconds(1.25f);
         }
@@ -114,7 +119,7 @@ public sealed class CityLandmarkWork : MonoBehaviour
             if (!member || !member.IsAlive || member.Data == null) continue;
             if (member.Data.MaxStamina < 1f) member.Data.MaxStamina = 100f;
             member.Data.Stamina = Mathf.Min(member.Data.MaxStamina, member.Data.Stamina + 30f);
-            member.PlayStreetPunch();
+            SupporterGestureAnimation.Play(member,"TREAT",1.2f);
         }
         node.SetLiveStatus(node.Title + "\nPATCHED UP");
         yield return new WaitForSeconds(1.2f);
@@ -132,7 +137,7 @@ public sealed class CityLandmarkWork : MonoBehaviour
         for (int i = 0; i < crew.Count; i++) crew[i].JobMoveTo(second + Spread(i));
         yield return WaitUntilClose(crew, second, 8f);
         if (!StillWorking(crew)) yield break;
-        foreach (var member in crew) { Face(member, second); member.PlayStreetPunch(); }
+        foreach (var member in crew) { Face(member, second); SupporterGestureAnimation.Play(member,"PICKUP",.9f); }
         yield return new WaitForSeconds(0.9f);
     }
 
@@ -147,7 +152,7 @@ public sealed class CityLandmarkWork : MonoBehaviour
             if (!StillWorking(crew)) yield break;
             node.SetLiveStatus(node.Title + "\n" + label + " " + (turn + 1) + "/" + turns);
             Vector3 look = center + Quaternion.Euler(0f, turn * 70f, 0f) * Vector3.forward * 8f;
-            foreach (var member in crew) Face(member, look);
+            foreach (var member in crew) { Face(member, look);SupporterGestureAnimation.Play(member,"WATCH",1.15f); }
             yield return new WaitForSeconds(1.15f);
         }
     }
@@ -166,11 +171,25 @@ public sealed class CityLandmarkWork : MonoBehaviour
         return false;
     }
 
-    static IEnumerator WaitUntilClose(List<AgentController> crew, Vector3 point, float seconds)
+    IEnumerator WaitUntilClose(List<AgentController> crew, Vector3 point, float seconds)
     {
         float left = seconds;
+        // Distant landmarks need a real travel budget. A timeout must cancel the
+        // work, never silently award completion from the opposite end of town.
+        foreach(var member in crew)
+        {
+            if(!member)continue;
+            var nav=member.GetComponent<NavMeshAgent>();
+            var path=new NavMeshPath();
+            if(!NavMesh.CalculatePath(member.transform.position,point,NavMesh.AllAreas,path)||path.status!=NavMeshPathStatus.PathComplete)
+            {node?.CancelLive("ROUTE BLOCKED · CHOOSE AN OPEN STREET APPROACH");yield break;}
+            float distance=0;for(int i=1;i<path.corners.Length;i++)distance+=Vector3.Distance(path.corners[i-1],path.corners[i]);
+            left=Mathf.Max(left,seconds+distance/Mathf.Max(.8f,nav?nav.speed:2f)*1.5f);
+        }
+        left=Mathf.Min(left,300f);
         while (left > 0f)
         {
+            if(!StillWorking(crew))yield break;
             left -= Time.deltaTime;
             bool there = true;
             foreach (var member in crew)
@@ -183,6 +202,7 @@ public sealed class CityLandmarkWork : MonoBehaviour
             if (there) yield break;
             yield return null;
         }
+        node?.CancelLive("TASK ROUTE TIMED OUT · REGROUP AND TRY ANOTHER APPROACH");
     }
 
     static Vector3 Pad(Vector3 center, float yaw, float distance)

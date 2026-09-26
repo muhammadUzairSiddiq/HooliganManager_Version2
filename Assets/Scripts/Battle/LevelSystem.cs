@@ -129,10 +129,19 @@ public class LevelSystem : MonoBehaviour
         StartCoroutine(DefeatSequence());
     }
 
+    public void OnCrewArrested()
+    {
+        if (_defeatShown) return;
+        _defeatShown = true;
+        _transitioning = true;
+        GameAudio.PlayPresentationTheme("defeat");
+        ModalPresentation.ShowStamp("ARRESTED", 4f, ShowDefeatPopup);
+    }
+
     IEnumerator DefeatSequence()
     {
         GameAudio.PlayPresentationTheme("defeat");
-        ShowDefeatPopup();
+        ModalPresentation.ShowStamp("WASTED", 5f, ShowDefeatPopup);
         yield break;
     }
 

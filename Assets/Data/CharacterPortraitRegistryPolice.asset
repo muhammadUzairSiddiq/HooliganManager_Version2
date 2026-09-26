@@ -13,9 +13,13 @@ MonoBehaviour:
   m_Name: CharacterPortraitRegistryPolice
   m_EditorClassIdentifier: Assembly-CSharp::CharacterPortraitRegistry
   entries:
-  - modelPrefab: {fileID: 919132149155446097, guid: c03069f39df31499ea97652f44738fe4, type: 3}
+  - modelPrefab: {fileID: 7584976510965963526, guid: b13a877a995c6364f8d50b5a51613716, type: 3}
+    optimizedModelPrefab: {fileID: 7584976510965963526, guid: b13a877a995c6364f8d50b5a51613716, type: 3}
+    sourceModelAssetPath: Assets/Models/Character/Ch18/Ch18_nonPBR.fbx
     animatorController: {fileID: 0}
     portrait: {fileID: 21300000, guid: 4c92c88d5915b43c0af8537f49291a4a, type: 3}
-  - modelPrefab: {fileID: 919132149155446097, guid: 7516c3bb322a14299bdb46fab4732f4f, type: 3}
+  - modelPrefab: {fileID: 5972087718181496597, guid: 379d297ac73e72841b4e3e4d8fc3de1f, type: 3}
+    optimizedModelPrefab: {fileID: 5972087718181496597, guid: 379d297ac73e72841b4e3e4d8fc3de1f, type: 3}
+    sourceModelAssetPath: Assets/Models/Character/Swat/Swat.fbx
     animatorController: {fileID: 0}
     portrait: {fileID: 21300000, guid: 89033234956d54bb0a87005ee3e24d5c, type: 3}

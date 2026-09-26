@@ -49,6 +49,8 @@ public class LiveMiniMap : MonoBehaviour
     private float _nextIconRefresh;
     private float _nextSceneScan;
     private float _nextMapRender;
+    Vector3 renderedFocus;
+    float renderedHalfHeight,renderedAspect;
     private readonly List<Mark> _marks = new List<Mark>(48);
     private GangArea[] _gangAreas = new GangArea[0];
     private RecruitArea[] _recruitAreas = new RecruitArea[0];
@@ -160,7 +162,8 @@ public class LiveMiniMap : MonoBehaviour
 
     private void BuildCamera()
     {
-        _rt = new RenderTexture(512, 512, 16, RenderTextureFormat.ARGB32);
+        _rt = new RenderTexture(Application.isMobilePlatform?384:512, Application.isMobilePlatform?384:512, 16, RenderTextureFormat.ARGB32);
+        _rt.wrapMode=TextureWrapMode.Clamp;
         _rt.antiAliasing = 1;
         _rt.Create();
 
@@ -178,6 +181,10 @@ public class LiveMiniMap : MonoBehaviour
         _miniCam.depth = -50f;
         _miniCam.cullingMask = ~(1 << 5);
         _miniCam.enabled = false;
+        var cameraData=camGo.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+        cameraData.renderShadows=false;cameraData.renderPostProcessing=false;
+        cameraData.requiresColorOption=UnityEngine.Rendering.Universal.CameraOverrideOption.Off;
+        cameraData.requiresDepthOption=UnityEngine.Rendering.Universal.CameraOverrideOption.Off;
         camGo.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
     }
 
@@ -200,9 +207,9 @@ public class LiveMiniMap : MonoBehaviour
         // Gameplay: leave bottom-right margin; stack CAMERA / RECENTRE under the map.
         if (gameObject.scene.name == "Gameplay")
         {
-            _compactSize = new Vector2(220f, 220f);
+            _compactSize = new Vector2(268f, 268f);
             // Aligns with camera buttons stacked under the map (bottom margin ~22).
-            _compactPos = new Vector2(-24f, -430f);
+            _compactPos = new Vector2(24f, -512f);
         }
         else
         {
@@ -224,8 +231,8 @@ public class LiveMiniMap : MonoBehaviour
         var borderGo = new GameObject("Border", typeof(RectTransform), typeof(Image));
         borderGo.transform.SetParent(uiRoot, false);
         _borderRt = borderGo.GetComponent<RectTransform>();
-        _borderRt.anchorMin = _borderRt.anchorMax = new Vector2(1f, 1f);
-        _borderRt.pivot = new Vector2(1f, 1f);
+        _borderRt.anchorMin = _borderRt.anchorMax = CompactAnchor;
+        _borderRt.pivot = CompactAnchor;
         _borderRt.anchoredPosition = _compactPos;
         _borderRt.sizeDelta = _compactSize + new Vector2(8f, 8f);
         var borderImg = borderGo.GetComponent<Image>();
@@ -238,8 +245,8 @@ public class LiveMiniMap : MonoBehaviour
         var frameGo = new GameObject("Frame", typeof(RectTransform), typeof(Image), typeof(Mask), typeof(Button));
         frameGo.transform.SetParent(uiRoot, false);
         _frame = frameGo.GetComponent<RectTransform>();
-        _frame.anchorMin = _frame.anchorMax = new Vector2(1f, 1f);
-        _frame.pivot = new Vector2(1f, 1f);
+        _frame.anchorMin = _frame.anchorMax = CompactAnchor;
+        _frame.pivot = CompactAnchor;
         _frame.anchoredPosition = _compactPos;
         _frame.sizeDelta = _compactSize;
 
@@ -431,6 +438,8 @@ public class LiveMiniMap : MonoBehaviour
         RefreshIcons();
     }
 
+    private Vector2 CompactAnchor => gameObject.scene.name == "Gameplay" ? new Vector2(0,1) : new Vector2(1,1);
+
     private void Collapse()
     {
         _expanded = false;
@@ -447,15 +456,15 @@ public class LiveMiniMap : MonoBehaviour
         _legend.gameObject.SetActive(false);
         _hint.gameObject.SetActive(false);
 
-        _frame.anchorMin = _frame.anchorMax = new Vector2(1f, 1f);
-        _frame.pivot = new Vector2(1f, 1f);
+        _frame.anchorMin = _frame.anchorMax = CompactAnchor;
+        _frame.pivot = CompactAnchor;
         _frame.offsetMin = Vector2.zero;
         _frame.offsetMax = Vector2.zero;
         _frame.anchoredPosition = _compactPos;
         _frame.sizeDelta = _compactSize;
 
-        _borderRt.anchorMin = _borderRt.anchorMax = new Vector2(1f, 1f);
-        _borderRt.pivot = new Vector2(1f, 1f);
+        _borderRt.anchorMin = _borderRt.anchorMax = CompactAnchor;
+        _borderRt.pivot = CompactAnchor;
         _borderRt.offsetMin = Vector2.zero;
         _borderRt.offsetMax = Vector2.zero;
         _borderRt.anchoredPosition = _compactPos;
@@ -684,9 +693,26 @@ public class LiveMiniMap : MonoBehaviour
     private void RenderMapWhenDue()
     {
         if (_miniCam == null) return;
-        if (Time.unscaledTime < _nextMapRender) return;
-        _nextMapRender = Time.unscaledTime + (_expanded ? 0.05f : 0.10f);
-        _miniCam.Render();
+        if (!_expanded && !_compactVisible) return;
+        // Render a padded patch at a bounded rate. Between renders, crop that
+        // same patch in UV space so terrain and labels follow input together.
+        // This avoids a second full city render on every drag frame.
+        float half=_miniCam.orthographicSize;
+        var pos=_miniCam.transform.position;
+        bool patchExhausted=renderedHalfHeight<=0 || Mathf.Abs(pos.x-renderedFocus.x)>renderedHalfHeight*renderedAspect*.18f ||
+            Mathf.Abs(pos.z-renderedFocus.z)>renderedHalfHeight*.18f || Mathf.Abs(_miniCam.aspect-renderedAspect)>.01f ||
+            half>renderedHalfHeight*.9f || half<renderedHalfHeight*.4f;
+        if(patchExhausted||Time.unscaledTime>=_nextMapRender)
+        {
+            _nextMapRender=Time.unscaledTime+(_expanded?.12f:.2f);
+            renderedFocus=pos;renderedHalfHeight=half*1.4f;renderedAspect=_miniCam.aspect;
+            _miniCam.orthographicSize=renderedHalfHeight;
+            _miniCam.Render();
+            _miniCam.orthographicSize=half;
+        }
+        float scale=half/renderedHalfHeight;
+        _raw.uvRect=new Rect(.5f+(pos.x-renderedFocus.x)/(2*renderedHalfHeight*renderedAspect)-scale*.5f,
+            .5f+(pos.z-renderedFocus.z)/(2*renderedHalfHeight)-scale*.5f,scale,scale);
     }
 
     private void UpdatePinchZoom()
@@ -853,7 +879,7 @@ public class LiveMiniMap : MonoBehaviour
 
         foreach (var e in BattleManager.instance.EnemyAgents)
         {
-            if (e == null || !e.IsAlive) continue;
+            if (e == null || !e.IsAlive || e.IsAmbientMatchdayUnit) continue;
             bool police = e.firmName == "POLICE" || e.MatchdayRole == MatchdayUnitRole.Police;
             bool home = e.MatchdayRole == MatchdayUnitRole.HomeSupporter;
             _marks.Add(new Mark
@@ -909,6 +935,7 @@ public class LiveMiniMap : MonoBehaviour
     {
         _iconUsed = 0;
         _labelUsed = 0;
+        labelRects.Clear();
         foreach (var mark in _marks) PlaceMark(mark);
         HideUnused();
     }
@@ -945,6 +972,9 @@ public class LiveMiniMap : MonoBehaviour
 
         if (!string.IsNullOrEmpty(m.label) && _expanded)
         {
+            var candidate=new Rect(nx*_iconLayer.rect.width-75,ny*_iconLayer.rect.height+m.size*.55f,150,28);
+            if(labelRects.Exists(r=>r.Overlaps(candidate)))return;
+            labelRects.Add(candidate);
             var lab = GetLabel();
             lab.text = m.label;
             lab.enabled = true;
@@ -960,6 +990,7 @@ public class LiveMiniMap : MonoBehaviour
             host.gameObject.SetActive(true);
         }
     }
+    readonly List<Rect> labelRects=new List<Rect>();
 
     private Image GetIcon()
     {

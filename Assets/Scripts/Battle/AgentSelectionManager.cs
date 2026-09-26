@@ -27,6 +27,8 @@ public class AgentSelectionManager : MonoBehaviour
     // ── State ─────────────────────────────────────────────────────────────
     private readonly List<AgentController> _selected = new List<AgentController>();
     public IReadOnlyList<AgentController> SelectedAgents => _selected;
+    /// <summary>The crew member the player selected most recently. Police hunt this person when nobody is in a fight.</summary>
+    public static AgentController LastPicked { get; private set; }
 
     // ── Internal ──────────────────────────────────────────────────────────
     private Camera _cam;
@@ -59,6 +61,7 @@ public class AgentSelectionManager : MonoBehaviour
         if (instance && Time.unscaledTime < instance._ignoreWorldTapUntil) return true;
         if (Time.timeScale == 0f || LiveMiniMap.IsExpanded) return true;
         if (GamePopup.AnyOpen || RecruitPackagePanel.AnyOpen || RecruitDialogBox.AnyOpen) return true;
+        if (CityMissionHUD.MissionOpen || (CityDevelopmentSystem.Instance && CityDevelopmentSystem.Instance.IsOpen)) return true;
         if (NpcConversationUI.Instance && NpcConversationUI.Instance.IsConversationOpen) return true;
         if (CityOperationsSystem.Instance && CityOperationsSystem.Instance.IsBoardOpen) return true;
         return false;
@@ -291,6 +294,7 @@ public class AgentSelectionManager : MonoBehaviour
             _selected.Add(agent);
             agent.SetSelected(true);
         }
+        LastPicked = agent;
         NotifyUI();
     }
 

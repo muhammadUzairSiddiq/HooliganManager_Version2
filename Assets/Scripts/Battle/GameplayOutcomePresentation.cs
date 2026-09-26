@@ -77,6 +77,8 @@ public sealed class GameplayOutcomePresentation : MonoBehaviour
 
     void Show(string top,string action,string text,Color color,int before,int after,float seconds,bool sound)
     {
+        if(CityGameplay.Instance&&top!="FIRM DEFEATED")
+        {CityGameplay.Instance.PostEvent(action+" · "+text.Replace('\n',' '));return;}
         if(!root)Build();
         if(autoClose!=null)StopCoroutine(autoClose);
         root.SetActive(true);group.alpha=1;group.blocksRaycasts=true;

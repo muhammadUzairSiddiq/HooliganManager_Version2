@@ -34,6 +34,23 @@ public static class LandscapeEditorBridge
             else if (command=="refresh-theme") { AssetDatabase.Refresh(); LandscapeThemeImporter.Import(); }
             else if (command=="city-build") CityGameplayBuilder.Build();
             else if(command=="milestone-checks") MilestoneChecks.Run();
+            else if(command=="rts-checks") CityRtsChecks.Run();
+            else if(command=="shops-preview")
+            {
+                var point=CityGameplay.Instance.Locations[2];CameraPanTouchOnly.Instance?.FocusOn(point);
+                var replacement=CityLandmarks.ClearNearby(point);
+                File.WriteAllText("Artifacts/CityQA/shops-placement.txt","Current "+point+" clear="+CityLandmarks.HasTacticalClearance(point)+" nearest clear="+replacement+" clear="+CityLandmarks.HasTacticalClearance(replacement));
+                File.WriteAllLines("Artifacts/CityQA/shops-obstacles.txt",UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None).Where(r=>r&&r.bounds.SqrDistance(point)<10000&&!r.GetComponentInParent<Canvas>()).Select(r=>r.name+" "+r.bounds+" collider="+(r.GetComponent<Collider>()!=null)));
+            }
+            else if(command=="character-audit") CharacterProductionAudit.Run();
+            else if(command=="character-build") CharacterProductionBuilder.Build();
+            else if(command=="character-animations") { CharacterProductionBuilder.BuildAnimations(); AssetDatabase.SaveAssets(); }
+            else if(command=="character-preview") CharacterProductionAudit.Preview();
+            else if(command=="character-gesture-preview") CharacterProductionAudit.Preview(true);
+            else if(command=="character-checks") CharacterProductionChecks.Run();
+            else if(command=="clothing-topology") ClothingTopologyAudit.Run();
+            else if(command=="rts-streaming-probe") CityRtsChecks.BeginStreamingProbe();
+            else if(command=="development-preview") CityDevelopmentSystem.Instance?.OpenBoard();
             else if(command=="milestone4-playtest")
             {
                 if(!EditorApplication.isPlaying)throw new InvalidOperationException("Enter play mode first.");
