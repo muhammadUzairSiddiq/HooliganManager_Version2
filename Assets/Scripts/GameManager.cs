@@ -76,6 +76,11 @@ public class GameManager : MonoBehaviour
         if (!HasSaveData()) return;
 
         var d = Data;
+        if (!HasLivingCrew(d))
+        {
+            LoadScene(SCENE_DASHBOARD, "SQUAD RECOVERY", "Revive or recruit a member before returning to the streets.");
+            return;
+        }
         string mode = d?.LastSessionMode;
         if (string.IsNullOrEmpty(mode))
         {
@@ -335,6 +340,11 @@ public class GameManager : MonoBehaviour
     public void EnterHomeTerritory()
     {
         BattleManager.instance?.PersistBattleProgress();
+        if (!HasLivingCrew(Data))
+        {
+            LoadScene(SCENE_DASHBOARD, "SQUAD RECOVERY", "Your crew is down. Recover a member before returning to the streets.");
+            return;
+        }
         ReloadHomeTerritory("RETURNING TO HQ", "Dust yourself off at headquarters.");
     }
 
@@ -368,6 +378,15 @@ public class GameManager : MonoBehaviour
             ? (string.IsNullOrEmpty(dest) ? "Loading your last save…" : dest.ToUpperInvariant())
             : PendingEnemyFirmName;
         LoadScene(SCENE_BATTLE, "TRY AGAIN", sub);
+    }
+
+    public void OpenRecoveryHeadquarters()
+    {
+        // Preserve the interrupted Home/Away mode. After the player recovers a
+        // member, Continue can return to the correct session instead of silently
+        // changing an away defeat into a different flow.
+        GameData.instance?.SaveData();
+        LoadScene(SCENE_DASHBOARD, "SQUAD RECOVERY", "Revive or recruit a member before returning to the streets.");
     }
 
     void ResumeAwayCity()
@@ -431,6 +450,14 @@ public class GameManager : MonoBehaviour
                && GameData.instance.PlayerData.MatchDay > 0;
     }
 
+    public static bool HasLivingCrew(PlayerData data)
+    {
+        if (data?.RecruitedAgents == null) return false;
+        foreach (var agent in data.RecruitedAgents)
+            if (agent != null && agent.IsAlive) return true;
+        return false;
+    }
+
     /// <summary>All scene changes route through the faded loading transition.</summary>
     public static void LoadScene(string sceneName) => LoadScene(sceneName, null, null);
 
@@ -440,7 +467,13 @@ public class GameManager : MonoBehaviour
         if (SceneTransitionManager.Instance != null)
             SceneTransitionManager.Instance.Transition(sceneName, title, subtitle);
         else
+        {
+            Time.timeScale = 1f;
+            ModalPresentation.ResetForSceneChange();
+            GameplayOutcomePresentation.ResetForSceneChange();
+            GamePopup.ResetForSceneChange();
             SceneManager.LoadScene(sceneName);
+        }
     }
 
     void Update() { }

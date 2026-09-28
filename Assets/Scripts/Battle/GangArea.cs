@@ -258,18 +258,30 @@ public sealed class WorldChoiceBar : MonoBehaviour
     readonly List<RectTransform> _buttons = new List<RectTransform>();
     bool _open;
     bool _allowClose = true;
+    Action _onClose;
     public bool IsOpen => _open;
 
     public static void Present(Transform anchor, string title, params (string label, Color color, Action action)[] options)
     {
-        Present(anchor, title, true, options);
+        Present(anchor, title, true, null, options);
     }
 
     public static void Present(Transform anchor, string title, bool closable, params (string label, Color color, Action action)[] options)
     {
+        Present(anchor, title, closable, null, options);
+    }
+
+    public static void Present(Transform anchor, string title, Action onClose, params (string label, Color color, Action action)[] options)
+    {
+        Present(anchor, title, true, onClose, options);
+    }
+
+    static void Present(Transform anchor, string title, bool closable, Action onClose, params (string label, Color color, Action action)[] options)
+    {
         if (!anchor) return;
         var bar = anchor.GetComponent<WorldChoiceBar>() ?? anchor.gameObject.AddComponent<WorldChoiceBar>();
         bar._allowClose = closable;
+        bar._onClose = onClose;
         bar.Build(title, options);
     }
 
@@ -306,7 +318,7 @@ public sealed class WorldChoiceBar : MonoBehaviour
             var close = LandscapeUI.Button("ChoiceClose", _frame, "X", 0, 0, 48, 48, "dark");
             var closeImage = close.targetGraphic as UnityEngine.UI.Image;
             if (closeImage) closeImage.color = new Color(0.18f, 0.2f, 0.24f);
-            close.onClick.AddListener(Hide);
+            close.onClick.AddListener(Close);
             _close = close.transform as RectTransform;
         }
         _open = true;
@@ -332,7 +344,16 @@ public sealed class WorldChoiceBar : MonoBehaviour
         WorldButtonLayer.CoverChoice(new Rect(start - 8f, y - 86f, row + 72f, 116f));
     }
 
-    public void Hide() { _open = false; SetOn(false); }
+    public void Hide() { _open = false; _onClose = null; SetOn(false); }
+
+    void Close()
+    {
+        _open = false;
+        SetOn(false);
+        var callback = _onClose;
+        _onClose = null;
+        callback?.Invoke();
+    }
 
     void SetOn(bool on)
     {

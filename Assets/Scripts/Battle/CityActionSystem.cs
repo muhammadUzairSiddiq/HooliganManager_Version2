@@ -78,21 +78,33 @@ public sealed class CityActionSystem : MonoBehaviour
     {
         if(!npc||actionBusy){Feedback(actionBusy?"FINISH THE CURRENT STREET ACTION FIRST":"NO CIVILIAN AVAILABLE");return;}
         var crew=SelectedCrew();
-        if(crew.Length==0){Feedback("SELECT A CREW MEMBER FIRST");return;}
-        npc.PauseForConversation(true,crew[0].transform.position);
-        WorldChoiceBar.Present(npc.transform,npc.DisplayName,
-            ("TALK",new Color(.12f,.62f,.88f),()=>npc.Talk()),
+        if(crew.Length==0||!crew.Any(a=>a&&a.IsAlive)){Feedback("SELECT A LIVING CREW MEMBER FIRST");return;}
+        var speaker=crew.First(a=>a&&a.IsAlive);
+        npc.PauseForConversation(true,speaker.transform.position);
+        WorldChoiceBar.Present(npc.transform,npc.DisplayName,()=>ReleasePedestrian(npc,crew),
+            ("TALK",new Color(.12f,.62f,.88f),()=>TalkTo(npc,crew)),
             ("MONEY",new Color(.80f,.58f,.12f),()=>AskForMoney(npc,crew)),
             ("JOIN",LandscapeUI.Green,()=>AskToJoin(npc,crew)),
             ("ROB",LandscapeUI.Red,()=>StartCoroutine(StreetFight(npc,crew,false))));
     }
 
+    void TalkTo(SocialNpc npc,AgentController[] crew)
+    {
+        if(!npc)return;
+        npc.Talk();
+        bool opened=NpcConversationUI.Instance&&NpcConversationUI.Instance.IsConversationOpen&&NpcConversationUI.Instance.CurrentNpc==npc;
+        if(!opened)ReleasePedestrian(npc,crew);
+    }
+
     void AskForMoney(SocialNpc npc,AgentController[] crew)
     {
-        if(!npc||crew==null||crew.Length==0)return;
-        npc.PauseForConversation(true,crew[0].transform.position);
+        if(!npc)return;
+        if(crew==null||!crew.Any(a=>a&&a.IsAlive)){ReleasePedestrian(npc,crew);return;}
+        var speaker=crew.First(a=>a&&a.IsAlive);
+        npc.PauseForConversation(true,speaker.transform.position);
         bool given=Random.value<0.40f;
         int cash=given?Random.Range(25,71):0;
+        Vector3 resultPoint=npc.transform.position;
         var d=GameManager.Data;
         if(given&&d!=null)
         {
@@ -100,34 +112,38 @@ public sealed class CityActionSystem : MonoBehaviour
             GameManager.Save();
             AgentSelectionManager.CreateCommandMarker(npc.transform.position,LandscapeUI.Gold,"+£"+cash.ToString("N0"));
         }
-        Feedback(given?npc.DisplayName+" HANDED OVER £"+cash.ToString("N0")+" · NO HEAT":npc.DisplayName+" REFUSED TO GIVE ANYTHING");
-        GamePopup.Instance.Show(given?"THEY GAVE YOU CASH":"THEY REFUSED",
-            given?$"{npc.DisplayName} handed over £{cash:N0}.\nNo force was used and police heat did not change."
-                 :$"{npc.DisplayName} refused. They walk away unharmed.\nNo police heat.",
-            new GamePopup.Option("CONTINUE",LandscapeUI.Green,()=>npc.PauseForConversation(false,crew[0].transform.position)));
+        ReleasePedestrian(npc,crew);
+        string feed=given?npc.DisplayName+" HANDED OVER £"+cash.ToString("N0")+" · NO HEAT":npc.DisplayName+" REFUSED · NO HEAT";
+        Feedback(feed);
+        WorldFeedback(resultPoint,given?"+£"+cash.ToString("N0"):"REFUSED",given?"NO POLICE HEAT":"WALKING AWAY",given?LandscapeUI.Gold:new Color(.55f,.78f,1f));
     }
 
     void AskToJoin(SocialNpc npc,AgentController[] crew)
     {
         if(!npc)return;
-        npc.PauseForConversation(true,crew[0].transform.position);
+        if(crew==null||!crew.Any(a=>a&&a.IsAlive)){ReleasePedestrian(npc,crew);return;}
+        var speaker=crew.First(a=>a&&a.IsAlive);
+        npc.PauseForConversation(true,speaker.transform.position);
+        Vector3 resultPoint=npc.transform.position;
+        string npcName=npc.DisplayName;
         float roll=Random.value;
         bool joined=npc.TryInvite(roll,out string response);
-        GamePopup.Instance.Show(joined?"CREW INVITE ACCEPTED":"CREW INVITE REFUSED",response,
-            new GamePopup.Option("CONTINUE",LandscapeUI.Green,()=>
-            {
-                if(joined)npc.FinishJoinedConversation();
-                else npc.PauseForConversation(false,crew[0].transform.position);
-            }));
+        if(joined)npc.FinishJoinedConversation();
+        else ReleasePedestrian(npc,crew);
+        if(joined)BattleUIController.instance?.ShowAlert(npcName+" JOINED YOUR CREW",2.2f);
+        else Feedback(npcName+" DECLINED THE INVITE");
+        WorldFeedback(resultPoint,joined?"JOINED":"NO THANKS",joined?"NEW CREW MEMBER":"INVITE DECLINED",joined?LandscapeUI.Green:new Color(.55f,.78f,1f));
     }
 
     const float StreetMeleeRange=2.15f;
 
     IEnumerator StreetFight(SocialNpc npc,AgentController[] crew,bool lethal)
     {
-        if(!npc||crew==null||crew.Length==0)yield break;
+        if(!npc)yield break;
+        if(crew==null||!crew.Any(a=>a&&a.IsAlive)){ReleasePedestrian(npc,crew);yield break;}
+        var speaker=crew.First(a=>a&&a.IsAlive);
         actionBusy=true;
-        npc.PauseForConversation(true,crew[0].transform.position);
+        npc.PauseForConversation(true,speaker.transform.position);
         var pedestrian=npc.GetComponent<PedestrianController>();
         Feedback((lethal?"KILL":"ROB")+" · CLOSING IN");
         CameraPanTouchOnly.Instance?.FocusOn(npc.transform.position);
@@ -144,18 +160,18 @@ public sealed class CityActionSystem : MonoBehaviour
         if(!inReach)
         {
             Feedback("COULD NOT GET CLOSE ENOUGH");
-            npc.PauseForConversation(false,crew[0].transform.position);
+            ReleasePedestrian(npc,crew);
             actionBusy=false;yield break;
         }
 
         foreach(var member in crew)if(member)member.SetActivityLocked(true,npc.transform.position);
-        pedestrian?.Face(crew[0].transform.position);
+        pedestrian?.Face(speaker.transform.position);
         pedestrian?.BeginStreetFight();
         yield return new WaitForSeconds(.12f);
 
         if(lethal)
         {
-            if(crew[0])crew[0].PlayStreetPunch();
+            if(speaker)speaker.PlayStreetPunch();
             yield return new WaitForSeconds(.42f);
             if(npc)
             {
@@ -181,16 +197,17 @@ public sealed class CityActionSystem : MonoBehaviour
         while(npc&&npcHp>0f&&elapsed<7.5f)
         {
             elapsed+=Time.deltaTime;
-            Vector3 face=crew[0]?crew[0].transform.position:npc.transform.position;
+            var activeSpeaker=crew.FirstOrDefault(a=>a&&a.IsAlive);
+            Vector3 face=activeSpeaker?activeSpeaker.transform.position:npc.transform.position;
             pedestrian?.Face(face);
             int next=Mathf.FloorToInt(elapsed/.7f);
             if(next!=swing)
             {
                 swing=next;
-                if(crew[0])crew[0].PlayStreetPunch();
+                if(activeSpeaker)activeSpeaker.PlayStreetPunch();
                 pedestrian?.PlayAttack();
                 npcHp-=Random.Range(7f,13f);
-                if(swing%2==1&&crew[0])crew[0].TakeDamage(Random.Range(3f,7f));
+                if(swing%2==1&&activeSpeaker)activeSpeaker.TakeDamage(Random.Range(3f,7f));
                 SpawnImpact(npc.transform.position+Vector3.up*1.2f,new Color(1f,.35f,.12f));
                 GameAudio.Play("impact");
             }
@@ -214,7 +231,7 @@ public sealed class CityActionSystem : MonoBehaviour
         else
         {
             pedestrian?.EndStreetFight();
-            npc.PauseForConversation(false,crew[0].transform.position);
+            ReleasePedestrian(npc,crew);
         }
         city?.CheckCampaignCompletion();
         actionBusy=false;
@@ -296,20 +313,25 @@ public sealed class CityActionSystem : MonoBehaviour
     void ShowShakedown(SocialNpc npc,AgentController[] crew)
     {
         if(!npc)return;
-        npc.PauseForConversation(true,crew[0].transform.position);
-        GamePopup.Instance.Show("STREET SHAKEDOWN",
-            $"{npc.DisplayName} has stopped. Demand money or rob them by force.\n\nBoth choices add +2 police heat. If the civilian resists, your members take damage.",
-            new GamePopup.Option("DEMAND CASH",new Color(.80f,.58f,.12f),()=>StartCoroutine(ResolveShakedown(npc,crew,false))),
-            new GamePopup.Option("ROB BY FORCE",LandscapeUI.Red,()=>StartCoroutine(ResolveShakedown(npc,crew,true))),
-            new GamePopup.Option("LET THEM GO",LandscapeUI.PanelColor,()=>npc.PauseForConversation(false,crew[0].transform.position)));
+        if(crew==null||!crew.Any(a=>a&&a.IsAlive)){ReleasePedestrian(npc,crew);return;}
+        var speaker=crew.First(a=>a&&a.IsAlive);
+        npc.PauseForConversation(true,speaker.transform.position);
+        Feedback("STREET SHAKEDOWN · CHOOSE AN ACTION");
+        WorldChoiceBar.Present(npc.transform,"STREET SHAKEDOWN",()=>ReleasePedestrian(npc,crew),
+            ("DEMAND",new Color(.80f,.58f,.12f),()=>StartCoroutine(ResolveShakedown(npc,crew,false))),
+            ("USE FORCE",LandscapeUI.Red,()=>StartCoroutine(ResolveShakedown(npc,crew,true))),
+            ("LET GO",LandscapeUI.PanelColor,()=>ReleasePedestrian(npc,crew)));
     }
 
     IEnumerator ResolveShakedown(SocialNpc npc,AgentController[] crew,bool force)
     {
         actionBusy=true;
-        var d=GameManager.Data;if(d==null||!npc){actionBusy=false;yield break;}
+        var speaker=crew?.FirstOrDefault(a=>a&&a.IsAlive);
+        var d=GameManager.Data;if(d==null||!npc||!speaker){ReleasePedestrian(npc,crew);actionBusy=false;yield break;}
+        Vector3 resultPoint=npc.transform.position;
+        string npcName=npc.DisplayName;
         d.PoliceHeat=Mathf.Clamp(d.PoliceHeat+2,0,10);
-        float combinedStrength=crew.Where(a=>a&&a.Data!=null).Sum(a=>a.Data.Strength);
+        float combinedStrength=crew.Where(a=>a&&a.IsAlive&&a.Data!=null).Sum(a=>a.Data.Strength);
         bool resists=force||Random.value>Mathf.Clamp01(.42f+combinedStrength/240f);
         int cash=force?Random.Range(130,221):Random.Range(55,121);
         if(resists)
@@ -335,16 +357,14 @@ public sealed class CityActionSystem : MonoBehaviour
         else
         {
             Feedback(npc.DisplayName+" HANDS OVER £"+cash.ToString("N0")+" · POLICE HEAT +2");
-            npc.PauseForConversation(false,crew[0].transform.position);
+            ReleasePedestrian(npc,crew);
         }
         d.Money+=cash;
         CampaignMissions.RecordAction(d,"extort");
         BattleManager.instance?.PersistBattleProgress();GameManager.Save();
-        AgentSelectionManager.CreateCommandMarker(crew[0].transform.position,LandscapeUI.Gold,"+£"+cash.ToString("N0"));
-        GamePopup.Instance.Show(resists?"CIVILIAN DEFEATED":"CASH COLLECTED",
-            $"Street cash: +£{cash:N0}\nPolice heat: +2\n"+(resists?"The civilian fought back and your active members took damage.":"The civilian paid without a fight."),
-            new GamePopup.Option("CONTINUE",LandscapeUI.Green,null));
-        city.CheckCampaignCompletion();
+        AgentSelectionManager.CreateCommandMarker(speaker.transform.position,LandscapeUI.Gold,"+£"+cash.ToString("N0"));
+        WorldFeedback(resultPoint,resists?"FIGHT OVER":"+£"+cash.ToString("N0"),resists?$"{npcName} DEFEATED · HEAT +2":"PAID · HEAT +2",resists?LandscapeUI.Red:LandscapeUI.Gold);
+        city?.CheckCampaignCompletion();
         actionBusy=false;
     }
 
@@ -755,6 +775,28 @@ public sealed class CityActionSystem : MonoBehaviour
 
     static float Horizontal(Vector3 a,Vector3 b){a.y=0;b.y=0;return Vector3.Distance(a,b);}
     static void Feedback(string message){CityGameplay.Instance?.PostEvent(message);BattleUIController.instance?.ShowAlert(message,2.2f);}
+
+    static void ReleasePedestrian(SocialNpc npc,AgentController[] crew)
+    {
+        if(!npc)return;
+        var speaker=crew?.FirstOrDefault(a=>a&&a.IsAlive);
+        npc.PauseForConversation(false,speaker?speaker.transform.position:npc.transform.position);
+    }
+
+    static void WorldFeedback(Vector3 point,string headline,string detail,Color color)
+    {
+        var root=new GameObject("Street Action Feedback");
+        root.transform.position=point;
+        var label=ZoneLabelUtil.Create(root.transform,$"<size=120%>{headline}</size>\n<size=70%>{detail}</size>",3.8f,5.8f);
+        if(label)
+        {
+            label.color=color;
+            var budget=label.GetComponent<ZoneLabelBillboard>();
+            if(budget)Destroy(budget);
+            label.gameObject.AddComponent<WorldActionFeedback>().Setup(label,2.4f);
+        }
+        Destroy(root,2.6f);
+    }
 
 #if UNITY_EDITOR
     public void BeginAutomatedPlaytest(string reportPath)=>StartCoroutine(AutomatedPlaytest(reportPath));

@@ -10,8 +10,8 @@ public class GamePopup : MonoBehaviour
 {
     public struct Option
     {
-        public string Label; public Color Color; public Action Action;
-        public Option(string label,Color color,Action action) {Label=label;Color=color;Action=action;}
+        public string Label; public Color Color; public Action Action; public bool Interactable;
+        public Option(string label,Color color,Action action,bool interactable=true) {Label=label;Color=color;Action=action;Interactable=interactable;}
     }
     static GamePopup instance;
     public static GamePopup Instance
@@ -25,6 +25,12 @@ public class GamePopup : MonoBehaviour
     ScrollRect scroll;
     public static bool AnyOpen => instance && instance.IsOpen;
     public bool IsOpen => root && root.activeSelf;
+    public static void ResetForSceneChange()
+    {
+        if(!instance) return;
+        instance.hideCallback=null;
+        instance.Hide();
+    }
     Action hideCallback;
     Coroutine autoHide;
     public void Show(string heading,string message,params Option[] options)=>Show(heading,message,null,options);
@@ -42,10 +48,15 @@ public class GamePopup : MonoBehaviour
     }
     public void Show(string heading,string message,Action onCancel,params Option[] options)
     {
-        // Automatic receipts belong in the feed and resource bar. Real choices retain their actions.
-        if(CityGameplay.Instance&&onCancel==null&&options!=null&&options.Length==1&&options[0].Action==null&&
-           (heading.Contains("COMPLETE")||heading.Contains("COLLECTED")||heading.Contains("HEAT")||heading.Contains("CONFIRMED")||heading.Contains("DEFEATED")))
-        {CityGameplay.Instance.PostEvent(heading+" · "+message.Replace('\n',' '));return;}
+        // Multiplayer-style city flow: routine receipts never seize the whole
+        // screen. Commit their continuation immediately and report through the
+        // live feed. Major outcomes and genuine multi-choice decisions stay modal.
+        if(CityGameplay.Instance&&onCancel==null&&(options==null||options.Length<=1)&&!CriticalGameplayModal(heading))
+        {
+            CityGameplay.Instance.PostEvent(heading+" · "+message.Replace('\n',' '));
+            if(options!=null&&options.Length==1)options[0].Action?.Invoke();
+            return;
+        }
         if(!root) Build();
         if(autoHide!=null){StopCoroutine(autoHide);autoHide=null;}
         hideCallback=onCancel;
@@ -65,6 +76,7 @@ public class GamePopup : MonoBehaviour
         foreach(var item in options)
         {
             var captured=item;var b=Button("Option_"+item.Label,buttons,item.Label,0,0,grid.cellSize.x,68);
+            b.interactable=captured.Interactable;
             var image=b.GetComponent<Image>();
             if(image)
             {
@@ -116,5 +128,13 @@ public class GamePopup : MonoBehaviour
         if(value.Contains("COMPLETE")||value.Contains("SECURED")||value.Contains("SUCCESS")||value.Contains("RECOVERY")||value.Contains("CONFIRMED")||value.Contains("JOINED"))return Green;
         if(value.Contains("WARNING")||value.Contains("HEAT")||value.Contains("ESCALATION")||value.Contains("POWER")||value.Contains("FUNDS"))return Gold;
         return new Color(.20f,.78f,1f);
+    }
+
+    static bool CriticalGameplayModal(string heading)
+    {
+        string value=(heading??string.Empty).ToUpperInvariant();
+        return value.Contains("DEFEAT")||value.Contains("VICTORY")||value.Contains("ARREST")||
+               value.Contains("POLICE RAID")||value.Contains("ESCALATION")||value.Contains("MISSION FAILED")||
+               value.Contains("CITY DOMINATED")||value.Contains("GAME OVER");
     }
 }

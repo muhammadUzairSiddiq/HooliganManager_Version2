@@ -27,14 +27,26 @@ public sealed class ModalPresentation : MonoBehaviour
         }
         Instance.BeginStamp(word, seconds, then);
     }
+
+    /// <summary>Discard presentation work owned by the scene that is being left.</summary>
+    public static void ResetForSceneChange()
+    {
+        Instance?.CancelStamp();
+    }
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Boot()
     {
+        if (Instance != null) return;
         var go = new GameObject("Modal silver post processing");
         DontDestroyOnLoad(go); go.AddComponent<ModalPresentation>();
     }
     void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
         volume = gameObject.AddComponent<Volume>(); volume.isGlobal = true; volume.priority = 10000;
         volume.profile = ScriptableObject.CreateInstance<VolumeProfile>();
@@ -42,6 +54,15 @@ public sealed class ModalPresentation : MonoBehaviour
         color.saturation.Override(-100); color.contrast.Override(-12); color.postExposure.Override(.15f);
         color.colorFilter.Override(new Color(.82f, .84f, .86f));
         volume.weight = 0;
+    }
+
+    void CancelStamp()
+    {
+        _stamp = false;
+        _stampUntil = 0f;
+        _stampThen = null;
+        if (_stampRoot) _stampRoot.SetActive(false);
+        if (volume) volume.weight = 0f;
     }
     void BeginStamp(string word, float seconds, Action then)
     {
@@ -108,5 +129,9 @@ public sealed class ModalPresentation : MonoBehaviour
         if (worldCamera && worldCamera.TryGetComponent<UniversalAdditionalCameraData>(out var data))
         { data.renderPostProcessing = open; data.volumeLayerMask |= 1 << gameObject.layer; }
     }
-    void OnDestroy() { if (volume && volume.profile) Destroy(volume.profile); }
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+        if (volume && volume.profile) Destroy(volume.profile);
+    }
 }

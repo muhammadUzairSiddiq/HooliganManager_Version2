@@ -277,14 +277,14 @@ public class LevelSystem : MonoBehaviour
         bool canPay = d != null && d.Money >= cost;
         GamePopup.Instance.Show(
             "DEFEATED",
-            "The whole crew is down.\n\nRevive pays to restore the last checkpoint and puts everyone back at headquarters.",
-            new GamePopup.Option(canPay ? "REVIVE  £" + cost.ToString("N0") : "NEED £" + cost.ToString("N0"), new Color(0.7f, 0.15f, 0.15f), () => ReviveWithCash(cost)),
-            new GamePopup.Option("HOME HQ", new Color(0.25f, 0.32f, 0.4f), () =>
+            "The whole crew is down.\n\nRevive & Retry restores the battle checkpoint. Recovery HQ lets you manage the fallen crew without loading another doomed battle.",
+            new GamePopup.Option(canPay ? "REVIVE & RETRY  £" + cost.ToString("N0") : "NEED £" + cost.ToString("N0"), new Color(0.7f, 0.15f, 0.15f), () => ReviveWithCash(cost), canPay),
+            new GamePopup.Option("RECOVERY HQ", new Color(0.25f, 0.32f, 0.4f), () =>
             {
                 Time.timeScale = 1f;
                 GamePopup.Instance.Hide();
                 GameAudio.Play("popup");
-                GameManager.instance?.EnterHomeTerritory();
+                GameManager.instance?.OpenRecoveryHeadquarters();
             })
         );
     }
@@ -298,13 +298,13 @@ public class LevelSystem : MonoBehaviour
             ShowDefeatPopup();
             return;
         }
+        bool wasHome = CityGameplay.HomeMode;
         d.Money -= cost;
-        GameManager.Save();
         Time.timeScale = 1f;
         GamePopup.Instance.Hide();
         GameAudio.Play("loading");
         int restoreLevel = Mathf.Clamp(d.CurrentLevel > 0 ? d.CurrentLevel : d.BattleStartLevel, 1, MaxLevels);
-        d.BattleStartHomeMode = true;
+        d.BattleStartHomeMode = wasHome;
         d.BattleStartLevel = restoreLevel;
         GameData.instance?.RestoreBattleSessionSnapshot();
         _defeatShown = false;
@@ -314,7 +314,7 @@ public class LevelSystem : MonoBehaviour
         _clearedFirms.Clear();
         _gangsRequired = GangsPerLevel[Mathf.Clamp(_level - 1, 0, MaxLevels - 1)];
         BattleManager.instance?.StopBattleLoop();
-        GameManager.instance?.RetryLastBattleSession(true);
+        GameManager.instance?.RetryLastBattleSession(wasHome);
     }
 
     /// <summary>

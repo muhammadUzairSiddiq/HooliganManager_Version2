@@ -79,6 +79,14 @@ public class SceneTransitionManager : MonoBehaviour
     /// <summary>Themed transition with an optional title and subtitle/tip line.</summary>
     public void Transition(string sceneName, string title, string subtitle)
     {
+        // No scene should inherit a pause or a callback/overlay owned by the scene
+        // being left. This also prevents a delayed WASTED callback from firing in
+        // the menu or in a freshly reloaded gameplay scene.
+        Time.timeScale = 1f;
+        ModalPresentation.ResetForSceneChange();
+        GameplayOutcomePresentation.ResetForSceneChange();
+        GamePopup.ResetForSceneChange();
+
         // Allow intentional reloads (Try Again) to interrupt a stuck/finished gate.
         if (_transitioning)
         {

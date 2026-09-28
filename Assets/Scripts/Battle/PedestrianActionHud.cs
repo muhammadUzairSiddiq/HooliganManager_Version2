@@ -149,7 +149,6 @@ public sealed class PedestrianActionHud : MonoBehaviour
     void Open(SocialNpc npc)
     {
         if (!npc) return;
-        npc.PauseForConversation(true, AgentSelectionManager.instance?.SelectedAgents.FirstOrDefault(a=>a&&a.IsAlive)?.transform.position ?? npc.transform.position);
         for (int i = 0; i < pins.Count; i++)
             if (pins[i].npc == npc && pins[i].rt) pins[i].rt.gameObject.SetActive(false);
         CityActionSystem.Instance?.OpenPedestrianActions(npc);

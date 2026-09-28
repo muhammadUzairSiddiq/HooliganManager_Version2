@@ -30,6 +30,11 @@ public sealed class GameplayOutcomePresentation : MonoBehaviour
     public static void DefeatCinematic()
         => Instance.Show("FIRM DEFEATED","ALL MEMBERS ARE DOWN","Regroup, recover, then try again.",new Color(.82f,.25f,.28f),-1,-1,2.3f,false);
 
+    public static void ResetForSceneChange()
+    {
+        if(instance) instance.Hide();
+    }
+
     static GameplayOutcomePresentation Instance
     {
         get
