@@ -42,7 +42,8 @@ public static class CityServiceChecks
             Check(d.Money==cash,"Training level cap does not charge");
             Warp(4);
             var hp=typeof(AgentController).GetProperty("CurrentHp");hp.SetValue(originalAgents[0],Mathf.Max(1,originalAgents[0].Data.MaxHp-10));
-            RunService(4,200);Check(originalAgents[0].CurrentHp==originalAgents[0].Data.MaxHp && d.Money==cash-200,"Recovery heals runtime squad and charges once");
+            int injured=originalAgents.Count(a=>a.CurrentHp<a.Data.MaxHp);
+            RunService(4,200);Check(originalAgents.All(a=>a.CurrentHp==a.Data.MaxHp) && d.Money==cash-injured*200,"Recovery heals runtime squad and charges once per injured member");
             cash=d.Money;RunService(4,200);Check(d.Money==cash,"Healthy squad recovery does not charge");
             Warp(2);cash=d.Money;int pending=d.PendingFansGain;
             typeof(CityGameplay).GetMethod("QueueFans",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(city,null);

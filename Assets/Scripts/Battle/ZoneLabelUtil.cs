@@ -73,6 +73,7 @@ public static class ZoneLabelUtil
 public sealed class ZoneLabelBillboard : MonoBehaviour
 {
     public bool ForceWhite = true;
+    public bool CommandPriority;
     TextMeshPro label;
     Renderer cachedRenderer;
 
@@ -87,7 +88,7 @@ public sealed class ZoneLabelBillboard : MonoBehaviour
         var cam = Camera.main;
         if (cam) transform.rotation = cam.transform.rotation;
         if(cachedRenderer&&cam)
-            cachedRenderer.enabled=WorldAnnotationBudget.Reserve(cam,transform.position,170f,28f);
+            cachedRenderer.enabled=CommandPriority?(cam&&cam.WorldToViewportPoint(transform.position).z>0):WorldAnnotationBudget.Reserve(cam,transform.position,170f,28f);
         if (!ForceWhite) return;
         if (!label) label = GetComponent<TextMeshPro>();
         if (label) label.color = Color.white;

@@ -74,13 +74,9 @@ public class GameManager : MonoBehaviour
     public void ContinueIntoGameplay()
     {
         if (!HasSaveData()) return;
+        if (!RequireLivingCrewOrPrompt()) return;
 
         var d = Data;
-        if (!HasLivingCrew(d))
-        {
-            LoadScene(SCENE_DASHBOARD, "SQUAD RECOVERY", "Revive or recruit a member before returning to the streets.");
-            return;
-        }
         string mode = d?.LastSessionMode;
         if (string.IsNullOrEmpty(mode))
         {
@@ -110,6 +106,7 @@ public class GameManager : MonoBehaviour
     /// <summary>Away trips stay locked until every home-territory mission is finished.</summary>
     public void TryOpenAwayTrip(ClubRegistry registry)
     {
+        if (HasSaveData() && !RequireLivingCrewOrPrompt()) return;
         if (!CampaignMissions.HomeCleared(Data))
         {
             var progress = CampaignMissions.Progress(Data, 1);
@@ -159,7 +156,12 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void EnterHomeTerritoryOrStartNew(ClubRegistry registry)
     {
-        if (HasSaveData()) { ReloadHomeTerritory("ENTERING HOME TERRITORY", "Your firm starts here. Take the streets."); return; }
+        if (HasSaveData())
+        {
+            if (!RequireLivingCrewOrPrompt()) return;
+            ReloadHomeTerritory("ENTERING HOME TERRITORY", "Your firm starts here. Take the streets.");
+            return;
+        }
         CreateDefaultCampaign(registry);
         var d = GameData.instance?.PlayerData;
         if (d != null && string.IsNullOrEmpty(d.LastSelectedDestination)) d.LastSelectedDestination = "East Docks";
@@ -340,11 +342,7 @@ public class GameManager : MonoBehaviour
     public void EnterHomeTerritory()
     {
         BattleManager.instance?.PersistBattleProgress();
-        if (!HasLivingCrew(Data))
-        {
-            LoadScene(SCENE_DASHBOARD, "SQUAD RECOVERY", "Your crew is down. Recover a member before returning to the streets.");
-            return;
-        }
+        if (!RequireLivingCrewOrPrompt()) return;
         ReloadHomeTerritory("RETURNING TO HQ", "Dust yourself off at headquarters.");
     }
 
@@ -382,16 +380,21 @@ public class GameManager : MonoBehaviour
 
     public void OpenRecoveryHeadquarters()
     {
-        // Preserve the interrupted Home/Away mode. After the player recovers a
-        // member, Continue can return to the correct session instead of silently
-        // changing an away defeat into a different flow.
         GameData.instance?.SaveData();
-        LoadScene(SCENE_DASHBOARD, "SQUAD RECOVERY", "Revive or recruit a member before returning to the streets.");
+        if (GamePopup.Instance != null && IsInInteractiveMenuScene())
+        {
+            PromptNoLivingCrew();
+            return;
+        }
+        PlayerPrefs.SetInt("OpenRecruitmentOnLoad", 1);
+        LoadScene(SCENE_DASHBOARD, "NO CREW", "Recruit members before returning to the streets.");
     }
 
     void ResumeAwayCity()
     {
+        if (!RequireLivingCrewOrPrompt()) return;
         var d = Data;
+        GameData.instance?.SyncAwaySelectionWithRoster();
         CityGameplay.HomeMode = false;
         if (d != null) d.LastSessionMode = "Away";
         PendingBattleMode = BattleManager.BattleMode.RivalFight;
@@ -456,6 +459,56 @@ public class GameManager : MonoBehaviour
         foreach (var agent in data.RecruitedAgents)
             if (agent != null && agent.IsAlive) return true;
         return false;
+    }
+
+    public static int LivingCrewCount(PlayerData data)
+    {
+        if (data?.RecruitedAgents == null) return 0;
+        int count = 0;
+        foreach (var agent in data.RecruitedAgents)
+            if (agent != null && agent.IsAlive) count++;
+        return count;
+    }
+
+    /// <summary>
+    /// Blocks Continue / Home / Away resume when nobody is alive.
+    /// Shows a popup with RECRUIT → same headquarters recruitment plans.
+    /// </summary>
+    public bool RequireLivingCrewOrPrompt()
+    {
+        if (HasLivingCrew(Data)) return true;
+        PromptNoLivingCrew();
+        return false;
+    }
+
+    public void PromptNoLivingCrew()
+    {
+        GamePopup.Instance.Show(
+            "NO CREW",
+            "You don't have any living crew members.\n\nRecruit new lads (or revive fallen ones) before you can continue or return home.",
+            new GamePopup.Option("RECRUIT", LandscapeUI.Green, OpenRecruitmentPlans),
+            new GamePopup.Option("BACK", LandscapeUI.PanelColor, null));
+    }
+
+    /// <summary>Opens the same GROW YOUR FOLLOWING / recruitment package options.</summary>
+    public void OpenRecruitmentPlans()
+    {
+        var shell = FindFirstObjectByType<LandscapeFrontEnd>();
+        if (shell != null && !shell.mainMenu && shell.recruitment != null)
+        {
+            shell.Navigate("recruitment");
+            return;
+        }
+
+        // Main menu / gameplay: jump to HQ recruitment page (same four plans).
+        PlayerPrefs.SetInt("OpenRecruitmentOnLoad", 1);
+        LoadScene(SCENE_DASHBOARD, "RECRUIT CREW", "Choose a recruitment plan and rebuild the firm.");
+    }
+
+    static bool IsInInteractiveMenuScene()
+    {
+        string scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        return scene == SCENE_MAIN_MENU || scene == SCENE_DASHBOARD;
     }
 
     /// <summary>All scene changes route through the faded loading transition.</summary>

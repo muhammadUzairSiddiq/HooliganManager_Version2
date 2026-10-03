@@ -72,6 +72,7 @@ public class BattleUIController : MonoBehaviour
     private const float PortraitCardW = 120f;
     private const float PortraitCardH = 140f;
     private const float PortraitSpacing = 12f;
+    readonly List<AgentController> _portraitRoster = new List<AgentController>();
 
     // CanvasGroup on this GameObject — used to fade the HUD in after the intro.
     // Add a CanvasGroup component to your BattleUIController GameObject in the
@@ -314,6 +315,16 @@ public class BattleUIController : MonoBehaviour
         EnsureSquadSelectToggle();
         RefreshSquadSelectToggle(selected);
 
+        var roster = BattleManager.instance != null ? BattleManager.instance.PlayerAgents.Where(a => a).ToList() : new List<AgentController>();
+        if (portraitStrip && portraitStrip.childCount == roster.Count && _portraitRoster.SequenceEqual(roster))
+        {
+            foreach (var card in portraitStrip.GetComponentsInChildren<AgentPortraitCard>())
+                card.SetSelected(false); // Card reads its live agent's selection and duty.
+            return;
+        }
+        _portraitRoster.Clear();
+        _portraitRoster.AddRange(roster);
+
         // Clear portrait strip
         if (portraitStrip != null)
             for (int i = portraitStrip.childCount - 1; i >= 0; i--)
@@ -324,7 +335,8 @@ public class BattleUIController : MonoBehaviour
         var allAgents = BattleManager.instance != null
             ? BattleManager.instance.PlayerAgents
             : new List<AgentController>();
-        var ordered = allAgents.Where(a => a).OrderBy(SquadRank).ThenBy(a => a.Data != null ? a.Data.AgentName : "").ToList();
+        // Stable roster order keeps a second tap over the same member.
+        var ordered = roster;
 
         for (int i = 0; i < ordered.Count; i++)
         {
@@ -601,7 +613,6 @@ public class BattleUIController : MonoBehaviour
     {
         _awaitingMoveTarget = false;
         AgentSelectionManager.instance?.CommandSelectedAttack();
-        ShowAlert("ATTACK ORDER CONFIRMED", 1.4f);
     }
 
     private void OnRetreat()

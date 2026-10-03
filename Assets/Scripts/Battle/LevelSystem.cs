@@ -112,10 +112,7 @@ public class LevelSystem : MonoBehaviour
         {
             _combatPhaseAnnounced=true;
             var progress=CampaignMissions.Progress(GameManager.Data);
-            GamePopup.Instance?.Show("RIVAL PHASE COMPLETE",
-                $"The rival network is down. Mission progress: {progress.complete}/{progress.total}.\n\nFinish the remaining scouting, logistics, supporter and territory steps before returning home.",
-                new GamePopup.Option("OPEN MISSION PLAN",LandscapeUI.Green,()=>CityOperationsSystem.Instance?.OpenBoard()),
-                new GamePopup.Option("KEEP MOVING",LandscapeUI.PanelColor,null));
+            CityGameplay.Instance?.PostEvent($"RIVAL PHASE COMPLETE - MISSION {progress.complete}/{progress.total}. OPEN THE MISSION PLAN FOR REMAINING OBJECTIVES.");
         }
         _campaignCheckQueued=false;
     }

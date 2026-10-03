@@ -268,6 +268,8 @@ public sealed class CityOperationsSystem : MonoBehaviour
         {CityGameplay.Instance?.PostEvent(node.Title+" CANCELLED - "+reason.ToUpperInvariant());return;}
         int heatBefore=d.PoliceHeat;
         CityOperationsLedger.Apply(d,node.Type,living);
+        if(node.Type==CityOperationType.SupporterRally)CitySupportNetwork.Earn(d,12);
+        if(node.Type==CityOperationType.CommunityEvent)CitySupportNetwork.Earn(d,18);
         foreach(var member in members)
         {
             if(!member||member.Data==null)continue;

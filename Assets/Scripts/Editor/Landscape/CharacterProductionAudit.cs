@@ -13,19 +13,28 @@ public static class CharacterProductionAudit
         var idle=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Models/Character/animations/Idle.anim");
         const int w=240,h=300;
         string[] tasks={"Chant","Watch","Treat","Pickup","Talk"};
-        int columns=gestures?tasks.Length:registry.entries.Count;
+        var roles=RoleCharacterModels.Current;
+        var entries=roles?new[]{roles.civilians.entries[0],roles.gangs.entries[0],roles.police.entries[0]}:registry.entries.ToArray();
+        int columns=gestures?tasks.Length:entries.Length;
         var sheet=new Texture2D(w*columns,h*2,TextureFormat.RGB24,false);
         var diagnostics=new List<string>();
         for(int i=0;i<columns;i++)for(int lod=0;lod<2;lod++)
         {
-            var entry=registry.entries[gestures?0:i];var model=entry.optimizedModelPrefab?entry.optimizedModelPrefab:entry.modelPrefab;
+            var entry=entries[gestures?0:i];var model=entry.optimizedModelPrefab?entry.optimizedModelPrefab:entry.modelPrefab;
             var preview=new PreviewRenderUtility();
             try
             {
                 var instance=Object.Instantiate(model);preview.AddSingleGO(instance);
                 instance.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
-                CrewKit.PaintShirt(instance.transform,new Color(.12f,.85f,.25f));
+                if(instance.GetComponent<CharacterVisualProfile>())instance.transform.localScale=Vector3.one*instance.GetComponent<CharacterVisualProfile>().baseScale;
+                CrewKit.PaintShirt(instance.transform,gestures?new Color(.12f,.85f,.25f):i==0?Color.white:i==2?new Color(.15f,.35f,.95f):new Color(.12f,.85f,.25f));
                 var clip=gestures?AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Generated/CharacterProduction/Animations/Task "+tasks[i]+".anim"):idle;
+                if(entry.animatorController&&instance.GetComponent<CharacterVisualProfile>())
+                {
+                    var controller=entry.animatorController as UnityEditor.Animations.AnimatorController;
+                    string state=gestures?"Task "+tasks[i]:lod==0?"Idle":"Walking";
+                    if(controller)clip=controller.layers[0].stateMachine.states.First(s=>s.state.name==state).state.motion as AnimationClip;
+                }
                 clip.SampleAnimation(instance,gestures?(lod==0?.3f:1.2f):.2f);
                 foreach(var skin in instance.GetComponentsInChildren<SkinnedMeshRenderer>())
                 {
@@ -33,9 +42,9 @@ public static class CharacterProductionAudit
                     diagnostics.Add(clip.name+" "+skin.name+" baked="+baked.bounds+" root="+instance.transform.localScale+" world="+skin.bounds);
                     Object.DestroyImmediate(baked);
                 }
-                instance.GetComponent<LODGroup>()?.ForceLOD(gestures?0:lod);
+                var group=instance.GetComponent<LODGroup>(); if(group)group.ForceLOD(gestures?0:lod);
                 preview.camera.orthographic=true;preview.camera.orthographicSize=1.05f;
-                preview.camera.transform.position=new Vector3(0,1,-3.5f);preview.camera.transform.LookAt(new Vector3(0,1,0));
+                preview.camera.transform.position=new Vector3(0,1,3.5f);preview.camera.transform.LookAt(new Vector3(0,1,0));
                 preview.camera.nearClipPlane=.01f;preview.camera.farClipPlane=20;
                 preview.camera.backgroundColor=new Color(.12f,.15f,.18f);preview.camera.clearFlags=CameraClearFlags.SolidColor;
                 preview.lights[0].intensity=1.4f;preview.lights[0].transform.rotation=Quaternion.Euler(40,180,0);
@@ -84,3 +93,5 @@ public static class CharacterProductionAudit
     }
 }
 #endif
+
+

@@ -11,7 +11,7 @@ using TouchPhase = UnityEngine.InputSystem.TouchPhase;
 ///
 ///   • One-finger drag  → pan the city (world-locked, very smooth)
 ///   • Pinch            → zoom in/out
-///   • Double-tap       → snap camera to the player firm (Google Maps style)
+    ///   • Squad double-tap → focus a member through the squad UI
 ///   • Rotate button    → step the yaw around the current focus when buildings block view
 ///
 /// Rotation stays isometric but yaw can rotate 360 degrees. A filtered rooftop
@@ -88,12 +88,12 @@ public class CameraPanTouchOnly : MonoBehaviour
         if (_camera == null) _camera = Camera.main;
         if (gameObject.scene.name == "Gameplay")
         {
-            if (!PlayerPrefs.HasKey("HM.CameraProfile.v6"))
+            if (!PlayerPrefs.HasKey("HM.CameraProfile.v7"))
             {
                 PlayerPrefs.SetFloat("CityCameraHeight", GameplayTuning.Current.explorationHeight);
                 PlayerPrefs.SetFloat("CityCameraPitch", GameplayTuning.Current.cameraPitch);
                 PlayerPrefs.SetFloat("CityCameraFov", GameplayTuning.Current.cameraFov);
-                PlayerPrefs.SetInt("HM.CameraProfile.v6", 1);
+                PlayerPrefs.SetInt("HM.CameraProfile.v7", 1);
             }
             camMinHeight=18; camMaxHeight=180; defaultHeight=GameplayTuning.Current.explorationHeight;
             isometricEuler=new Vector3(PlayerPrefs.GetFloat("CityCameraPitch",GameplayTuning.Current.cameraPitch),PlayerPrefs.GetFloat("CityCameraYaw",45),0);
@@ -165,7 +165,7 @@ public class CameraPanTouchOnly : MonoBehaviour
     void Update()
     {
         // Fullscreen town map owns input — do not move the main camera.
-        if (LiveMiniMap.IsExpanded || AgentSelectionManager.BlocksWorldTap() || Time.timeScale == 0) return;
+        if (LiveMiniMap.IsExpanded || AgentSelectionManager.BlocksWorldTap() || Time.timeScale == 0 || RtsGestureController.BlocksCamera) return;
 
         if (lockRotationEveryFrame) LockIsometric();
 
@@ -177,7 +177,7 @@ public class CameraPanTouchOnly : MonoBehaviour
         Vector3 desired = _targetPosition;
         desired.y = Mathf.Clamp(desired.y, camMinHeight, camMaxHeight);
         float preferredHeight = desired.y;
-        desired = SafeCityPosition(transform.position, desired);
+        if (!RtsBuildingVisibility.Instance) desired = SafeCityPosition(transform.position, desired);
         desired.y = Mathf.Clamp(desired.y, camMinHeight, camMaxHeight);
         LastCollisionLift = Mathf.Max(0f, desired.y - preferredHeight);
         transform.position = Vector3.SmoothDamp(transform.position, desired, ref _velocity, _smoothTime);
@@ -234,12 +234,8 @@ public class CameraPanTouchOnly : MonoBehaviour
             }
             else if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled)
             {
-                // Tap (not a drag) — check double-tap for recenter.
-                if (!_movedThisGesture &&
-                    Vector2.Distance(t.screenPosition, _gestureStartPos) <= tapMaxMovePixels)
-                {
-                    TryDoubleTap(t.screenPosition);
-                }
+                // World taps belong to selection/orders. Only squad UI or the
+                // explicit center button should recenter the RTS camera.
                 _fingerDownCount = 0;
                 _uiGesture = false;
             }
@@ -509,7 +505,7 @@ public class CameraPanTouchOnly : MonoBehaviour
     public void ConfigureCity(float fov, float height, float pitch, float yaw)
     {
         Vector3 focus=FocusFromTarget();
-        isometricEuler.x=Mathf.Clamp(pitch,50,85);
+        isometricEuler.x=Mathf.Clamp(pitch,38,85);
         isometricEuler.y=Mathf.Repeat(yaw,360);
         _camera.fieldOfView=Mathf.Clamp(fov,45,85);
         transform.rotation=Quaternion.Euler(isometricEuler);

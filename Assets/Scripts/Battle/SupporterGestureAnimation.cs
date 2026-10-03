@@ -27,6 +27,7 @@ public sealed class SupporterGestureAnimation : MonoBehaviour
         {
             bool working=crew&&crew.IsAlive&&crew.IsOnLiveJob&&Time.time<workUntil;
             if(!working&&(!body||!body.IsAlive||body.isHostile||!march))return null;
+            if(body&&body.firmName=="POLICE")return "Police Watch";
             string task=working?workGesture:march.CurrentTask??"";
             if(task.Contains("CHANT")||task.Contains("RALLY"))return "Task Chant";
             if(task.Contains("WATCH")||task.Contains("PATROL")||task.Contains("SCOUT"))return "Task Watch";

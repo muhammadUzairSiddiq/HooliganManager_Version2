@@ -16,51 +16,7 @@ public static class CharacterProductionBuilder
     const string Root="Assets/Generated/CharacterProduction";
     const string ControllerPath="Assets/Models/Character/animations/CharacterAnimatorController.controller";
     static readonly List<string> report=new List<string>();
-    public static void Build()
-    {
-        if(EditorApplication.isPlaying)throw new InvalidOperationException("Stop gameplay before generating character assets.");
-        Directory.CreateDirectory(Root+"/Meshes");Directory.CreateDirectory(Root+"/Prefabs");Directory.CreateDirectory(Root+"/Animations");
-        Directory.CreateDirectory("Assets/Resources/CharacterProduction");AssetDatabase.Refresh();
-        report.Clear();
-        var shader=Shader.Find("Universal Render Pipeline/Simple Lit");
-        var shirt=AssetDatabase.LoadAssetAtPath<Material>("Assets/Resources/CharacterProduction/GangShirt.mat");
-        if(!shirt){shirt=new Material(shader);AssetDatabase.CreateAsset(shirt,"Assets/Resources/CharacterProduction/GangShirt.mat");}
-        shirt.SetColor("_BaseColor",Color.white);shirt.SetTexture("_BaseMap",null);shirt.SetFloat("_Smoothness",.12f);
-        var built=new Dictionary<string,GameObject>();
-        var textures=new HashSet<string>();
-        foreach(var guid in AssetDatabase.FindAssets("t:CharacterPortraitRegistry"))
-        {
-            var registry=AssetDatabase.LoadAssetAtPath<CharacterPortraitRegistry>(AssetDatabase.GUIDToAssetPath(guid));
-            foreach(var entry in registry.entries)
-            {
-                string source=string.IsNullOrEmpty(entry.sourceModelAssetPath)?AssetDatabase.GetAssetPath(entry.modelPrefab):entry.sourceModelAssetPath;
-                if(string.IsNullOrEmpty(source))continue;
-                if(!built.TryGetValue(source,out var prefab))
-                {
-                    prefab=BuildModel(source,shirt,textures);built[source]=prefab;
-                }
-                if(!prefab)continue;
-                entry.sourceModelAssetPath=source;
-                // Retain source path, not a runtime reference that forces high-poly FBX meshes into memory.
-                entry.modelPrefab=prefab;entry.optimizedModelPrefab=prefab;
-            }
-            EditorUtility.SetDirty(registry);
-        }
-        foreach(string path in textures)
-        {
-            if(!(AssetImporter.GetAtPath(path) is TextureImporter importer))continue;
-            importer.maxTextureSize=importer.textureType==TextureImporterType.NormalMap?512:1024;
-            importer.isReadable=false;importer.mipmapEnabled=true;importer.streamingMipmaps=true;
-            var android=importer.GetPlatformTextureSettings("Android");
-            android.overridden=true;android.maxTextureSize=importer.textureType==TextureImporterType.NormalMap?256:512;
-            android.format=TextureImporterFormat.ASTC_6x6;android.compressionQuality=50;
-            importer.SetPlatformTextureSettings(android);importer.SaveAndReimport();
-        }
-        report.Add($"TEXTURES {textures.Count} unique textures: desktop <=1024, Android <=512 ASTC 6x6; mip streaming enabled.");
-        BuildAnimations();
-        AssetDatabase.SaveAssets();AssetDatabase.Refresh();
-        Directory.CreateDirectory("Artifacts/CityQA");File.WriteAllLines("Artifacts/CityQA/character-production-build.txt",report);
-    }
+    public static void Build() => MixamoRolePipeline.Build();
 
     static GameObject BuildModel(string path,Material shirt,HashSet<string> textures)
     {
@@ -246,3 +202,4 @@ public static class CharacterProductionBuilder
     }
 }
 #endif
+

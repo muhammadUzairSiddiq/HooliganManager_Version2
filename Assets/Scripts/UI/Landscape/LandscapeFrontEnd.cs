@@ -28,6 +28,7 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
     void OnDisable() { GameData.OnSavingData -= Refresh; GameData.OnMatchDayEnded -= Refresh; }
     void Start()
     {
+        if(!GetComponent<ConciseCityButtons>())gameObject.AddComponent<ConciseCityButtons>();
         if (volumeSlider)
         {
             volumeSlider.SetValueWithoutNotify(PlayerPrefs.GetFloat("HM.MasterVolume", 1));
@@ -43,6 +44,11 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
         {
             PlayerPrefs.DeleteKey("OpenRankingsOnLoad"); Navigate("rankings");
         }
+        if (PlayerPrefs.GetInt("OpenRecruitmentOnLoad", 0) == 1)
+        {
+            PlayerPrefs.DeleteKey("OpenRecruitmentOnLoad");
+            Navigate("recruitment");
+        }
     }
     void Update()
     {
@@ -57,7 +63,7 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
     {
         if (action == "settings") { ShowSettings(true); return; }
         if (action == "close-settings") { ShowSettings(false); PlayerPrefs.Save(); return; }
-        if (action == "credits") { GamePopup.Instance.Show("HOOLIGAN MANAGER", "Build your firm. Rule the terraces.\nA football firm strategy game.\nUI artwork: the project's Updated UI collection.", new GamePopup.Option("BACK", PanelColor, null)); return; }
+        if (action == "credits") { GamePopup.Instance.Show("HOOLIGAN MANAGER", "Build your firm. Rule the terraces.\nA football firm strategy game.\nUI artwork: the project's Updated UI collection.\nCrowd audio: Gregor Quendel — Free Crowd Cheering Sounds (CC BY 4.0).\ngregorquendel.com · creativecommons.org/licenses/by/4.0/\nopengameart.org/content/free-crowd-cheering-sounds", new GamePopup.Option("BACK", PanelColor, null)); return; }
         if (action == "load")
         {
             if (GameManager.HasSaveData())
@@ -153,6 +159,13 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
         settingsPanel.SetActive(visible);
         if (visible)
         {
+            var panel=settingsPanel.transform.Find("Settings");
+            if(panel&&!panel.Find("TapMovement"))
+            {
+                var help=panel.Find("Controls");if(help)help.gameObject.SetActive(false);
+                LandscapeUI.Text("TapMovementTitle",panel,"TAP MOVEMENT",44,428,480,40,23,null,true);
+                LandscapeUI.Text("TapMovement",panel,"DWARF WALK",570,414,244,58,24,LandscapeUI.White,true);
+            }
             settingsPanel.transform.SetAsLastSibling();
             var rt = settingsPanel.GetComponent<RectTransform>();
             var group = settingsPanel.GetComponent<CanvasGroup>();
@@ -331,3 +344,4 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
         BuildMissions();
     }
 }
+

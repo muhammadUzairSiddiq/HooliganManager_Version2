@@ -11,6 +11,8 @@ namespace ITHappy
 
         private Transform m_Transform;
         private ICarPart[] m_Parts;
+        Renderer[] streamRenderers;
+        bool streamVisible=true;
 
         private int m_Index;
         private float m_Progress;
@@ -32,6 +34,7 @@ namespace ITHappy
             m_Progress = progress;
 
             m_Parts = GetComponentsInChildren<ICarPart>();
+            streamRenderers=GetComponentsInChildren<Renderer>();
         }
 
         public void GetTrafficStructs(out TrafficManager.CarData data, out TrafficManager.CarTransport transport, out TrafficManager.CarTransform transform)
@@ -65,6 +68,9 @@ namespace ITHappy
         void LateUpdate()
         {
             if (!m_HasSample || !m_Transform || Time.deltaTime <= 0) return;
+            bool visible=!CityActivityStreaming.Instance||CityActivityStreaming.Interested(m_TargetPosition,true);
+            if(visible!=streamVisible){streamVisible=visible;foreach(var renderer in streamRenderers)if(renderer)renderer.enabled=visible;}
+            if(!visible){m_Transform.SetPositionAndRotation(m_TargetPosition,m_TargetRotation);return;}
             float t = Mathf.Clamp01((Time.time - m_SampleTime) / m_InterpolationSeconds);
             m_Transform.SetPositionAndRotation(Vector3.Lerp(m_FromPosition, m_TargetPosition, t), Quaternion.Slerp(m_FromRotation, m_TargetRotation, t));
             foreach (var part in m_Parts) part.Move(Time.deltaTime * m_Speed, m_RenderWheels);

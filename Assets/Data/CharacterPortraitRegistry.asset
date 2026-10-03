@@ -13,48 +13,48 @@ MonoBehaviour:
   m_Name: CharacterPortraitRegistry
   m_EditorClassIdentifier: Assembly-CSharp::CharacterPortraitRegistry
   entries:
-  - modelPrefab: {fileID: 4634519758419824899, guid: 18b2f4ec158bcdb48b977c9637a62b7d, type: 3}
-    optimizedModelPrefab: {fileID: 4634519758419824899, guid: 18b2f4ec158bcdb48b977c9637a62b7d, type: 3}
-    sourceModelAssetPath: Assets/Models/Character/Ch01/Ch01_nonPBR.fbx
-    animatorController: {fileID: 0}
-    portrait: {fileID: 21300000, guid: 194e9a09ebfd84c4d80fd19b258cda2c, type: 3}
-  - modelPrefab: {fileID: 4241057758123001932, guid: 84570e0c1e7883544ad22e1d467c6050, type: 3}
-    optimizedModelPrefab: {fileID: 4241057758123001932, guid: 84570e0c1e7883544ad22e1d467c6050, type: 3}
-    sourceModelAssetPath: Assets/Models/Character/Ch06/Ch06_nonPBR.fbx
-    animatorController: {fileID: 0}
-    portrait: {fileID: 21300000, guid: d698487d7486a4bf39baa3c570147a2d, type: 3}
-  - modelPrefab: {fileID: 6953544651959697665, guid: 521bb40db07719b48a41f5ca7eee45cb, type: 3}
-    optimizedModelPrefab: {fileID: 6953544651959697665, guid: 521bb40db07719b48a41f5ca7eee45cb, type: 3}
-    sourceModelAssetPath: Assets/Models/Character/Ch08/Ch08_nonPBR.fbx
-    animatorController: {fileID: 0}
-    portrait: {fileID: 21300000, guid: ef271fc7df11444a99108824416aaff2, type: 3}
-  - modelPrefab: {fileID: 1206782520030503234, guid: 9bc10df29d6e4e146bc4022e255c0b72, type: 3}
-    optimizedModelPrefab: {fileID: 1206782520030503234, guid: 9bc10df29d6e4e146bc4022e255c0b72, type: 3}
-    sourceModelAssetPath: Assets/Models/Character/Ch12/Ch12_nonPBR.fbx
-    animatorController: {fileID: 9100000, guid: 2a0ff443b6d0644fd827da650c45b762, type: 2}
-    portrait: {fileID: 21300000, guid: 18d7287ce00b6419b8cfd0193e825f65, type: 3}
-  - modelPrefab: {fileID: 7584976510965963526, guid: b13a877a995c6364f8d50b5a51613716, type: 3}
-    optimizedModelPrefab: {fileID: 7584976510965963526, guid: b13a877a995c6364f8d50b5a51613716, type: 3}
-    sourceModelAssetPath: Assets/Models/Character/Ch18/Ch18_nonPBR.fbx
-    animatorController: {fileID: 0}
-    portrait: {fileID: 21300000, guid: 4c92c88d5915b43c0af8537f49291a4a, type: 3}
-  - modelPrefab: {fileID: 5786572166178731089, guid: 071b3527944a8ed469d7bc41c1c96d8b, type: 3}
-    optimizedModelPrefab: {fileID: 5786572166178731089, guid: 071b3527944a8ed469d7bc41c1c96d8b, type: 3}
-    sourceModelAssetPath: Assets/Models/Character/Ch28/Ch28_nonPBR.fbx
-    animatorController: {fileID: 0}
-    portrait: {fileID: 21300000, guid: 4f6c7ee45ef044884bb0946b2fb37918, type: 3}
-  - modelPrefab: {fileID: 9216921859319804576, guid: 3ba13015b6874d240a86d4a8566d6a28, type: 3}
-    optimizedModelPrefab: {fileID: 9216921859319804576, guid: 3ba13015b6874d240a86d4a8566d6a28, type: 3}
-    sourceModelAssetPath: Assets/Models/Character/Ch31/Ch31_nonPBR.fbx
-    animatorController: {fileID: 0}
-    portrait: {fileID: 21300000, guid: 823fe76df803949b48d9e9e22e37efed, type: 3}
-  - modelPrefab: {fileID: 2374204902734522729, guid: 405a3035377fad9408abf09dc68fe884, type: 3}
-    optimizedModelPrefab: {fileID: 2374204902734522729, guid: 405a3035377fad9408abf09dc68fe884, type: 3}
-    sourceModelAssetPath: Assets/Models/Character/Ch38/Ch38_nonPBR.fbx
-    animatorController: {fileID: 0}
-    portrait: {fileID: 21300000, guid: 7a7ca5b0294a44e938884981eb9b28c2, type: 3}
-  - modelPrefab: {fileID: 1743407515090622510, guid: 7aaa77f6abd6c38448865c3ed667ca13, type: 3}
-    optimizedModelPrefab: {fileID: 1743407515090622510, guid: 7aaa77f6abd6c38448865c3ed667ca13, type: 3}
-    sourceModelAssetPath: Assets/Models/Character/Ch42/Ch42_nonPBR.fbx
-    animatorController: {fileID: 0}
-    portrait: {fileID: 21300000, guid: f2f5582ea85a54db5acb3efc26d9cedb, type: 3}
+  - modelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    optimizedModelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    sourceModelAssetPath: Assets/Floreswa/Models/GangCharacters.fbx
+    animatorController: {fileID: 9100000, guid: 8d1dcd2ea46c72140b97c9acf72f0e77, type: 2}
+    portrait: {fileID: 21300000, guid: 9decd82196326e541a59e1bfc8f84694, type: 3}
+  - modelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    optimizedModelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    sourceModelAssetPath: Assets/Floreswa/Models/GangCharacters.fbx
+    animatorController: {fileID: 9100000, guid: 8d1dcd2ea46c72140b97c9acf72f0e77, type: 2}
+    portrait: {fileID: 21300000, guid: 9decd82196326e541a59e1bfc8f84694, type: 3}
+  - modelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    optimizedModelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    sourceModelAssetPath: Assets/Floreswa/Models/GangCharacters.fbx
+    animatorController: {fileID: 9100000, guid: 8d1dcd2ea46c72140b97c9acf72f0e77, type: 2}
+    portrait: {fileID: 21300000, guid: 9decd82196326e541a59e1bfc8f84694, type: 3}
+  - modelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    optimizedModelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    sourceModelAssetPath: Assets/Floreswa/Models/GangCharacters.fbx
+    animatorController: {fileID: 9100000, guid: 8d1dcd2ea46c72140b97c9acf72f0e77, type: 2}
+    portrait: {fileID: 21300000, guid: 9decd82196326e541a59e1bfc8f84694, type: 3}
+  - modelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    optimizedModelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    sourceModelAssetPath: Assets/Floreswa/Models/GangCharacters.fbx
+    animatorController: {fileID: 9100000, guid: 8d1dcd2ea46c72140b97c9acf72f0e77, type: 2}
+    portrait: {fileID: 21300000, guid: 9decd82196326e541a59e1bfc8f84694, type: 3}
+  - modelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    optimizedModelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    sourceModelAssetPath: Assets/Floreswa/Models/GangCharacters.fbx
+    animatorController: {fileID: 9100000, guid: 8d1dcd2ea46c72140b97c9acf72f0e77, type: 2}
+    portrait: {fileID: 21300000, guid: 9decd82196326e541a59e1bfc8f84694, type: 3}
+  - modelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    optimizedModelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    sourceModelAssetPath: Assets/Floreswa/Models/GangCharacters.fbx
+    animatorController: {fileID: 9100000, guid: 8d1dcd2ea46c72140b97c9acf72f0e77, type: 2}
+    portrait: {fileID: 21300000, guid: 9decd82196326e541a59e1bfc8f84694, type: 3}
+  - modelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    optimizedModelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    sourceModelAssetPath: Assets/Floreswa/Models/GangCharacters.fbx
+    animatorController: {fileID: 9100000, guid: 8d1dcd2ea46c72140b97c9acf72f0e77, type: 2}
+    portrait: {fileID: 21300000, guid: 9decd82196326e541a59e1bfc8f84694, type: 3}
+  - modelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    optimizedModelPrefab: {fileID: 9070269314297794182, guid: 1397d5bb2ec49e84c9a3464e65a61da8, type: 3}
+    sourceModelAssetPath: Assets/Floreswa/Models/GangCharacters.fbx
+    animatorController: {fileID: 9100000, guid: 8d1dcd2ea46c72140b97c9acf72f0e77, type: 2}
+    portrait: {fileID: 21300000, guid: 9decd82196326e541a59e1bfc8f84694, type: 3}

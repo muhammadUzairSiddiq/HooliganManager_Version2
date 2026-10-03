@@ -35,6 +35,7 @@ public static class LandscapeEditorBridge
             else if (command=="city-build") CityGameplayBuilder.Build();
             else if(command=="milestone-checks") MilestoneChecks.Run();
             else if(command=="rts-checks") CityRtsChecks.Run();
+            else if(command=="rts-controls-playtest") RtsControlPlaytest.Begin();
             else if(command=="shops-preview")
             {
                 var point=CityGameplay.Instance.Locations[2];CameraPanTouchOnly.Instance?.FocusOn(point);
@@ -44,6 +45,14 @@ public static class LandscapeEditorBridge
             }
             else if(command=="character-audit") CharacterProductionAudit.Run();
             else if(command=="character-build") CharacterProductionBuilder.Build();
+            else if(command=="role-polish") MixamoRolePipeline.Polish();
+            else if(command=="role-retire") RoleCharacterChecks.Retire();
+            else if(command=="role-checks") RoleCharacterChecks.Run();
+            else if(command=="role-portraits") MixamoRolePipeline.Portraits();
+            else if(command=="role-build") MixamoRolePipeline.Build();
+            else if(command=="floreswa-audit") RoleCharacterChecks.Run();
+            else if(command=="floreswa-build") MixamoRolePipeline.Build();
+            else if(command=="floreswa-crowd") FloreswaCrowdBuilder.Build();
             else if(command=="character-animations") { CharacterProductionBuilder.BuildAnimations(); AssetDatabase.SaveAssets(); }
             else if(command=="character-preview") CharacterProductionAudit.Preview();
             else if(command=="character-gesture-preview") CharacterProductionAudit.Preview(true);
@@ -166,7 +175,7 @@ public static class LandscapeEditorBridge
             else if (command=="build") LandscapeSceneBuilder.ApplyAll();
             else if (command.StartsWith("size:")) LandscapeSceneBuilder.SetGameViewSize(command.Substring(5));
             else if (command=="play") EditorApplication.isPlaying=true;
-            else if (command=="stop") EditorApplication.isPlaying=false;
+            else if (command=="stop") { if(EditorApplication.isPlaying && BattleManager.instance) BattleManager.instance.PersistBattleProgress(); EditorApplication.isPlaying=false; }
             else if (command.StartsWith("page:")) UnityEngine.Object.FindFirstObjectByType<LandscapeFrontEnd>()?.Navigate(command.Substring(5));
             else if (command.StartsWith("scene:"))
             {
@@ -193,3 +202,9 @@ public static class LandscapeEditorBridge
     static string PathOf(Transform t) => t.parent ? PathOf(t.parent)+"/"+t.name : t.name;
 }
 #endif
+
+
+
+
+
+

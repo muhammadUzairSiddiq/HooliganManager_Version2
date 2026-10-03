@@ -388,9 +388,15 @@ public class GameData : MonoBehaviour
             if (!IsLivingAgentId(PlayerData.SelectedAwayAgentIds[i]))
                 PlayerData.SelectedAwayAgentIds.RemoveAt(i);
 
-        if (PlayerData.DeploymentSelectionCustomized) return;
+        // Keep a customized selection only when it still has living travelers.
+        // An emptied customized list (all selected members died) used to spawn
+        // nobody and trigger an instant WASTED on Away Continue.
+        if (PlayerData.DeploymentSelectionCustomized && PlayerData.SelectedAwayAgentIds.Count > 0)
+            return;
 
+        PlayerData.DeploymentSelectionCustomized = false;
         PlayerData.SelectedAwayAgentIds.Clear();
+        if (PlayerData.RecruitedAgents == null) return;
         foreach (var agent in PlayerData.RecruitedAgents)
         {
             if (agent == null || !agent.IsAlive) continue;

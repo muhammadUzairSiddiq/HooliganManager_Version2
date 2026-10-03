@@ -26,6 +26,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
     TextMeshPro phaseLabel, eventLabel;
     const float PhaseDuration=90f;
     float nextStreamTick;
+    float nextStreetConflict=35f, nextReplacement=150f;
 
     public int ActiveFanCount
     {
@@ -64,6 +65,37 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
     public int ActiveConflictCount => groups.Count(g => g != null && g.InConflict) / 2;
     public int SimulatedGroupCount => groups.Count(g=>g.Slots.Any(s=>s.Hp>0));
     public int StreamedBodyCount => groups.Sum(g=>g.Members.Count(m=>m&&m.IsAlive&&m.gameObject.activeInHierarchy));
+    public void AppendHeat(List<CityHeatSample> target)
+    {
+        foreach(var group in groups)
+        {
+            int count=0;var center=Vector3.zero;
+            foreach(var slot in group.Slots)if(slot.Hp>0){center+=slot.Body?slot.Body.transform.position:slot.Position;count++;}
+            if(count>0)target.Add(new CityHeatSample(center/count,count));
+        }
+    }
+    public void AddHomeSupporters(int count)
+    {
+        if(!livingStarted||count<=0)return;
+        // Reinforce the persistent street groups; the existing streamer controls
+        // when their pooled models enter view and caps expensive active actors.
+        foreach(var group in groups.Where(g=>g.Role==MatchdayUnitRole.HomeSupporter))
+        {
+            if(CityActivityStreaming.InView(group.HomePocket,.2f))continue;
+            foreach(var slot in group.Slots.Where(s=>s.Hp<=0))
+            {if(count--<=0)return;slot.Hp=65;slot.WasSpawned=false;slot.Position=group.HomePocket;}
+            while(group.Slots.Count<15&&count>0){group.Slots.Add(new MemberState{Hp=65,Position=group.HomePocket});count--;}
+        }
+        int ordinal=0;
+        while(count>0&&ordinal<40&&groups.Count(g=>g.Role==MatchdayUnitRole.HomeSupporter)<20)
+        {
+            var city=CityGameplay.Instance;if(!city||city.Locations.Length==0)break;
+            var point=city.Locations[(ordinal++ +7)%city.Locations.Length]+new Vector3(24,0,24);
+            if(CityActivityStreaming.InView(point,.2f))continue;
+            int size=Mathf.Min(15,count);if(size<3)break;
+            CreateSupporterGroup(BattleManager.instance,GameManager.Data.FirmName,new Color(.38f,.88f,.14f),MatchdayUnitRole.HomeSupporter,point,size);count-=size;
+        }
+    }
 
     sealed class MemberState
     {
@@ -99,6 +131,8 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
         root.transform.position = center;
         var activity = root.AddComponent<StadiumMatchdayActivity>();
         activity.stadiumCenter = center;
+        // The crowd renderer is attached only after imported character poses are available.
+        if(Resources.Load<CrowdPoseLibrary>("FloreswaCrowd/Poses"))root.AddComponent<StadiumCrowdRenderer>();
         return activity;
     }
 
@@ -106,6 +140,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
     {
         CityActivityStreaming.Ensure();
         BuildAtmosphere();
+        if(!GetComponent<StadiumCrowdAudio>())gameObject.AddComponent<StadiumCrowdAudio>();
         StartCoroutine(LivingMatchday());
         CityGameplay.Instance?.PostEvent($"MATCHDAY {matchday:00} · ARRIVAL WINDOW · FANS ARE MOVING TOWARD THE STADIUM");
         yield return new WaitForSeconds(Random.Range(10f, 20f));
@@ -116,6 +151,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
     int matchday => GameManager.Data?.MatchDay ?? 1;
 
     bool pendingEscalation;
+    WorldInteractBubble escalationBubble;
 
     void Update()
     {
@@ -124,6 +160,18 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
         StreamGroups();
         UpdateGroupTasks();
         ScanClashes();
+        if(livingStarted&&Time.time>=nextStreetConflict)
+        {
+            nextStreetConflict=Time.time+Random.Range(14f,24f);
+            BeginConcurrentFlashpoints(Mathf.Max(0,3-ActiveConflictCount));
+        }
+        if(livingStarted&&Time.time>=nextReplacement)
+        {
+            nextReplacement=Time.time+Random.Range(120f,240f);
+            foreach(var group in groups.Where(g=>!g.InConflict))
+                foreach(var slot in group.Slots.Where(s=>s.Hp<=0).Take(Random.Range(5,11)))
+                {slot.Hp=group.Role==MatchdayUnitRole.Police?85f:65f;slot.Position=group.HomePocket;slot.WasSpawned=false;}
+        }
         if (pendingEscalation && !atmosphereEventResolved) ShowEscalationChoice();
         if(!AtmosphereReady)return;
         phaseClock+=Time.deltaTime;
@@ -167,19 +215,18 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
     void ShowEscalationChoice()
     {
         if(atmosphereEventResolved)return;
-        if(CityActionSystem.TaxiSessionActive||GamePopup.AnyOpen)
-        {
-            pendingEscalation=true;
-            return;
-        }
+        if (!escalationBubble) escalationBubble = WorldInteractBubble.Create(transform);
+        escalationBubble.Show("MATCHDAY DECISION", OpenEscalationChoice);
         pendingEscalation=false;
-        eventPopupShown=true;
-        var d=GameManager.Data;
-        GamePopup.Instance.Show("MATCHDAY",
-            "Stewards — calm the crowd. Morale up.\nEscort — walk fans in. Costs £200.\nConfront — fight the rivals. Heat up.",
-            new GamePopup.Option("ORGANIZE STEWARDS",new Color(.12f,.70f,.55f),()=>ResolveEscalation("STEWARDS")),
-            new GamePopup.Option("ESCORT SUPPORTERS",new Color(.12f,.55f,.85f),()=>ResolveEscalation("ESCORT")),
-            new GamePopup.Option("CONFRONT RIVALS",LandscapeUI.Red,()=>ResolveEscalation("CONFRONT")));
+    }
+
+    void OpenEscalationChoice()
+    {
+        if (atmosphereEventResolved) return;
+        WorldChoiceBar.Present(transform, "MATCHDAY - CHOOSE A RESPONSE",
+            ("STEWARDS\nMORALE +6 / HEAT +1", new Color(.12f,.70f,.55f), () => ResolveEscalation("STEWARDS")),
+            ("ESCORT £200\nMORALE +4 / HEAT -1", new Color(.12f,.55f,.85f), () => ResolveEscalation("ESCORT")),
+            ("CONFRONT\nMORALE -3 / HEAT +3", LandscapeUI.Red, () => ResolveEscalation("CONFRONT")));
     }
 
     void ResolveEscalation(string choice)
@@ -192,6 +239,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
             return;
         }
         atmosphereEventResolved=true;
+        escalationBubble?.Hide();
         if(d!=null)
         {
             switch(choice)
@@ -213,7 +261,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
 
     public void OpenBriefing()
     {
-        if(pendingEscalation&&!atmosphereEventResolved){ShowEscalationChoice();return;}
+        if(!atmosphereEventResolved){OpenEscalationChoice();return;}
         var d=GameManager.Data;
         GamePopup.Instance.Show("HOME MATCHDAY · "+matchday.ToString("00"),
             $"PHASE: {CurrentPhase}\n\nSupporters at stadium: {ActiveFanCount}\nActive groups: {ActiveGroupCount}\nLive flashpoints: {ActiveConflictCount}\nRival arrivals: {RivalFanCount}\nPolice presence: {PolicePresenceCount}\nPolice heat: {d?.PoliceHeat??0}/10\n\n{(atmosphereEventResolved?"Rival-arrival event resolved. Keep the routes clear through the post-match window.":"Rival-arrival escalation is pending. Choose a response when the rival fans reach the stadium.")}",
@@ -232,6 +280,9 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
         }
         // The stadium model and destination pin already identify this area.
         // Phase, decisions and event detail belong in the command desk.
+        Color club=new Color(.15f,.6f,.25f);
+        if(GameManager.Data!=null)ColorUtility.TryParseHtmlString(GameManager.Data.PrimaryColor,out club);
+        for(int i=0;i<4;i++)BuildFlag(new Vector3((i-1.5f)*8f,0,-10f),club,Color.white,i%2==0);
 
         AtmosphereReady = true;
     }
@@ -286,6 +337,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
         flag.transform.SetParent(root.transform, false);
         flag.transform.localPosition = new Vector3(flip ? -.7f : .7f, 3.65f, 0f);
         flag.transform.localScale = new Vector3(1.35f, .72f, .06f);
+        flag.AddComponent<MatchdayFlagWave>();
         RemoveCollider(flag);
         Paint(flag, flip ? primary : secondary);
     }
@@ -346,7 +398,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
                     if (!ColorUtility.TryParseHtmlString(bot.primaryColor, out color))
                         color = new Color(.85f, .18f, .16f);
                     CreateSupporterGroup(bm, bot.firmName, color, MatchdayUnitRole.RivalSupporter,
-                        StadiumPocket(groups.Count, 58f), 3);
+                        StadiumPocket(groups.Count, 58f), 16);
                 }
             }
         }
@@ -354,7 +406,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
         {
             for (int i = 0; i < activeGangs.Count; i++)
                 CreateSupporterGroup(bm, activeGangs[i].GangName, activeGangs[i].ZoneColor,
-                    MatchdayUnitRole.RivalSupporter, StadiumPocket(i, 58f), 3);
+                    MatchdayUnitRole.RivalSupporter, StadiumPocket(i, 58f), Random.Range(6,13));
         }
 
         // The player's firm has the strongest visible presence: three separate
@@ -369,15 +421,29 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
             stadiumCenter + new Vector3(0f, 0f, -65f)
         };
         foreach (Vector3 homeSpot in homeSpots)
-            CreateSupporterGroup(bm, homeName, homeColor, MatchdayUnitRole.HomeSupporter, homeSpot, 4);
+            CreateSupporterGroup(bm, homeName, homeColor, MatchdayUnitRole.HomeSupporter, homeSpot, Random.Range(6,13));
 
         // Four independent foot-patrol groups continuously circulate around the ground.
         Color policeColor = new Color(0.15f, 0.38f, 0.95f);
         for (int i = 0; i < 4; i++)
             CreateSupporterGroup(bm, "POLICE", policeColor, MatchdayUnitRole.Police,
-                StadiumPocket(i, 82f, 45f), 1);
+                StadiumPocket(i, 82f, 45f), 10);
+
+        var city=CityGameplay.Instance;
+        if(city&&city.Locations.Length>7)
+        {
+            foreach(int district in new[]{1,7})
+            {
+                Vector3 pocket=city.Locations[district];
+                CreateSupporterGroup(bm,"POLICE",policeColor,MatchdayUnitRole.Police,pocket,10);
+                CreateSupporterGroup(bm,homeName,homeColor,MatchdayUnitRole.HomeSupporter,pocket+Vector3.right*26,Random.Range(6,13));
+                var rivalGroup=groups.FirstOrDefault(g=>g.Role==MatchdayUnitRole.RivalSupporter);
+                if(rivalGroup!=null)CreateSupporterGroup(bm,rivalGroup.Name,rivalGroup.Color,MatchdayUnitRole.RivalSupporter,pocket-Vector3.right*26,Random.Range(6,13));
+            }
+        }
 
         AssignPhaseTasks("ARRIVING IN GROUPS");
+        if(data!=null)AddHomeSupporters(Mathf.Max(0,data.StrategySupporters-groups.Where(g=>g.Role==MatchdayUnitRole.HomeSupporter).Sum(g=>g.Slots.Count)));
 
         CityGameplay.Instance?.PostEvent("MATCHDAY · RIVAL GROUPS, HOME SUPPORT AND POLICE ARE MOVING AROUND THE STADIUM");
     }
@@ -406,7 +472,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
         for (int member = 0; member < count; member++)
         {
             float angle = member * Mathf.PI * 2f / Mathf.Max(1, count);
-            Vector3 offset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.45f;
+            Vector3 offset = role==MatchdayUnitRole.Police?new Vector3((member-4.5f)*1.65f,0,0):new Vector3((member%5-2)*1.7f,0,member/5*1.7f);
             state.Slots.Add(new MemberState { Hp=role==MatchdayUnitRole.Police?85f:65f, Position=pocket+offset });
         }
         state.Marker.Bind(state.Members);
@@ -431,34 +497,41 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
     void StreamGroups()
     {
         if(Time.time<nextStreamTick||!BattleManager.instance)return;
-        nextStreamTick=Time.time+.15f;
-        foreach(var group in groups)
+        nextStreamTick=Time.time+.035f;
+        var focus=CityActivityStreaming.GroundFocus(Camera.main);
+        int available=CityActivityStreaming.BodyBudget-8;
+        foreach(var group in groups.OrderBy(g=>CityActivityStreaming.InView(g.Destination)?0:1).ThenBy(g=>(g.Destination-focus).sqrMagnitude))
         {
             if(group.InConflict&&Time.time>=group.ConflictUntil)EndConflict(group);
-            bool near=CityActivityStreaming.Interested(group.Destination,group.Members.Count>0);
+            bool interested=CityActivityStreaming.Interested(group.Destination,group.Members.Count>0);
+            bool near=interested&&available>=group.Slots.Count;
+            if(near)available-=group.Slots.Count;
             foreach(var slot in group.Slots)
             {
                 if(slot.Body)
                 {
                     slot.Hp=slot.Body.CurrentHp;slot.Position=slot.Body.transform.position;
                     if(!slot.Body.IsAlive||!slot.Body.gameObject.activeInHierarchy){slot.Hp=0;slot.Body=null;}
-                    else if(!near&&!CityActivityStreaming.Interested(slot.Position,true))
+                    else if(!near&&!CityActivityStreaming.InView(slot.Position)&&!slot.Body.isHostile)
                     {
                         BattleManager.instance.DespawnMatchdayFighter(slot.Body);slot.Body=null;
                     }
                 }
                 else if(slot.WasSpawned&&slot.Hp>0)
                 {
-                    // An explicitly streamed-out body keeps its HP; deaths are
-                    // sampled before the combat pool reuses an instance below.
+                    // Keep the record moving toward its task while the pooled
+                    // presentation is absent. Returning never resets its health.
+                    slot.Position=Vector3.MoveTowards(slot.Position,group.Destination,.08f);
                 }
                 if(!near||slot.Body||slot.Hp<=0)continue;
-                var spawn=Sample(group.Destination+(slot.Position-group.HomePocket).normalized*1.5f);
+                int memberIndex=group.Slots.IndexOf(slot);
+                var offset=group.Role==MatchdayUnitRole.Police?new Vector3((memberIndex-4.5f)*1.65f,0,0):new Vector3((memberIndex%5-2)*1.7f,0,memberIndex/5*1.7f);
+                var spawn=Sample(slot.WasSpawned?slot.Position:group.Destination+offset);
                 var body=BattleManager.instance.SpawnMatchdayFighter(spawn,group.Name,group.Color,
                     group.Role==MatchdayUnitRole.Police?85f:65f,group.Role==MatchdayUnitRole.Police?8f:7f,group.Role,group.Name);
                 if(!body)continue;
                 slot.Body=body;slot.WasSpawned=true;body.RestoreStreamedHealth(slot.Hp);
-                body.GetComponent<MatchdayMarch>()?.Bind(group.Destination,2.2f,group.Task);
+                body.GetComponent<MatchdayMarch>()?.Bind(group.Destination+offset,group.Role==MatchdayUnitRole.Police?.15f:.65f,group.Task);
             }
             group.Members.Clear();
             foreach(var slot in group.Slots)if(slot.Body&&slot.Body.IsAlive)group.Members.Add(slot.Body);
@@ -490,7 +563,11 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
     public void NoteBodyDown(EnemyController body)
     {
         foreach(var group in groups)foreach(var slot in group.Slots)
-            if(slot.Body==body){slot.Hp=0;slot.Body=null;}
+            if(slot.Body==body&&slot.Hp>0)
+            {
+                slot.Hp=0;slot.Body=null;
+                if(group.Role!=MatchdayUnitRole.Police)CitySupportNetwork.Lost(group.Name,group.Role==MatchdayUnitRole.HomeSupporter);
+            }
     }
 
     Vector3 StadiumPocket(int index, float radius, float offsetDegrees = 20f)
@@ -503,10 +580,10 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
     void UpdateGroupTasks()
     {
         if (!livingStarted || groups.Count == 0) return;
-        foreach (var group in groups)
+        foreach (var group in groups.OrderBy(g=>g.Role==MatchdayUnitRole.Police?0:1).ThenBy(g=>(g.Destination-CityActivityStreaming.GroundFocus(Camera.main)).sqrMagnitude))
         {
             if (group == null || group.InConflict || Time.time < group.NextTaskAt) continue;
-            group.NextTaskAt = Time.time + Random.Range(18f, 28f);
+            group.NextTaskAt = Time.time + Random.Range(7f, 12f);
             group.TaskIndex++;
 
             string[] tasks;
@@ -527,7 +604,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
                     break;
             }
             float angle=group.TaskIndex*1.7f;
-            Vector3 destination = group.HomePocket+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*(group.Role==MatchdayUnitRole.Police?9f:5f);
+            Vector3 destination = group.HomePocket+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*(group.Role==MatchdayUnitRole.Police?9f:28f);
             SetGroupTask(group, tasks[group.TaskIndex % tasks.Length], destination, 2.2f);
         }
     }
@@ -543,7 +620,8 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
             var member=group.Members[i];
             if (!member || !member.IsAlive || member.isHostile) continue;
             float a=i*Mathf.PI*2f/Mathf.Max(1,group.Members.Count);
-            member.GetComponent<MatchdayMarch>()?.Bind(destination+new Vector3(Mathf.Cos(a),0,Mathf.Sin(a))*1.6f,.65f,task);
+            Vector3 offset=group.Role==MatchdayUnitRole.Police?new Vector3((i-4.5f)*1.65f,0,0):new Vector3((i%5-2)*1.7f,0,i/5*1.7f);
+            member.GetComponent<MatchdayMarch>()?.Bind(destination+offset,group.Role==MatchdayUnitRole.Police?.15f:.65f,task);
         }
     }
 
@@ -561,13 +639,16 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
 
     void BeginConcurrentFlashpoints(int desired)
     {
-        var rivals = groups.Where(g => g.Role == MatchdayUnitRole.RivalSupporter && !g.InConflict).ToList();
-        var homes = groups.Where(g => g.Role == MatchdayUnitRole.HomeSupporter && !g.InConflict).ToList();
+        var rivals = groups.Where(g => g.Role == MatchdayUnitRole.RivalSupporter && !g.InConflict&&!RivalSettlement.IsSettled(g.Name)).OrderBy(g=>g.NextTaskAt).ToList();
+        var homes = groups.Where(g => g.Role != MatchdayUnitRole.Police && !g.InConflict&&!RivalSettlement.IsSettled(g.Name)).ToList();
         int count = Mathf.Min(desired, Mathf.Min(rivals.Count, homes.Count));
         for (int i = 0; i < count; i++)
         {
-            Vector3 flashpoint = homes[i].HomePocket;
-            QueueFlashpoint(rivals[i], homes[i], flashpoint);
+            if(rivals[i].InConflict)continue;
+            var home=homes.Where(g=>!g.InConflict&&g!=rivals[i]&&g.Name!=rivals[i].Name).OrderBy(g=>(g.HomePocket-rivals[i].HomePocket).sqrMagnitude).FirstOrDefault();
+            if(home==null)continue;homes.Remove(home);
+            Vector3 flashpoint = (home.HomePocket+rivals[i].HomePocket)*.5f;
+            QueueFlashpoint(rivals[i], home, Sample(flashpoint));
         }
     }
 
@@ -594,6 +675,16 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
         clashScan -= Time.deltaTime;
         if (clashScan > 0f) return;
         clashScan = 1.4f;
+        foreach(var policeGroup in groups.Where(g=>g.Role==MatchdayUnitRole.Police))
+        foreach(var officer in policeGroup.Members)
+        {
+            if(!officer||!officer.IsAlive||officer.isHostile)continue;
+            var aggressor=groups.Where(g=>g.InConflict).SelectMany(g=>g.Members)
+                .Where(m=>m&&m.IsAlive&&m.isHostile&&!RivalSettlement.IsSettled(m.firmName))
+                .OrderBy(m=>(m.transform.position-officer.transform.position).sqrMagnitude).FirstOrDefault();
+            if(!aggressor||(aggressor.transform.position-officer.transform.position).sqrMagnitude>22*22)continue;
+            officer.isHostile=true;officer.AlertToTarget(aggressor);officer.GetComponent<MatchdayMarch>()?.SetConflictActive(true);
+        }
         foreach (var rival in rivalBodies)
         {
             if (!rival || !rival.IsAlive || rival.isHostile) continue;
@@ -743,7 +834,7 @@ public sealed class MatchdayGroupMarker : MonoBehaviour
         Role = role;
         Radius = radius;
         CurrentTask = role == MatchdayUnitRole.Police ? "FOOT PATROL" : "ARRIVING IN GROUPS";
-        ring=ZoneVolumeFactory.BuildFlatCircle(transform,"GroupFootprint",radius,.10f,color,true,36);
+        // Clothing identifies supporters; selection rings belong to selected player crew only.
         label = ZoneLabelUtil.Create(transform, LabelText(), 3.4f, 4f);
         label.name = "MatchdayGroupTitle";
         label.color = Color.Lerp(color, Color.white, .28f);

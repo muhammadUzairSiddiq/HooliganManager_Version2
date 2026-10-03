@@ -95,11 +95,9 @@ public sealed class CityDevelopmentSystem : MonoBehaviour
         if(tick>=1f)
         {
             CityDevelopmentLedger.Tick(d,tick,m=>CityGameplay.Instance?.PostEvent(m));
-            d.CityRivalGrowthSeconds+=tick;tick=0;
-            if(d.CityRivalGrowthSeconds>=180f)
+            bool arrivals = RivalGrowthSystem.TickArrivals(d, tick); tick = 0;
+            if(arrivals)
             {
-                d.CityRivalGrowthSeconds-=180f;
-                RivalGrowthSystem.AdvanceLivingCity(d);
                 BattleManager.instance?.ReinforceLivingRivals();
             }
         }

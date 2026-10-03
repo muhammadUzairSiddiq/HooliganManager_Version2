@@ -26,6 +26,7 @@ public class PedestrianSpawner : MonoBehaviour
 
     private MeshRenderer[] _pavementMeshes;
     private List<GameObject> _activePedestrians = new List<GameObject>();
+    readonly Queue<GameObject> sparePedestrians=new Queue<GameObject>();
     private bool _isInitialized = false;
     float nextPopulationCheck;
     public bool IsInitialized => _isInitialized;
@@ -96,6 +97,7 @@ public class PedestrianSpawner : MonoBehaviour
         Camera cam = Camera.main;
         if (cam == null) return;
         Vector3 camPos = CityActivityStreaming.GroundFocus(cam);
+        if(CityActivityStreaming.Instance){spawnRadius=CityActivityStreaming.Instance.PreloadRadius;despawnRadius=spawnRadius+35;}
 
         // Clean up out of bounds pedestrians
         for (int i = _activePedestrians.Count - 1; i >= 0; i--)
@@ -109,7 +111,7 @@ public class PedestrianSpawner : MonoBehaviour
 
             if (HorizontalDistance(ped.transform.position, camPos) > despawnRadius)
             {
-                Destroy(ped);
+                ped.SetActive(false);if(sparePedestrians.Count<8)sparePedestrians.Enqueue(ped);else Destroy(ped);
                 _activePedestrians.RemoveAt(i);
             }
         }
@@ -123,7 +125,8 @@ public class PedestrianSpawner : MonoBehaviour
             Vector3 spawnPos = GetRandomPavementPositionNearCamera(camPos);
             if (spawnPos != Vector3.zero && CityActivityStreaming.TryReserveBody(spawnPos))
             {
-                GameObject go = Instantiate(pedestrianPrefab, spawnPos, Quaternion.identity, transform);
+                GameObject go = sparePedestrians.Count>0?sparePedestrians.Dequeue():Instantiate(pedestrianPrefab, spawnPos, Quaternion.identity, transform);
+                go.transform.SetPositionAndRotation(spawnPos,Quaternion.identity);go.SetActive(true);
                 
                 PedestrianController controller = go.GetComponent<PedestrianController>();
                 if (controller == null)
@@ -161,7 +164,8 @@ public class PedestrianSpawner : MonoBehaviour
             if (NavMesh.SamplePosition(randomPos, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
             {
                 // Ensure it's not too close to the camera to prevent popping in right in front of the player
-                if (HorizontalDistance(hit.position, camPos) > 10f)
+                var view=Camera.main.WorldToViewportPoint(hit.position);
+                if (view.z<0||view.x<-.1f||view.x>1.1f||view.y<-.1f||view.y>1.1f)
                 {
                     return hit.position;
                 }

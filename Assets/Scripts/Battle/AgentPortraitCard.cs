@@ -288,6 +288,8 @@ public class AgentPortraitCard : MonoBehaviour
         {
             if (agent.CurrentState == AgentController.State.AutoAttacking) return "IN A FIGHT";
             if (agent.CurrentState == AgentController.State.Retreating) return "RETREATING";
+            if (agent.CurrentOrder == AgentController.StandingOrder.Guard) return "GUARDING";
+            if (agent.CurrentOrder == AgentController.StandingOrder.Patrol) return "PATROLLING";
             return "ON THE WAY";
         }
         return "FREE";

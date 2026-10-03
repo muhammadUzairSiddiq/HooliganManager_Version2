@@ -8,11 +8,12 @@ using UnityEngine.AI;
 public sealed class CityActivityStreaming : MonoBehaviour
 {
     public static CityActivityStreaming Instance { get; private set; }
-    public static int BodyBudget => Application.isMobilePlatform ? 24 : 40;
+    public static int BodyBudget => Application.isMobilePlatform ? 64 : 96;
     public int LiveAmbientBodies { get; private set; }
     Camera view;
     Vector3 lastFocus, predictedFocus;
     float footprint=65f, nextAudit;
+    public float PreloadRadius=>footprint+55f;
     int spawnFrame=-1, spawnedThisFrame;
     public static void Ensure()
     {
@@ -26,9 +27,16 @@ public sealed class CityActivityStreaming : MonoBehaviour
         if(!view)return;
         Vector3 focus=GroundFocus(view);
         var velocity=(focus-lastFocus)/Mathf.Max(.01f,Time.unscaledDeltaTime);
-        predictedFocus=focus+Vector3.ClampMagnitude(velocity*.65f,25f);
+        predictedFocus=focus+Vector3.ClampMagnitude(velocity*.8f,65f);
         lastFocus=focus;
-        footprint=Mathf.Clamp(view.transform.position.y*.85f,45f,130f);
+        footprint=45f;
+        var ground=new Plane(Vector3.up,Vector3.zero);
+        for(int i=0;i<4;i++)
+        {
+            var ray=view.ViewportPointToRay(new Vector3(i%2,i/2,0));
+            if(ground.Raycast(ray,out var distance))footprint=Mathf.Max(footprint,Vector3.Distance(focus,ray.GetPoint(distance)));
+        }
+        footprint=Mathf.Min(footprint,300f);
         if(Time.unscaledTime<nextAudit)return;
         nextAudit=Time.unscaledTime+.5f;
         LiveAmbientBodies=FindObjectsByType<PedestrianController>(FindObjectsSortMode.None).Length;
@@ -45,9 +53,9 @@ public sealed class CityActivityStreaming : MonoBehaviour
     {
         var self=Instance;
         if(!self)return false;
-        float margin=retained?38f:18f;
+        float margin=retained?85f:55f;
         Vector3 delta=position-self.predictedFocus;delta.y=0;
-        if(delta.sqrMagnitude<(self.footprint+margin)*(self.footprint+margin))return true;
+        if(delta.sqrMagnitude<(self.footprint+margin)*(self.footprint+margin)||(position-self.lastFocus).sqrMagnitude<(self.footprint+margin)*(self.footprint+margin))return true;
         // Looking away never makes a player's ongoing encounter disappear.
         var bm=BattleManager.instance;
         if(bm)foreach(var a in bm.PlayerAgents)
@@ -59,9 +67,16 @@ public sealed class CityActivityStreaming : MonoBehaviour
         if(!Interested(position))return false;
         var self=Instance;
         if(self.spawnFrame!=Time.frameCount){self.spawnFrame=Time.frameCount;self.spawnedThisFrame=0;}
-        if(self.LiveAmbientBodies>=BodyBudget||self.spawnedThisFrame>=1)return false;
+        if(self.LiveAmbientBodies>=BodyBudget||self.spawnedThisFrame>=(Application.isMobilePlatform?8:16))return false;
         self.spawnedThisFrame++;self.LiveAmbientBodies++;
         return true;
+    }
+    public static void ReleaseBody(){if(Instance)Instance.LiveAmbientBodies=Mathf.Max(0,Instance.LiveAmbientBodies-1);}
+    public static bool InView(Vector3 point,float padding=.1f)
+    {
+        var camera=Instance?Instance.view:Camera.main;if(!camera)return false;
+        var p=camera.WorldToViewportPoint(point);
+        return p.z>0&&p.x>-padding&&p.x<1+padding&&p.y>-padding&&p.y<1+padding;
     }
     public static bool TryStreetPoint(Vector3 candidate,out Vector3 point,float radius=6f)
     {

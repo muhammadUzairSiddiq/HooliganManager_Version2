@@ -24,10 +24,16 @@ public class MainMenuController : MonoBehaviour
     [Header("Club Data")]
     public ClubRegistry clubRegistry;
 
+    void Awake()
+    {
+        // Explicit MainMenu hook: first-install wipe (also runs via BeforeSceneLoad).
+        GameCacheBootstrap.ClearAllGameCacheForFirstInstall();
+    }
+
     void Start()
     {
         if (versionLabel != null)
-            versionLabel.text = "v0.2 - ENHANCED";
+            versionLabel.text = "v0.3 - APK3";
 
         ApplyContinueState();
 

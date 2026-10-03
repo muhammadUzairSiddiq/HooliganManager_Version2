@@ -1,0 +1,205 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74391f03526d3e1479e2d6c4fa0cec7f, type: 3}
+  m_Name: Poses
+  m_EditorClassIdentifier: 
+  variants:
+  - name: Cheering
+    poses:
+    - {fileID: 4300000, guid: 160f0f0fbd13e194c8ef334fcf52a4a1, type: 2}
+    - {fileID: 4300000, guid: 0a557738a63e2ca49b4cfb3cd58e63d8, type: 2}
+    - {fileID: 4300000, guid: bb7ab719462cc0b4892410b7a4aad5e9, type: 2}
+    - {fileID: 4300000, guid: 9992a160cafbfaf49a8441e207344ccc, type: 2}
+    - {fileID: 4300000, guid: b5df2585b6fae3a44bda6bcd4b060717, type: 2}
+    - {fileID: 4300000, guid: 8d2e25872fa7be64ab2ec851eee3c121, type: 2}
+    - {fileID: 4300000, guid: e3404c242e668f446ac69f5f2a44c56e, type: 2}
+    - {fileID: 4300000, guid: cb2c975e066d7c94286160d0212d49d4, type: 2}
+    - {fileID: 4300000, guid: c2b0c34509f3eff458e55c09fc1c6e67, type: 2}
+    - {fileID: 4300000, guid: 2d48fcc924da3574aaf5c5dc8ef44cdf, type: 2}
+    - {fileID: 4300000, guid: bfff717c85523484ca1ff886304896b8, type: 2}
+    - {fileID: 4300000, guid: 47bfeb873921efa4e82d5afacbaa2f10, type: 2}
+    - {fileID: 4300000, guid: 6b59fc0bb8858c44c872abe9521d6ab4, type: 2}
+    - {fileID: 4300000, guid: 7b1748b5c92bddb4c8fd8e851ff06833, type: 2}
+    - {fileID: 4300000, guid: 85519d96e7f7c6140b5a2110826e57cc, type: 2}
+    - {fileID: 4300000, guid: dda544190f5bbbe48baf5923ff00acc1, type: 2}
+    duration: 2.9
+  - name: Rallying
+    poses:
+    - {fileID: 4300000, guid: 94e75793eb0b34d488ca21a7a9352af0, type: 2}
+    - {fileID: 4300000, guid: 351b08d5734210947a9d59ec3eabf64a, type: 2}
+    - {fileID: 4300000, guid: 07d4988b94e04c24fbe987a6a4dd2fc7, type: 2}
+    - {fileID: 4300000, guid: 463774e79476827408a1242094f33a26, type: 2}
+    - {fileID: 4300000, guid: 1ae5bf432f4165e4da048c5c4b5e6710, type: 2}
+    - {fileID: 4300000, guid: d487bb8b8add72f43acac30121f79be0, type: 2}
+    - {fileID: 4300000, guid: ca2cff271a00f5448b66f866666f65ba, type: 2}
+    - {fileID: 4300000, guid: 980ddb72fab09d94b8c6c040e67e56b0, type: 2}
+    - {fileID: 4300000, guid: a89c99a040d4c5849addac421aa07cfb, type: 2}
+    - {fileID: 4300000, guid: 3ace708b1970229449065cc6e03cbd07, type: 2}
+    - {fileID: 4300000, guid: c8ea1c1f1d39e39428017e19a35940ed, type: 2}
+    - {fileID: 4300000, guid: 7dcf392eee9d25244ad6fb0b8c49c3af, type: 2}
+    - {fileID: 4300000, guid: b2c90b933f1d7c140b8a6fc348b40eed, type: 2}
+    - {fileID: 4300000, guid: 6699e0cb1f00bc24f9a29c786413bd1e, type: 2}
+    - {fileID: 4300000, guid: c32797f847403554f8e58d2342e9563a, type: 2}
+    - {fileID: 4300000, guid: 218e1c41565934f44b8e3d492d87021d, type: 2}
+    duration: 6.2000003
+  - name: Clapping
+    poses:
+    - {fileID: 4300000, guid: 607caf41e8e8b8548963a66a5a05d3e1, type: 2}
+    - {fileID: 4300000, guid: aed7b502234d832489cfe8374bb0ef67, type: 2}
+    - {fileID: 4300000, guid: 0b989720348f57f48a2f706363b2b1f7, type: 2}
+    - {fileID: 4300000, guid: 09d0a4ca32101704c86ba92c6d322b07, type: 2}
+    - {fileID: 4300000, guid: 1aeb11aa2d25a7243b407c97b1f2be21, type: 2}
+    - {fileID: 4300000, guid: 408fe2af6cb0fcb49b46666cfbee1391, type: 2}
+    - {fileID: 4300000, guid: 09930b409a07cc843bffbcbff23666e6, type: 2}
+    - {fileID: 4300000, guid: e390da5a68172d24b92035332bd719fe, type: 2}
+    - {fileID: 4300000, guid: 5c8824d8f0645664da6e1231ecf12e08, type: 2}
+    - {fileID: 4300000, guid: c6855080e1f75d641ab7cbe4008ba21b, type: 2}
+    - {fileID: 4300000, guid: 0082c9bcfcd0bbc4ab26083d74f83bfd, type: 2}
+    - {fileID: 4300000, guid: 7b1f274ea412a9a439bd80654ae64084, type: 2}
+    - {fileID: 4300000, guid: 16592bc9d2a0a074eb3347678d6b5b25, type: 2}
+    - {fileID: 4300000, guid: 1f5b706f28c047e4680cb43f33be5713, type: 2}
+    - {fileID: 4300000, guid: 58dd823f884274740ba82f54f85119ee, type: 2}
+    - {fileID: 4300000, guid: d8675f26fa07112429034bb39f6fb502, type: 2}
+    duration: 1.1666667
+  - name: Standing Clap
+    poses:
+    - {fileID: 4300000, guid: fb519be66cce60449a076e6424039ffa, type: 2}
+    - {fileID: 4300000, guid: 98adcee5d9a78664f819b826929fc883, type: 2}
+    - {fileID: 4300000, guid: 8438b248fdc1e654b8b28ca60c1f4262, type: 2}
+    - {fileID: 4300000, guid: 05c98a68a242255449837ab6a72b7b87, type: 2}
+    - {fileID: 4300000, guid: d3ea3c17b4dce41488df4dc7618dbf6c, type: 2}
+    - {fileID: 4300000, guid: 55ca8b5af5c44b54b980fc4ace534395, type: 2}
+    - {fileID: 4300000, guid: 0bb96600c5f0e7747a560c26e3ed1bfd, type: 2}
+    - {fileID: 4300000, guid: e7a51dcf02aeb5d4985d33acb7cc65b3, type: 2}
+    - {fileID: 4300000, guid: 35b49f179984ecf4983d32368fc4f3af, type: 2}
+    - {fileID: 4300000, guid: ee495514b6abbd5459f136d93cbe54a5, type: 2}
+    - {fileID: 4300000, guid: 9d721a05f9ace8840a565a3e6d01fe87, type: 2}
+    - {fileID: 4300000, guid: 71debdc6557b4904992217dddc89030a, type: 2}
+    - {fileID: 4300000, guid: 26fc82416de35094f8053450ce4252b4, type: 2}
+    - {fileID: 4300000, guid: 5ee89cf23aa460a47a5390aa04d8db9a, type: 2}
+    - {fileID: 4300000, guid: f0b045ac5f3dd9f4eb548b48e350bebd, type: 2}
+    - {fileID: 4300000, guid: 4efa722e713671043a35e20e81a8638f, type: 2}
+    duration: 1.9333334
+  - name: Victory
+    poses:
+    - {fileID: 4300000, guid: 527a968c718fa1544bc3c4de30d8fe1e, type: 2}
+    - {fileID: 4300000, guid: b705f5ab08db96440828ed0be9ce6724, type: 2}
+    - {fileID: 4300000, guid: 76ec7f24d06b7e94eb20611d8d2ecc88, type: 2}
+    - {fileID: 4300000, guid: 924f84205f6e7c5458d255ee7250af71, type: 2}
+    - {fileID: 4300000, guid: b1263844ebfd42b4080b18b4bf24d29f, type: 2}
+    - {fileID: 4300000, guid: a84b73df9fdc6fb4ca011d5f49e9d1df, type: 2}
+    - {fileID: 4300000, guid: cf31108f12681964d840a43064ce0385, type: 2}
+    - {fileID: 4300000, guid: 182870b092d586f418699dd868c540a8, type: 2}
+    - {fileID: 4300000, guid: 8f52d981d2432784984350a813af7c86, type: 2}
+    - {fileID: 4300000, guid: c2b9e623232315c4a94668ce2636551b, type: 2}
+    - {fileID: 4300000, guid: d416c1220105ce242b8db6572e17565a, type: 2}
+    - {fileID: 4300000, guid: 3ba33649726a59045a78a4ed0db6e962, type: 2}
+    - {fileID: 4300000, guid: a4f1374aa72280f44bff9f970fb11ded, type: 2}
+    - {fileID: 4300000, guid: c9c8997a2ac698741aaac66b3f19b325, type: 2}
+    - {fileID: 4300000, guid: ecff150db9c2d3a43971316ee6c00232, type: 2}
+    - {fileID: 4300000, guid: dcbb7f19a2e5d724a856cf6b35f09152, type: 2}
+    duration: 8.533334
+  - name: Excited
+    poses:
+    - {fileID: 4300000, guid: 91dfced3ad6bf444c8074b3a2aa1352e, type: 2}
+    - {fileID: 4300000, guid: 78b01b50387c78f46a16752a1e5fbd22, type: 2}
+    - {fileID: 4300000, guid: 39434c80bda76c04d83ce34afd2b6d38, type: 2}
+    - {fileID: 4300000, guid: 9c23570dbf931004bbf87ba5fa3ad61d, type: 2}
+    - {fileID: 4300000, guid: b33246e4885cfd044831aa7c3159a45c, type: 2}
+    - {fileID: 4300000, guid: 0f67f717c28297a428df873dd4fd1156, type: 2}
+    - {fileID: 4300000, guid: da46dff5b7b78e445b299381cd7e7732, type: 2}
+    - {fileID: 4300000, guid: ecf50391edc646d41b806e0defcc6c36, type: 2}
+    - {fileID: 4300000, guid: f70e2ac6f2f56974c868fe67b018262b, type: 2}
+    - {fileID: 4300000, guid: 53b237028f917aa4fbcadd6ce506a3c2, type: 2}
+    - {fileID: 4300000, guid: cd7db43848f2e0245ba60e3320ca00b7, type: 2}
+    - {fileID: 4300000, guid: f50b2e4ab1532ba4492d730d370dcd64, type: 2}
+    - {fileID: 4300000, guid: 6f6b0c7dc2b79a44a9bcbd2cc2f76e43, type: 2}
+    - {fileID: 4300000, guid: dd991132c3e86bb47963bf80206de67c, type: 2}
+    - {fileID: 4300000, guid: 63df2be5e0671bb47b9f03bf6fb5ccfe, type: 2}
+    - {fileID: 4300000, guid: 53b09b6d09842a34ea4e0453294f7327, type: 2}
+    duration: 6.566667
+  - name: Happy Hand Gesture
+    poses:
+    - {fileID: 4300000, guid: 036546ed1626c674c9d3a3d98303d664, type: 2}
+    - {fileID: 4300000, guid: e7b80d2d2d5daaf45a26cfaf2a014d03, type: 2}
+    - {fileID: 4300000, guid: 841562f269df84449bd3e7e5b1b17e8a, type: 2}
+    - {fileID: 4300000, guid: d71f7986d41d3ee43b83870251c068fb, type: 2}
+    - {fileID: 4300000, guid: a942a2e1e906e1646aa05899fb38fac6, type: 2}
+    - {fileID: 4300000, guid: 5000b10504d88a54c9e18bf342298ca4, type: 2}
+    - {fileID: 4300000, guid: 400ff502f1934f947a5b747b4e1ab150, type: 2}
+    - {fileID: 4300000, guid: 5a2b27f6d63118a409f43abec08c4daf, type: 2}
+    - {fileID: 4300000, guid: f57de97667d61dd4385ec00172a5fa3d, type: 2}
+    - {fileID: 4300000, guid: ffe12473127e9384c95d3147963d0e67, type: 2}
+    - {fileID: 4300000, guid: 3431ad4d7c01879439b8fb50a7025d1a, type: 2}
+    - {fileID: 4300000, guid: 2a73a8033144cf74799c440b03ef24c8, type: 2}
+    - {fileID: 4300000, guid: ee4027e8cd28ae24599222e65ea14383, type: 2}
+    - {fileID: 4300000, guid: 30fdd3d6ab798224aab7dc0d85632dc9, type: 2}
+    - {fileID: 4300000, guid: 46ff9fe0de5bef44e9a9bc4e7ef64423, type: 2}
+    - {fileID: 4300000, guid: 1dc6632c909edda429ad4f754227adaa, type: 2}
+    duration: 2.9333334
+  - name: Cheering (1)
+    poses:
+    - {fileID: 4300000, guid: 453ed5b1558ff5a4496dda2ff366488e, type: 2}
+    - {fileID: 4300000, guid: 17f64987ffc44424eb3cc19aa17b6892, type: 2}
+    - {fileID: 4300000, guid: 651f68c42ec8f0340b2791a6f99df9c1, type: 2}
+    - {fileID: 4300000, guid: fec5e1a03b7f8b74f87c497c8d329b91, type: 2}
+    - {fileID: 4300000, guid: a8302aa046750e843b087a921b4d21f3, type: 2}
+    - {fileID: 4300000, guid: 0cc874371df72d24f84206110a75807a, type: 2}
+    - {fileID: 4300000, guid: c72185cb5f967cd4d9c08040d94abccd, type: 2}
+    - {fileID: 4300000, guid: 143fc5e4723714145bead726db3699ca, type: 2}
+    - {fileID: 4300000, guid: 2cbb7461da5f2b84e8a93663ed753244, type: 2}
+    - {fileID: 4300000, guid: 579e2c6c80715304baae00f78aef62ac, type: 2}
+    - {fileID: 4300000, guid: e8ea078ba5a950e4995fe3e45a790c47, type: 2}
+    - {fileID: 4300000, guid: 0bf6b5b60900c8243a39679c2c5cdfa4, type: 2}
+    - {fileID: 4300000, guid: f061e5b2fead9a14db2cf9763c7c7702, type: 2}
+    - {fileID: 4300000, guid: 4979de2d9a0375c418dc7c1d1f0b8f7d, type: 2}
+    - {fileID: 4300000, guid: 7fa19e26264a62c418922604840a9df8, type: 2}
+    - {fileID: 4300000, guid: 031ad7c4ac6ee374f8f12919f99610e9, type: 2}
+    duration: 1.9000001
+  - name: Standing Fist Pump
+    poses:
+    - {fileID: 4300000, guid: 4e62b687b6d4a72419c431482dc1163d, type: 2}
+    - {fileID: 4300000, guid: 48904a52f80b68744898d0678b0f00e6, type: 2}
+    - {fileID: 4300000, guid: d476de42fc8bead40949b73d6b2083fe, type: 2}
+    - {fileID: 4300000, guid: eb56996418398b14dbf65474d8566207, type: 2}
+    - {fileID: 4300000, guid: 5537dddf531cc1e43a03db74d2092e9e, type: 2}
+    - {fileID: 4300000, guid: 6a026801a9a2e264797515107919b451, type: 2}
+    - {fileID: 4300000, guid: a0b03ace93de91648905ce014bd692c9, type: 2}
+    - {fileID: 4300000, guid: d0806f72f7811fd45baf8135c9e12077, type: 2}
+    - {fileID: 4300000, guid: 0ae7fa81faf8a8d41ac09d3215126034, type: 2}
+    - {fileID: 4300000, guid: 45937397db7a78b45972eb9eff86d0ae, type: 2}
+    - {fileID: 4300000, guid: 173382f7514a04445ae5fa4ab0a87f62, type: 2}
+    - {fileID: 4300000, guid: ecb3b348a47d92b4fad717649893d21a, type: 2}
+    - {fileID: 4300000, guid: d15e6ded6454f814f800ac02be8e8fb9, type: 2}
+    - {fileID: 4300000, guid: 043de357157129d4e86faa7f64292fea, type: 2}
+    - {fileID: 4300000, guid: 12b5859765e226a4cb32b87435fad993, type: 2}
+    - {fileID: 4300000, guid: eb301782ae08c7b4ba20a4bf6be25383, type: 2}
+    duration: 1.3000001
+  - name: Dwarf Walk
+    poses:
+    - {fileID: 4300000, guid: 990b978c5e24a044984d25b48082d24a, type: 2}
+    - {fileID: 4300000, guid: a74ad26c95903bd4aab0d062908060cf, type: 2}
+    - {fileID: 4300000, guid: 9d99008232aad504aa0c58d10aba5e00, type: 2}
+    - {fileID: 4300000, guid: 074b62c68adb08547801776420394b6c, type: 2}
+    - {fileID: 4300000, guid: 6fa2e02d6b41ff04eb43a5ac938a8e56, type: 2}
+    - {fileID: 4300000, guid: 6276293b0f9ba774eb181637f4efe6e0, type: 2}
+    - {fileID: 4300000, guid: c40770f822ebd4e4896106a0759986af, type: 2}
+    - {fileID: 4300000, guid: 3ff64969465f68d49b05c481b70ed8c2, type: 2}
+    - {fileID: 4300000, guid: 7608a5e58879c8b4299dfb85e7643a6b, type: 2}
+    - {fileID: 4300000, guid: c2cbfbde0c2b1224e97476de36b4a446, type: 2}
+    - {fileID: 4300000, guid: b7fce5c4ae54871498e00238bc199b95, type: 2}
+    - {fileID: 4300000, guid: 339e3652e0964784eb412b46fb2a1fb1, type: 2}
+    - {fileID: 4300000, guid: 9879eb421c2edd44b97c19bb7f4a0aa1, type: 2}
+    - {fileID: 4300000, guid: 4a6c38637978b844d9e79a6e3d752dc6, type: 2}
+    - {fileID: 4300000, guid: caa75231951daf74194e538efb755aea, type: 2}
+    - {fileID: 4300000, guid: 4151c13671b99364cbc6d93cb0f9b9d6, type: 2}
+    duration: 1.1

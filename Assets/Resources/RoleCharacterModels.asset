@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b345dcfbdf08a3449ab7f0d09e2bf24, type: 3}
+  m_Name: RoleCharacterModels
+  m_EditorClassIdentifier: 
+  civilians: {fileID: 11400000, guid: 0efc5741a3ea8ee4792c85f66cccc1a1, type: 2}
+  gangs: {fileID: 11400000, guid: 1ebfa4d053b421846b30f8d6c70fe341, type: 2}
+  police: {fileID: 11400000, guid: ec6664dd96647794c9a25642ddb05d12, type: 2}

@@ -33,5 +33,5 @@ public sealed class GameplayTuning : ScriptableObject
     [Range(10, 100)] public float shadowDistance = 35;
     [Range(2, 20)] public int maxPedestrians = 6;
     public float LevelValue(float[] values, int level) => values == null || values.Length == 0 ? 1 : Mathf.Max(.1f, values[Mathf.Clamp(level - 1, 0, values.Length - 1)]);
-    public static void ScaleModel(Transform model) { if (model) model.localScale = Vector3.one * Current.characterScale; }
+    public static void ScaleModel(Transform model) { if (model) model.localScale = Vector3.one * Current.characterScale * (model.GetComponent<CharacterVisualProfile>()?.baseScale ?? 1f); }
 }

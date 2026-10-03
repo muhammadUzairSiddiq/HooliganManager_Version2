@@ -30,10 +30,10 @@ MonoBehaviour:
   - 0.95
   - 1.05
   - 1.15
-  explorationHeight: 32
+  explorationHeight: 42
   combatHeight: 24
-  cameraPitch: 54
-  cameraFov: 54
+  cameraPitch: 45
+  cameraFov: 48
   focusFights: 0
   captureSeconds: 8
   recoveryCost: 200

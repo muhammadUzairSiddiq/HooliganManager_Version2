@@ -15,7 +15,7 @@ public sealed class CityMissionHUD : MonoBehaviour
     RectTransform statusStrip;
     readonly RectTransform[] statusCells = new RectTransform[9];
     float lastStatusWidth;
-    Button captureButton, retreatButton, missionButton, talkButton, actionsButton;
+    Button captureButton, retreatButton, missionButton, talkButton, actionsButton, guardButton, patrolButton;
     GameObject moveGo, attackGo, authoredRetreat;
     GameplayHudSideToggle sideToggle;
     float nextRefresh;
@@ -33,11 +33,11 @@ public sealed class CityMissionHUD : MonoBehaviour
         if (hud)
         {
             Place(hud, "TopBar", 8, 6, 1584, 128);
-            Place(hud, "SquadRail", 16, 150, 286, 334);
+            Place(hud, "SquadRail", 16, 150, 286, 372);
             Place(hud, "SquadTitle", 30, 160, 258, 26);
-            Place(hud, "MemberCount", 30, 184, 258, 36);
-            Place(hud, "PortraitScroll", 24, 242, 268, 230);
-            var focusHint = LandscapeUI.Text("SquadFocusHint", hud, "DOUBLE-TAP A MEMBER TO RECENTER", 24, 220, 268, 20, 12, LandscapeUI.Muted, true);
+            Place(hud, "MemberCount", 30, 262, 258, 36);
+            Place(hud, "PortraitScroll", 24, 322, 268, 182);
+            var focusHint = LandscapeUI.Text("SquadFocusHint", hud, "DOUBLE-TAP A MEMBER TO RECENTER", 24, 300, 268, 20, 12, LandscapeUI.Muted, true);
             focusHint.alignment = TextAlignmentOptions.Left;
             var members = hud.Find("MemberCount")?.GetComponent<TextMeshProUGUI>();
             if (members)
@@ -62,12 +62,16 @@ public sealed class CityMissionHUD : MonoBehaviour
 
             var squadTitle = hud.Find("SquadTitle")?.GetComponent<TextMeshProUGUI>();
             if (squadTitle) { squadTitle.text = "SQUAD"; squadTitle.fontSize = 18; squadTitle.color = Color.white; }
-            var manage = LandscapeUI.Button("ManageSquad", hud, "MANAGE", 168, 156, 118, 32, "dark");
+            var manage = LandscapeUI.Button("ManageSquad", hud, "MANAGE", 22, 222, 132, 32, "dark");
+            manage.GetComponentInChildren<TextMeshProUGUI>().fontSize=12;
             manage.onClick.AddListener(() =>
             {
                 var board = SquadBoard.Instance ?? FindFirstObjectByType<CityGameplay>()?.gameObject.AddComponent<SquadBoard>();
                 board?.ShowSquad();
             });
+            var drag = LandscapeUI.Button("DragSelect", hud, "DRAG", 158, 222, 132, 32, "dark");
+            drag.GetComponentInChildren<TextMeshProUGUI>().fontSize=12;
+            drag.onClick.AddListener(() => RtsGestureController.Instance?.BeginBoxSelection());
 
             // Restore classic cash / reputation.
             Place(hud, "Cash", 1210, 16, 196, 36);
@@ -95,7 +99,7 @@ public sealed class CityMissionHUD : MonoBehaviour
             foreach (var name in new[] { "Timer", "Round", "Controls" })
                 if (hud.Find(name)) hud.Find(name).gameObject.SetActive(false);
 
-            Place(hud, "SelectionStatus", 420, 770, 760, 30);
+            Place(hud, "SelectionStatus", 420, 770, 500, 30);
             var status = hud.Find("SelectionStatus")?.GetComponent<TextMeshProUGUI>();
             if (status)
             {
@@ -147,6 +151,13 @@ public sealed class CityMissionHUD : MonoBehaviour
         objectives.alignment=TextAlignmentOptions.TopLeft;
         advisor.alignment=TextAlignmentOptions.TopLeft;
         BuildLeftPanelToggle(hud);
+        var boxSelect = LandscapeUI.Button("BoxSelect", hud ? hud : frame, "SELECT ALL", 22, 188, 132, 32, "dark");
+        boxSelect.GetComponentInChildren<TextMeshProUGUI>().fontSize=12;
+        var selectionAction=boxSelect.gameObject.AddComponent<SquadSelectionAction>();
+        boxSelect.onClick.AddListener(selectionAction.SelectAll);
+        var deselect = LandscapeUI.Button("Deselect", hud ? hud : frame, "DESELECT ALL", 158, 188, 132, 32, "dark");
+        deselect.GetComponentInChildren<TextMeshProUGUI>().fontSize=12;
+        deselect.onClick.AddListener(() => {RtsGestureController.Instance?.Cancel();AgentSelectionManager.instance?.DeselectAll();});
 
         talkButton=LandscapeUI.Button("Talk",hud?hud:frame,"TALK",645,812,130,54,"dark");
         talkButton.gameObject.SetActive(false);
@@ -154,6 +165,26 @@ public sealed class CityMissionHUD : MonoBehaviour
         captureButton.gameObject.SetActive(false);
         actionsButton=LandscapeUI.Button("Actions",hud?hud:frame,"ACTIONS",925,812,130,54,"outline");
         actionsButton.gameObject.SetActive(false);
+        guardButton = LandscapeUI.Button("Guard", hud ? hud : frame, "GUARD", 645, 812, 130, 54, "dark");
+        guardButton.onClick.AddListener(() => AgentSelectionManager.instance?.ArmGuardCommand());
+        patrolButton = LandscapeUI.Button("Patrol", hud ? hud : frame, "PATROL", 785, 812, 130, 54, "dark");
+        patrolButton.onClick.AddListener(() => AgentSelectionManager.instance?.ArmPatrolCommand());
+        foreach (string commandName in new[] { "Move", "Attack", "Guard", "Patrol", "Retreat" })
+        {
+            var commandRoot = (hud ? hud : frame).Find(commandName);
+            var label = commandRoot ? commandRoot.Find("Label")?.GetComponent<TextMeshProUGUI>() : null;
+            if (!label) continue;
+            // Authored buttons were wider. Their label must resize with the RTS strip.
+            var rect = label.rectTransform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = new Vector2(10, 4);
+            rect.offsetMax = new Vector2(-10, -4);
+            label.alignment = TextAlignmentOptions.Center;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 14;
+            label.fontSizeMax = 21;
+        }
 
         missionPanel = LandscapeUI.Panel("CityMissionLedger", WorldButtonLayer.MissionFrame(), 310, 125, 980, 660, true).gameObject;
         missionHeading=LandscapeUI.Text("Title", missionPanel.transform, "MISSION PLAN", 22, 15, 700, 38, 28, null, true);
@@ -487,9 +518,12 @@ public sealed class CityMissionHUD : MonoBehaviour
 
     void UpdateCommandButtons()
     {
+        bool selected = AgentSelectionManager.instance && AgentSelectionManager.instance.SelectedAgents.Any(a => a && a.IsAlive);
         if(moveGo)moveGo.SetActive(false);
         if(attackGo)attackGo.SetActive(false);
         if(authoredRetreat)authoredRetreat.SetActive(false);
+        SetCommandVisible(guardButton, false);
+        SetCommandVisible(patrolButton, false);
         SetCommandVisible(talkButton, false);
         SetCommandVisible(captureButton, false);
         SetCommandVisible(actionsButton, false);
@@ -533,7 +567,7 @@ public sealed class CityMissionHUD : MonoBehaviour
         var targets = new System.Collections.Generic.List<GameObject>();
         if (hud)
         {
-            foreach (var name in new[] { "SquadRail", "SquadTitle", "MemberCount", "PortraitScroll", "ManageSquad" })
+            foreach (var name in new[] { "SquadRail", "SquadTitle", "MemberCount", "PortraitScroll", "ManageSquad", "DragSelect", "BoxSelect", "Deselect", "SquadFocusHint" })
             {
                 var t = hud.Find(name);
                 if (t) targets.Add(t.gameObject);
@@ -542,18 +576,21 @@ public sealed class CityMissionHUD : MonoBehaviour
         if (extraTargets != null) targets.AddRange(extraTargets.Where(t => t != null));
         sideToggle.targets = targets.ToArray();
         sideToggle.controlsMinimap = true;
-        sideToggle.targetNames = new[] { "CameraSetup", "RecenterCamera" };
+        sideToggle.targetNames = new[] { "CameraSetup", "RecenterCamera", "BoxSelect", "Deselect", "DragSelect", "SquadFocusHint" };
         button.onClick.AddListener(sideToggle.Toggle);
     }
 
     void BuildTopPanelToggle(Transform hud)
     {
-        var button=LandscapeUI.Button("TopHudToggle",frame,"^",782,0,36,30,"dark");
+        var button=LandscapeUI.Button("TopHudToggle",frame,"PANEL",990,140,130,42,"dark");
         var toggle=button.gameObject.AddComponent<GameplayHudSideToggle>();toggle.label=button.GetComponentInChildren<TextMeshProUGUI>();
-        toggle.shownGlyph="^";toggle.hiddenGlyph="v";toggle.root=frame;
+        toggle.shownGlyph="X";toggle.hiddenGlyph="PANEL";toggle.root=frame;
+        toggle.hideInitially=true;toggle.redClose=true;
         toggle.targetNames=new[]{"TopBar","Heading","Cash","Reputation","StatusStrip","CityDistrict","CityOperations","TopMission","TopIntel","TopVehicles","TopDestinations"};
         if(toggle.label){toggle.label.fontSize=21;toggle.label.color=Color.white;}
         button.onClick.AddListener(toggle.Toggle);
+        var overview=frame.gameObject.AddComponent<CityStrategyOverview>();overview.Initialize(frame);
+        LandscapeUI.Button("HeatmapToggle",frame,"HEATMAP",1130,140,150,42,"dark").onClick.AddListener(overview.Toggle);
     }
 
     void BuildRightPanelToggle(Transform hud)
@@ -577,7 +614,9 @@ public sealed class GameplayHudSideToggle : MonoBehaviour
     public string[] targetNames;
     public string shownGlyph="<",hiddenGlyph=">";
     public bool controlsMinimap;
+    public bool hideInitially,redClose;
     bool hidden;
+    void Start(){if(hideInitially)Toggle();}
 
     public void Toggle()
     {
@@ -590,5 +629,6 @@ public sealed class GameplayHudSideToggle : MonoBehaviour
                 if(t&&targetNames.Contains(t.name)&&t.gameObject!=gameObject)t.gameObject.SetActive(!hidden);
         if(controlsMinimap)LiveMiniMap.Instance?.SetCompactVisible(!hidden);
         if (label != null) label.text = hidden ? hiddenGlyph : shownGlyph;
+        if(redClose&&label)label.color=hidden?Color.white:new Color(1f,.12f,.12f);
     }
 }

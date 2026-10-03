@@ -13,6 +13,8 @@ public class RivalStreetState
     public int pending;
     public bool secondPocket;
     public int cityGrowthTicks;
+    [System.Runtime.Serialization.OptionalField] public int supporters;
+    [System.Runtime.Serialization.OptionalField] public float nextArrivalSeconds;
 }
 
 /// <summary>
@@ -22,9 +24,27 @@ public class RivalStreetState
 /// </summary>
 public static class RivalGrowthSystem
 {
-    public const int StartMembers = 3;
-    public const int MaxPerFirm = 8;
-    public const int MaxOnMap = 24;
+    public const int StartMembers = 9;
+    public const int MaxPerFirm = 72;
+    public const int MaxOnMap = 72;
+
+    public static bool TickArrivals(PlayerData data, float seconds)
+    {
+        Ensure(data); if (data?.RivalStreets == null || seconds <= 0) return false;
+        bool changed = false;
+        foreach (var street in data.RivalStreets)
+        {
+            if (street == null || street.wiped) continue;
+            if (street.nextArrivalSeconds <= 0) street.nextArrivalSeconds = UnityEngine.Random.Range(120f, 240f);
+            street.nextArrivalSeconds -= seconds;
+            if (street.nextArrivalSeconds > 0) continue;
+            street.members = Mathf.Min(MaxPerFirm, street.members + UnityEngine.Random.Range(5, 11));
+            street.supporters=Mathf.Min(240,street.supporters+UnityEngine.Random.Range(5,11));
+            street.cityGrowthTicks = Mathf.Min(5, street.cityGrowthTicks + 1);
+            street.nextArrivalSeconds = UnityEngine.Random.Range(120f, 240f); changed = true;
+        }
+        return changed;
+    }
 
     public struct SpawnOrder
     {
@@ -38,12 +58,17 @@ public static class RivalGrowthSystem
     {
         if (d == null) return;
         d.RivalStreets ??= new List<RivalStreetState>();
+        if(d.StrategyVersion<1)
+        {
+            foreach(var street in d.RivalStreets)if(street!=null&&!street.wiped){street.members=Mathf.Min(MaxPerFirm,street.members*3);street.supporters=Mathf.Max(27,street.supporters);}
+            d.StrategySupporters=Mathf.Max(30,d.StrategySupporters);d.StrategyVersion=1;
+        }
         if (d.RivalBots == null) return;
         foreach (var bot in d.RivalBots)
         {
             if (bot == null || string.IsNullOrEmpty(bot.firmName)) continue;
             if (Find(d, bot.firmName) != null) continue;
-            d.RivalStreets.Add(new RivalStreetState { firmName = bot.firmName, members = StartMembers });
+            d.RivalStreets.Add(new RivalStreetState { firmName = bot.firmName, members = StartMembers, supporters=27 });
         }
     }
 
@@ -129,10 +154,12 @@ public static class RivalGrowthSystem
         if (d == null) return plan;
         Ensure(d);
         int remaining = MaxOnMap;
+        int living=d.RivalStreets.FindAll(s=>s!=null&&!s.wiped&&s.members>0).Count;
         foreach (var street in d.RivalStreets)
         {
             if (street == null || street.wiped || remaining <= 0) continue;
-            int give = Mathf.Min(street.members, MaxPerFirm, remaining);
+            int give = Mathf.Min(street.members, Mathf.Max(1,remaining/Mathf.Max(1,living)), remaining);
+            living--;
             if (give <= 0) continue;
             remaining -= give;
             var bot = d.RivalBots?.Find(b => b != null && string.Equals(b.firmName, street.firmName, StringComparison.OrdinalIgnoreCase));
@@ -151,7 +178,8 @@ public static class RivalGrowthSystem
     {
         var street = Find(d, firmName);
         if (street == null || street.wiped) return 0;
-        return Mathf.Min(street.members, MaxPerFirm);
+        int living=d.RivalStreets.FindAll(s=>s!=null&&!s.wiped&&s.members>0).Count;
+        return Mathf.Min(street.members, Mathf.Max(1,MaxOnMap/Mathf.Max(1,living)));
     }
 
     public static int GrowthTicks(PlayerData d, string firmName) => Find(d, firmName)?.cityGrowthTicks ?? 0;

@@ -24,7 +24,7 @@ public class GangArea : MonoBehaviour
     public void SetGrowth(int ticks)
     {
         if(initialRadius<=0)initialRadius=_radius;
-        _radius=initialRadius+Mathf.Clamp(ticks,0,5)*.6f;
+        _radius=initialRadius*Mathf.Sqrt(2.5f)+Mathf.Clamp(ticks,0,5)*.9f;
         _detectRadius=Mathf.Max(_detectRadius,_radius*1.7f);
         var ring=transform.Find("ZoneRing");
         if(ring)ring.localScale=Vector3.one*(_radius/Mathf.Max(.1f,initialRadius));
@@ -36,7 +36,7 @@ public class GangArea : MonoBehaviour
         _gangName = gangName;
         _radius = radius;
         _detectRadius = Mathf.Max(radius * 2.2f, radius * 1.7f * 0.71f + 3.5f);
-        _color = SanitizeGangColor(color);
+        _color = CrewKit.RivalColor(SanitizeGangColor(color),gangName);
 
         transform.position = GroundedCenter(center);
         ZoneVolumeFactory.Create(transform, _color, radius, height: 2.6f);
@@ -310,7 +310,14 @@ public sealed class WorldChoiceBar : MonoBehaviour
             var act = option.action;
             button.onClick.AddListener(() => { Hide(); act?.Invoke(); });
             var label = button.transform.Find("Label")?.GetComponent<TextMeshProUGUI>();
-            if (label) { label.color = Color.white; label.fontSize = 18f; }
+            if (label)
+            {
+                label.color = Color.white;
+                label.fontSize = 18f;
+                label.enableAutoSizing = true;
+                label.fontSizeMin = 11f;
+                label.fontSizeMax = 18f;
+            }
             _buttons.Add(button.transform as RectTransform);
         }
         if (_allowClose)
@@ -331,12 +338,11 @@ public sealed class WorldChoiceBar : MonoBehaviour
         RectTransformUtility.ScreenPointToLocalPointInRectangle(_frame, projected, null, out var local);
         float x = local.x - _frame.rect.xMin;
         float y = _frame.rect.yMax - local.y;
-        float halfWidth=(164f*_buttons.Count+48f)*.5f;
         bool visible = projected.z > 0.1f && x > 80f && x < _frame.rect.width - 80f && y > 110f && y < _frame.rect.height - 70f;
         SetOn(visible);
         if (!visible) return;
         float row = 156f * _buttons.Count + 8f * Mathf.Max(0, _buttons.Count - 1);
-        float start = x - (row + 56f) * 0.5f;
+        float start = Mathf.Clamp(x - (row + 56f) * 0.5f, 12f, Mathf.Max(12f, _frame.rect.width - row - 68f));
         if (_title) LandscapeUI.Place(_title, start, y - 78f, row + 56f, 36f);
         for (int i = 0; i < _buttons.Count; i++)
             LandscapeUI.Place(_buttons[i], start + i * 164f, y - 24f, 156f, 48f);
@@ -398,7 +404,7 @@ public sealed class WorldChoicePanel : MonoBehaviour
         if (_title) _title.text = title.ToUpperInvariant();
         ClearButtons();
         AddButton("CONFRONT", new Vector3(-2.15f, -0.15f, -0.12f), new Color(0.72f, 0.14f, 0.14f), confront);
-        AddButton("MOVE ON", new Vector3(0.15f, -0.15f, -0.12f), new Color(0.16f, 0.38f, 0.62f), moveOn);
+        AddButton("LEAVE", new Vector3(0.15f, -0.15f, -0.12f), new Color(0.16f, 0.38f, 0.62f), moveOn);
         AddButton("CLOSE", new Vector3(2.15f, -0.15f, -0.12f), new Color(0.18f, 0.20f, 0.24f), close);
         IsOpen = true;
         gameObject.SetActive(true);
@@ -520,16 +526,21 @@ public sealed class WorldInteractBubble : MonoBehaviour
 
     public void Show(string caption, Action onTap)
     {
+        if (IsLive) return;
         _onTap = onTap;
         IsLive = true;
-        if (_text) _text.text = caption;
-        gameObject.SetActive(true);
+        // Interaction choices appear directly. The yellow intermediary is never rendered.
+        gameObject.SetActive(false);
+        if(caption=="RECRUIT")
+            WorldChoiceBar.Present(transform.parent,"RECRUITMENT",("RECRUIT",LandscapeUI.Green,onTap));
+        else onTap?.Invoke();
     }
 
     public void Hide()
     {
         if (!IsLive && !gameObject.activeSelf) return;
         IsLive = false;
+        if(transform.parent)transform.parent.GetComponent<WorldChoiceBar>()?.Hide();
         _onTap = null;
         gameObject.SetActive(false);
     }

@@ -108,6 +108,7 @@ public static class LandscapeUI
         shine.rectTransform.localEulerAngles = new Vector3(0, 0, -12);
         var glow = Image("SelectedGlow", i.transform, 18, h - 7, w - 36, 3, null, new Color(.95f, .15f, .18f, 0));
         var labelText = Text("Label", i.transform, label, 16, 4, w - 32, h - 8, Mathf.Clamp(h * .36f, 16, 22), null, true, TextAlignmentOptions.Center);
+        i.gameObject.AddComponent<ConciseButtonCaption>();
         labelText.enableWordWrapping = false;
         labelText.textWrappingMode = TextWrappingModes.NoWrap;
         labelText.fontSizeMin = 8;

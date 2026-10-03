@@ -5629,7 +5629,7 @@ RectTransform:
   m_GameObject: {fileID: 1205852497}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.6, y: 1.6, z: 1.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 18929669}
@@ -6486,7 +6486,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: ca217538061a06c4293ec6d953cef250, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 655a84db360e90442a1b0efb6d05c350, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -8189,7 +8189,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameData
   PlayerData:
+    StrategySupporters: 0
+    SupportCampaigns: 0
+    StrategyVersion: 0
+    CityDevelopment: []
+    CityEconomySeconds: 0
+    CityRivalGrowthSeconds: 0
     PowerPackagesPurchased: 0
+    SettledRivalFirms: []
     PlayerFaction: 
     CityCapturedZones: []
     HomeTrainingLevel: 0
@@ -8262,6 +8269,7 @@ MonoBehaviour:
     BattleRecruitSlotsUsed: 000000000000000000000000
     BattleStartLevel: 1
     BattleStartHomeMode: 1
+    LastSessionMode: 
     BattleStartPoliceHeat: 7
     RecentEvents: []
     RecruitedAgents: []

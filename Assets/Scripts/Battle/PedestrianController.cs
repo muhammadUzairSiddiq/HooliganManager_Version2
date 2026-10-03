@@ -31,9 +31,11 @@ public class PedestrianController : MonoBehaviour
 
     public void Initialize(MeshRenderer[] pavementMeshes, CharacterPortraitRegistry registry = null)
     {
+        if(RoleCharacterModels.Current)registry=RoleCharacterModels.Current.civilians;
         _pavementMeshes = pavementMeshes;
         _isWaiting = false; // Start walking immediately instead of idling
         _waitTimer = 0f;
+        _hasActivityZone=false;_conversationPaused=false;
 
         // --- Spawn the visual mesh ---
         if (registry != null && registry.entries != null && registry.entries.Count > 0)
@@ -43,13 +45,15 @@ public class PedestrianController : MonoBehaviour
             GameObject characterPrefab = entry.optimizedModelPrefab ? entry.optimizedModelPrefab : entry.modelPrefab;
             if (characterPrefab != null)
             {
-                GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
+                GameObject spawnedCharacter = _animator?_animator.gameObject:Instantiate(characterPrefab, transform.position, transform.rotation, transform);
                 CityCharacterBudget.Apply(spawnedCharacter);
                 
                 GameplayTuning.ScaleModel(spawnedCharacter.transform);
+                CrewKit.PaintShirt(spawnedCharacter.transform,Color.white);
                 _animator = spawnedCharacter.GetComponent<Animator>();
                 if (!_animator) _animator = spawnedCharacter.AddComponent<Animator>();
                 _animator.runtimeAnimatorController = entry.animatorController != null ? entry.animatorController : BattleManager.instance.characterAnimator;
+                _animator.Rebind();
                 StartCoroutine(General.InvokeMethod(()=>_animator.Play("Walking"), 1));
                 
                 // Add the anim controller wrapper

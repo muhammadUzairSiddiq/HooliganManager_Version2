@@ -90,7 +90,7 @@ public class EnemyController : MonoBehaviour
 
     private void DealDamageToTarget(float amount)
     {
-        if (_targetPlayer != null) _targetPlayer.TakeDamage(amount);
+        if (_targetPlayer != null) _targetPlayer.TakeDamage(amount, this);
         else if (_targetEnemy != null) _targetEnemy.TakeDamage(amount, this);
     }
     private float              _attackTimer;
@@ -112,6 +112,9 @@ public class EnemyController : MonoBehaviour
     private Vector3 _spawnPosition;
     private Vector3 _gangCenter;           // centre of the gang group — used to face teammates while passive
     private bool _hasAggro;
+    GameObject cachedVisualPrefab,cachedVisual;
+    Renderer[] streamRenderers;
+    bool streamVisible=true;
     private float _chaseSpeed;         // full combat speed — stored on Initialise
 
     [Header("Faction / Gang Settings")]
@@ -120,16 +123,40 @@ public class EnemyController : MonoBehaviour
     public bool isHostile = false;
     /// <summary>Response officers stand and wait. They do not pick a fight until the player chooses.</summary>
     public bool holdFire;
+    bool escortRun;
     /// <summary>When set, a police officer only chases these crew members.</summary>
     public readonly List<AgentController> assignedCrew = new List<AgentController>();
 
     public void HoldFire(bool hold)
     {
         holdFire = hold;
-        if (!hold) return;
+        if (!hold) { escortRun = false; return; }
         isHostile = false;
         assignedCrew.Clear();
         ClearTarget();
+    }
+
+    /// <summary>Held approach / bribe exit — officers path while holdFire keeps combat off.</summary>
+    public void BeginEscort(Vector3 point, bool run)
+    {
+        HoldFire(true);
+        escortRun = run;
+        arriving = false;
+        if (!_nav || !_nav.enabled || !_nav.isOnNavMesh || !IsAlive) return;
+        if (!NavMesh.SamplePosition(point, out var hit, 8f, NavMesh.AllAreas)) return;
+        _nav.speed = run ? Mathf.Max(_chaseSpeed > 0.1f ? _chaseSpeed : Speed, 4.5f) : Mathf.Min(Mathf.Max(Speed, 1.2f), 1.9f);
+        _nav.isStopped = false;
+        _nav.SetDestination(hit.position);
+    }
+
+    public void EndEscort()
+    {
+        escortRun = false;
+        if (_nav != null && _nav.enabled && _nav.isOnNavMesh)
+        {
+            _nav.isStopped = true;
+            _nav.ResetPath();
+        }
     }
 
     public void AssignCrew(List<AgentController> crew)
@@ -151,7 +178,7 @@ public class EnemyController : MonoBehaviour
     public void ConfigureMatchdayRole(MatchdayUnitRole role, string groupName)
     {
         MatchdayRole = role;
-        GetComponent<UnitAffiliationMarker>()?.SetVisible(role == MatchdayUnitRole.None);
+        GetComponent<UnitAffiliationMarker>()?.SetVisible(false);
         MatchdayGroupName = string.IsNullOrWhiteSpace(groupName) ? firmName : groupName;
     }
 
@@ -162,6 +189,7 @@ public class EnemyController : MonoBehaviour
         StopAllCoroutines();
         ClearTarget();
         LastHitter=null;
+        arriving=false;
         _hitsTaken=0;
         _cinematicIdle=false;
         defenceObjective=null;
@@ -212,7 +240,7 @@ public class EnemyController : MonoBehaviour
     public void SetCinematicIdle(bool locked)
     {
         _cinematicIdle = locked;
-        if (locked)
+        if (locked&&_nav&&_nav.enabled&&_nav.isOnNavMesh)
             _nav.ResetPath();
     }
 
@@ -228,6 +256,7 @@ public class EnemyController : MonoBehaviour
     private void setup(CharacterPortraitRegistry characterPortraitRegistry = null)
     {
         var registry = characterPortraitRegistry ?? BattleManager.instance.portraitRegistry;
+        if(firmName=="POLICE"&&RoleCharacterModels.Current)registry=RoleCharacterModels.Current.police;
 
         // Pick a random model prefab from the portrait registry.
         // Falls back to no visual model if the registry is not configured.
@@ -242,12 +271,15 @@ public class EnemyController : MonoBehaviour
         GameObject characterPrefab = entry.optimizedModelPrefab ? entry.optimizedModelPrefab : entry.modelPrefab;
         if (characterPrefab == null) return;
 
+        if(cachedVisual&&cachedVisualPrefab!=characterPrefab){Destroy(cachedVisual);cachedVisual=null;}
         for (int i = transform.childCount - 1; i >= 0; i--)
         {
             var child = transform.GetChild(i);
-            if (child.name == "CrewModel") Destroy(child.gameObject);
+            if (child.name == "CrewModel"&&child.gameObject!=cachedVisual) {child.gameObject.SetActive(false);Destroy(child.gameObject);}
         }
-        GameObject spawnedCharacter = Instantiate(characterPrefab, transform.position, transform.rotation, transform);
+        GameObject spawnedCharacter = cachedVisual?cachedVisual:Instantiate(characterPrefab, transform.position, transform.rotation, transform);
+        cachedVisual=spawnedCharacter;cachedVisualPrefab=characterPrefab;
+        spawnedCharacter.transform.localPosition=Vector3.zero;spawnedCharacter.transform.localRotation=Quaternion.identity;
         spawnedCharacter.name = "CrewModel";
         CityCharacterBudget.Apply(spawnedCharacter);
         GameplayTuning.ScaleModel(spawnedCharacter.transform);
@@ -258,6 +290,9 @@ public class EnemyController : MonoBehaviour
         animator = spawnedCharacter.GetComponent<Animator>();
         if (!animator) animator=spawnedCharacter.AddComponent<Animator>();
         animator.runtimeAnimatorController = entry.animatorController != null ? entry.animatorController : BattleManager.instance.characterAnimator;
+        animator.Rebind();
+        streamRenderers=spawnedCharacter.GetComponentsInChildren<Renderer>();streamVisible=true;animator.enabled=true;
+        foreach(var renderer in streamRenderers)renderer.forceRenderingOff=false;
 
         // Set rendering layer to match the enemy's so they receive the same lighting.
         SkinnedMeshRenderer[] skinnedMeshRenderers = spawnedCharacter.GetComponentsInChildren<SkinnedMeshRenderer>().ToArray();
@@ -273,21 +308,49 @@ public class EnemyController : MonoBehaviour
     bool capsuleSized;
 
     public void RestoreStreamedHealth(float hp) { CurrentHp=Mathf.Clamp(hp,0,MaxHp);healthBar?.SetHealth(CurrentHp,MaxHp); }
+    bool arriving;
+    Vector3 rally;
+    public bool WalkToRally(Vector3 point)
+    {
+        if (!_nav || !_nav.enabled || !_nav.isOnNavMesh || !IsAlive) return false;
+        var path = new NavMeshPath();
+        if (!NavMesh.SamplePosition(point,out var hit,5f,NavMesh.AllAreas) || !_nav.CalculatePath(hit.position,path) || path.status != NavMeshPathStatus.PathComplete) return false;
+        rally=hit.position; arriving=true; _nav.speed=Mathf.Min(Speed,1.8f); _nav.isStopped=false; _nav.SetPath(path); return true;
+    }
 
     // ── Update ────────────────────────────────────────────────────────────
     void Update()
     {
+        bool visible=!CityActivityStreaming.Instance||CityActivityStreaming.Interested(transform.position,true)||_hasAggro;
+        if(visible!=streamVisible)
+        {
+            streamVisible=visible;
+            if(animator)animator.enabled=visible;
+            if(streamRenderers!=null)foreach(var renderer in streamRenderers)if(renderer)renderer.forceRenderingOff=!visible;
+            if(_nav&&_nav.enabled&&_nav.isOnNavMesh)_nav.isStopped=!visible;
+        }
+        if(!visible)return;
         if (!IsAlive) return;
+        if(RivalSettlement.IsSettled(firmName)&&isHostile)StandDown();
 
         // During the pre-battle cinematic intro enemies stand still in idle.
         // Drive animation only — skip all combat and navigation logic.
         if (_cinematicIdle || holdFire)
         {
             float held = _nav != null && _nav.enabled ? _nav.velocity.magnitude : 0f;
-            _anim?.Tick(_chaseSpeed > 0f ? held / _chaseSpeed : 0f);
+            float norm = _chaseSpeed > 0f ? held / _chaseSpeed : 0f;
+            if (escortRun && held > 0.12f) _anim?.Tick(Mathf.Max(norm, 0.85f), true);
+            else _anim?.Tick(norm);
             return;
         }
 
+        if (arriving && !_hasAggro && _nav && _nav.enabled && _nav.isOnNavMesh)
+        {
+            _anim?.Tick(_nav.velocity.magnitude / Mathf.Max(.1f,Speed));
+            if (!_nav.pathPending && _nav.remainingDistance < 1.5f)
+            { arriving=false; SetGangCenter(rally); GenerateAmbientPatrolPoints(); }
+            return;
+        }
         if(defenceObjective && _nav && _nav.enabled && _nav.isOnNavMesh)
         {
             var nearby=BattleManager.instance?.GetNearestAgent(transform.position);
@@ -403,7 +466,7 @@ public class EnemyController : MonoBehaviour
                 else
                 {
                     // Rival gang targeting: target the cop who hit them first, otherwise target the player
-                    if (_targetEnemy != null && _targetEnemy.IsAlive && _targetEnemy.firmName == "POLICE")
+                    if (_targetEnemy != null && _targetEnemy.IsAlive && _targetEnemy.firmName != firmName)
                     {
                         float distToCop = Vector3.Distance(transform.position, _targetEnemy.transform.position);
                         if (distToCop > detectionRadius * 1.5f)
@@ -561,7 +624,10 @@ public class EnemyController : MonoBehaviour
             }
         }
 
-        ClearTarget();
+        if (MatchdayRole == MatchdayUnitRole.Police)
+            StandDown();
+        else
+            ClearTarget();
     }
 
     private bool IsMatchdayOpponent(EnemyController candidate)
@@ -571,9 +637,9 @@ public class EnemyController : MonoBehaviour
         switch (MatchdayRole)
         {
             case MatchdayUnitRole.HomeSupporter:
-                return candidate.MatchdayRole == MatchdayUnitRole.RivalSupporter;
+                return !RivalSettlement.IsSettled(candidate.firmName)&&(candidate.MatchdayRole == MatchdayUnitRole.RivalSupporter || (candidate.MatchdayRole==MatchdayUnitRole.Police&&candidate.isHostile));
             case MatchdayUnitRole.RivalSupporter:
-                return candidate.MatchdayRole == MatchdayUnitRole.HomeSupporter;
+                return !RivalSettlement.IsSettled(firmName)&&candidate.firmName!=firmName&&candidate.MatchdayRole!=MatchdayUnitRole.None&&(candidate.MatchdayRole!=MatchdayUnitRole.Police||candidate.isHostile);
             case MatchdayUnitRole.Police:
                 return candidate.MatchdayRole != MatchdayUnitRole.None &&
                        candidate.MatchdayRole != MatchdayUnitRole.Police && candidate.isHostile;
@@ -612,7 +678,7 @@ public class EnemyController : MonoBehaviour
         var target = _pendingPlayer ? _pendingPlayer.transform : _pendingEnemy ? _pendingEnemy.transform : null;
         if (!target || Vector3.Distance(transform.position, target.position) > AttackRange + .35f) return;
         float damage = Mathf.Max(1, Strength + Random.Range(-1f, 1f));
-        if (_pendingPlayer && _pendingPlayer.IsAlive) _pendingPlayer.TakeDamage(damage);
+        if (_pendingPlayer && _pendingPlayer.IsAlive) _pendingPlayer.TakeDamage(damage, this);
         else if (_pendingEnemy && _pendingEnemy.IsAlive) _pendingEnemy.TakeDamage(damage, this);
         GameAudio.Play("impact");
     }
@@ -621,10 +687,12 @@ public class EnemyController : MonoBehaviour
     public void TakeDamage(float amount, MonoBehaviour attacker = null)
     {
         if (!IsAlive) return;
+        if(attacker is AgentController)RivalSettlement.Break(firmName);
+        if (amount > 0) StreetCombatPresentation.Hit(transform.position);
         CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount) * Mathf.Clamp(FightPace, 0.2f, 1f));
         healthBar?.SetHealth(CurrentHp, MaxHp);
 
-        if (attacker is AgentController hitter) LastHitter = hitter;
+        if (amount > 0) LastHitter = attacker as AgentController;
         if (CurrentHp <= 0) { Die(); return; }
 
         _hitsTaken++;
@@ -673,6 +741,8 @@ public class EnemyController : MonoBehaviour
     {
         isHostile = false;
         ClearTarget();
+        var march = GetComponent<MatchdayMarch>();
+        if (march) march.SetConflictActive(false);
         if (_nav != null && _nav.enabled && _nav.isOnNavMesh) _nav.ResetPath();
     }
 
@@ -688,6 +758,7 @@ public class EnemyController : MonoBehaviour
                     continue;
                 if (Vector3.Distance(transform.position, enemy.transform.position) < 20f)
                 {
+                    if (enemy.firmName != firmName || enemy == attacker) continue;
                     enemy.AlertToTarget(attacker);
                 }
             }
@@ -743,7 +814,8 @@ public class EnemyController : MonoBehaviour
 
     private IEnumerator DeathSequence()
     {
-        yield return new WaitForSeconds(1.8f);
+        yield return new WaitForSeconds(_anim!=null?_anim.DeathSeconds:2f);
+        StreetCombatPresentation.LeaveBody(transform);
         BattleManager.instance?.OnEnemyDied(this);
         if (gameObject.activeSelf) gameObject.SetActive(false);
     }
@@ -779,9 +851,7 @@ public class EnemyController : MonoBehaviour
     {
         var kind = firmName == "POLICE" ? MiniMapIconFactory.Kind.Police : MiniMapIconFactory.Kind.Gang;
         MiniMapIconFactory.Register(transform, kind, firmName);
-        if (!IsAmbientMatchdayUnit)
-            UnitAffiliationMarker.Attach(transform,
-                firmName == "POLICE" ? new Color(.20f, .55f, 1f, 1f) : primaryColor, 1.28f, false);
+        GetComponent<UnitAffiliationMarker>()?.SetVisible(false);
         Color shirt = firmName == "POLICE" ? new Color(0.15f, 0.35f, 0.95f) : primaryColor;
         CrewKit.PaintShirt(transform, shirt);
     }
@@ -794,4 +864,3 @@ public class EnemyController : MonoBehaviour
         }
     }
 }
-

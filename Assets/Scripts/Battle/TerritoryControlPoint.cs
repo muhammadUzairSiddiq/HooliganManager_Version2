@@ -30,6 +30,7 @@ public class TerritoryControlPoint : MonoBehaviour
     TMPro.TextMeshPro statusLabel;
     LineRenderer zoneRing, progressRing, zoneGlow;
     int lastPercent = -1;
+    float rivalOccupation;
     void Start()
     {
         captureDuration = GameplayTuning.Current.captureSeconds;
@@ -96,7 +97,6 @@ public class TerritoryControlPoint : MonoBehaviour
     void Update()
     {
         if (statusLabel && Camera.main) statusLabel.transform.rotation = Camera.main.transform.rotation;
-        if (_isCaptured) return;
         if (BattleManager.instance == null) return;
 
         _playerUnits.Clear();
@@ -111,13 +111,25 @@ public class TerritoryControlPoint : MonoBehaviour
 
         foreach (var e in BattleManager.instance.EnemyAgents)
         {
-            if (e != null && e.IsAlive && e.firmName != "POLICE" &&
+            if (e != null && e.IsAlive && e.gameObject.activeInHierarchy && !e.IsHomeMatchdaySupporter && !RivalSettlement.IsSettled(e.firmName) && e.firmName != "POLICE" &&
                 Vector3.Distance(transform.position, e.transform.position) <= detectionRadius)
                 _enemyUnits.Add(e);
         }
 
         UpdateLabel();
         // Capture only when the pad is clear of rivals — never auto-aggro them.
+        if (_isCaptured)
+        {
+            rivalOccupation = _enemyUnits.Count > 0 && _playerUnits.Count == 0 ? rivalOccupation + Time.deltaTime : 0f;
+            if (rivalOccupation >= captureDuration * 2f)
+            {
+                _isCaptured=false;_captureProgress=0;rivalOccupation=0;
+                owningFaction=_enemyUnits[0].firmName;
+                GameManager.Data?.CityCapturedZones?.Remove(zoneName);
+                GameManager.Save();CityGameplay.Instance?.PostEvent(zoneName.ToUpperInvariant()+" RECAPTURED BY "+owningFaction);UpdateLabel();
+            }
+            return;
+        }
         if (_playerUnits.Count > 0 && _enemyUnits.Count == 0)
         {
             _captureProgress += Time.deltaTime / captureDuration;

@@ -40,6 +40,10 @@ public class LiveMiniMap : MonoBehaviour
     private TextMeshProUGUI _legend;
     private TextMeshProUGUI _hint;
     private bool _expanded;
+    GameObject layerBar;
+    readonly Dictionary<string,bool> visibleLayers=new Dictionary<string,bool>();
+    PedestrianController[] civilians=new PedestrianController[0];
+    bool Layer(string name)=>!visibleLayers.TryGetValue(name,out bool on)||on;
     private bool _compactVisible=true;
     private Vector2 _compactPos;
     private Vector2 _compactSize;
@@ -203,6 +207,7 @@ public class LiveMiniMap : MonoBehaviour
         Stretch(safeGo.GetComponent<RectTransform>());
         safeGo.AddComponent<MiniMapSafeArea>();
         Transform uiRoot = safeGo.transform;
+        BuildLayers(uiRoot);
 
         // Gameplay: leave bottom-right margin; stack CAMERA / RECENTRE under the map.
         if (gameObject.scene.name == "Gameplay")
@@ -268,6 +273,10 @@ public class LiveMiniMap : MonoBehaviour
         _raw.texture = _rt;
         _raw.color = Color.white;
         _raw.raycastTarget = false;
+        var footprint = new GameObject("CameraFootprint", typeof(RectTransform), typeof(MiniMapCameraFootprint));
+        footprint.transform.SetParent(frameGo.transform, false);
+        Stretch(footprint.GetComponent<RectTransform>());
+        footprint.GetComponent<MiniMapCameraFootprint>().MapCamera = _miniCam;
 
         // Muted tactical wash keeps city geometry readable without competing
         // with the high-contrast squad, rival, police and objective symbols.
@@ -359,6 +368,28 @@ public class LiveMiniMap : MonoBehaviour
         _hint.gameObject.SetActive(false);
     }
 
+    void BuildLayers(Transform parent)
+    {
+        layerBar=new GameObject("Map layers",typeof(RectTransform),typeof(Image),typeof(HorizontalLayoutGroup));
+        layerBar.transform.SetParent(parent,false);
+        var rect=layerBar.GetComponent<RectTransform>();rect.anchorMin=rect.anchorMax=new Vector2(.5f,0);rect.pivot=new Vector2(.5f,0);rect.anchoredPosition=new Vector2(0,28);rect.sizeDelta=new Vector2(1320,68);
+        layerBar.GetComponent<Image>().color=new Color(.025f,.055f,.065f,.96f);
+        var layout=layerBar.GetComponent<HorizontalLayoutGroup>();layout.spacing=12;layout.padding=new RectOffset(12,12,8,8);layout.childControlWidth=true;layout.childControlHeight=true;
+        foreach(string name in new[]{"AREAS","GANGS","POLICE","CROWDS","CIVILIANS","LABELS"})
+        {
+            string key=name;visibleLayers[key]=PlayerPrefs.GetInt("Map.Layer."+key,key=="CIVILIANS"||key=="LABELS"||key=="CROWDS"?0:1)==1;
+            var go=new GameObject(key,typeof(RectTransform),typeof(Toggle),typeof(LayoutElement));go.transform.SetParent(layerBar.transform,false);go.GetComponent<LayoutElement>().preferredWidth=204;
+            var box=new GameObject("Checkbox",typeof(RectTransform),typeof(Image));box.transform.SetParent(go.transform,false);
+            var br=box.GetComponent<RectTransform>();br.anchorMin=br.anchorMax=new Vector2(0,.5f);br.pivot=new Vector2(0,.5f);br.sizeDelta=new Vector2(30,30);box.GetComponent<Image>().color=new Color(.16f,.23f,.25f);
+            var check=new GameObject("Check",typeof(RectTransform),typeof(Image));check.transform.SetParent(box.transform,false);Stretch(check.GetComponent<RectTransform>());check.GetComponent<Image>().color=new Color(.12f,.65f,.3f);
+            for(int i=0;i<2;i++){var stroke=new GameObject("Tick",typeof(RectTransform),typeof(Image));stroke.transform.SetParent(check.transform,false);var sr=stroke.GetComponent<RectTransform>();sr.sizeDelta=new Vector2(i==0?10:19,4);sr.anchoredPosition=new Vector2(i==0?-5:3,i==0?-2:1);sr.localRotation=Quaternion.Euler(0,0,i==0?-45:45);stroke.GetComponent<Image>().raycastTarget=false;}
+            var label=new GameObject("Label",typeof(RectTransform),typeof(TextMeshProUGUI));label.transform.SetParent(go.transform,false);Stretch(label.GetComponent<RectTransform>());label.GetComponent<RectTransform>().offsetMin=new Vector2(38,0);var text=label.GetComponent<TextMeshProUGUI>();text.text=key;text.fontSize=19;text.alignment=TextAlignmentOptions.MidlineLeft;text.raycastTarget=false;
+            var toggle=go.GetComponent<Toggle>();toggle.targetGraphic=box.GetComponent<Image>();toggle.graphic=check.GetComponent<Image>();toggle.isOn=visibleLayers[key];check.SetActive(toggle.isOn);
+            toggle.onValueChanged.AddListener(on=>{check.SetActive(on);visibleLayers[key]=on;PlayerPrefs.SetInt("Map.Layer."+key,on?1:0);PlayerPrefs.Save();_nextSceneScan=0;RefreshIcons();});
+        }
+        layerBar.SetActive(false);
+    }
+
     private GameObject BuildZoomButton(Transform parent, string name, string glyph, Vector2 position,
                                        UnityEngine.Events.UnityAction action)
     {
@@ -402,6 +433,7 @@ public class LiveMiniMap : MonoBehaviour
         _zoomInBtn.SetActive(true);
         _zoomOutBtn.SetActive(true);
         _closeBtn.transform.SetAsLastSibling();
+        layerBar.SetActive(true);layerBar.transform.SetAsLastSibling();
         _zoomInBtn.transform.SetAsLastSibling();
         _zoomOutBtn.transform.SetAsLastSibling();
         _legend.gameObject.SetActive(false);
@@ -443,6 +475,7 @@ public class LiveMiniMap : MonoBehaviour
     private void Collapse()
     {
         _expanded = false;
+        if(layerBar)layerBar.SetActive(false);
         _dragging = false;
 
         FreezeMainGame(false);
@@ -730,7 +763,23 @@ public class LiveMiniMap : MonoBehaviour
 
     private void UpdateCameraFollow()
     {
-        Vector3 focus = GetPlayerFocus();
+        Vector3 focus = Camera.main ? CityActivityStreaming.GroundFocus(Camera.main) : GetPlayerFocus();
+        // The map must contain the camera's street footprint, including when
+        // the player zooms out. A fixed close-up crop hid the entire outline.
+        var main=Camera.main;
+        if(main)
+        {
+            float extent=orthographicSize;
+            var ground=new Plane(Vector3.up,Vector3.zero);
+            for(int i=0;i<4;i++)
+            {
+                var ray=main.ViewportPointToRay(new Vector3(i%2,i/2,0));
+                if(!ground.Raycast(ray,out float distance))continue;
+                var delta=ray.GetPoint(distance)-focus;
+                extent=Mathf.Max(extent,Mathf.Abs(delta.x)/Mathf.Max(.1f,_miniCam.aspect),Mathf.Abs(delta.z));
+            }
+            _miniCam.orthographicSize=Mathf.Clamp(extent*1.12f,orthographicSize,480f);
+        }
         Vector3 target = new Vector3(focus.x, cameraHeight, focus.z);
         _miniCam.transform.position = Vector3.Lerp(
             _miniCam.transform.position, target, 1f - Mathf.Exp(-followSmooth * Time.deltaTime));
@@ -783,7 +832,7 @@ public class LiveMiniMap : MonoBehaviour
 
         foreach (var a in BattleManager.instance.PlayerAgents)
         {
-            if (a == null || !a.IsAlive) continue;
+            if (a == null || !a.IsAlive || !a.gameObject.activeInHierarchy) continue;
             _marks.Add(new Mark
             {
                 world = a.transform.position,
@@ -791,13 +840,14 @@ public class LiveMiniMap : MonoBehaviour
                 color = GameManager.IsPolicePlayer
                     ? new Color(0.28f, 0.58f, 1f, blink)
                     : new Color(0.25f, 1f, 0.55f, blink),
-                size = _expanded ? 22f : 14f,
-                label = null
+                size = a.IsSelected ? (_expanded ? 28f : 18f) : (_expanded ? 22f : 14f),
+                label = _expanded && a.IsSelected ? a.Data?.AgentName : null
             });
         }
 
         foreach (var g in _gangAreas)
         {
+            if(!Layer("GANGS"))continue;
             if (g == null || !g.gameObject.activeInHierarchy) continue;
             _marks.Add(new Mark
             {
@@ -811,6 +861,7 @@ public class LiveMiniMap : MonoBehaviour
 
         foreach (var r in _recruitAreas)
         {
+            if(!Layer("AREAS"))continue;
             if (r == null || !r.gameObject.activeInHierarchy) continue;
             _marks.Add(new Mark
             {
@@ -824,6 +875,7 @@ public class LiveMiniMap : MonoBehaviour
 
         foreach (var objective in _territoryPoints)
         {
+            if(!Layer("AREAS"))continue;
             if (objective == null || !objective.gameObject.activeInHierarchy) continue;
             _marks.Add(new Mark
             {
@@ -839,6 +891,7 @@ public class LiveMiniMap : MonoBehaviour
         {
             if (group == null || !group.gameObject.activeInHierarchy) continue;
             bool police = group.Role == MatchdayUnitRole.Police;
+            if(!Layer(police?"POLICE":"CROWDS"))continue;
             bool home = group.Role == MatchdayUnitRole.HomeSupporter;
             _marks.Add(new Mark
             {
@@ -850,7 +903,7 @@ public class LiveMiniMap : MonoBehaviour
             });
         }
 
-        if (LivePoliceSystem.Instance != null)
+        if (LivePoliceSystem.Instance != null&&Layer("POLICE"))
         {
             foreach (var car in LivePoliceSystem.Instance.ActivePatrolCars)
             {
@@ -879,8 +932,9 @@ public class LiveMiniMap : MonoBehaviour
 
         foreach (var e in BattleManager.instance.EnemyAgents)
         {
-            if (e == null || !e.IsAlive || e.IsAmbientMatchdayUnit) continue;
+            if (e == null || !e.IsAlive || !e.gameObject.activeInHierarchy || e.IsAmbientMatchdayUnit) continue;
             bool police = e.firmName == "POLICE" || e.MatchdayRole == MatchdayUnitRole.Police;
+            if(!Layer(police?"POLICE":"GANGS"))continue;
             bool home = e.MatchdayRole == MatchdayUnitRole.HomeSupporter;
             _marks.Add(new Mark
             {
@@ -893,7 +947,7 @@ public class LiveMiniMap : MonoBehaviour
             });
         }
 
-        if (CityOperationsSystem.Instance != null)
+        if (CityOperationsSystem.Instance != null&&Layer("AREAS"))
         {
             foreach (var node in CityOperationsSystem.Instance.Nodes)
             {
@@ -910,7 +964,7 @@ public class LiveMiniMap : MonoBehaviour
             }
         }
 
-        if (CityGameplay.Instance != null && CityGameplay.Instance.Locations != null)
+        if (CityGameplay.Instance != null && CityGameplay.Instance.Locations != null&&Layer("AREAS"))
         {
             var names = CityGameplay.Instance.LocationNames;
             var spots = CityGameplay.Instance.Locations;
@@ -928,6 +982,8 @@ public class LiveMiniMap : MonoBehaviour
             }
         }
 
+        if(Layer("CIVILIANS"))foreach(var civilian in civilians)
+            if(civilian&&civilian.gameObject.activeInHierarchy)_marks.Add(new Mark{world=civilian.transform.position,sprite=_playerSprite,color=Color.white,size=_expanded?10:5});
         LayoutCachedMarks();
     }
 
@@ -948,6 +1004,7 @@ public class LiveMiniMap : MonoBehaviour
         _recruitAreas = FindObjectsByType<RecruitArea>(FindObjectsSortMode.None);
         _territoryPoints = FindObjectsByType<TerritoryControlPoint>(FindObjectsSortMode.None);
         _matchdayGroups = FindObjectsByType<MatchdayGroupMarker>(FindObjectsSortMode.None);
+        civilians=Layer("CIVILIANS")?FindObjectsByType<PedestrianController>(FindObjectsSortMode.None):new PedestrianController[0];
     }
 
     private void PlaceMark(Mark m)
@@ -970,7 +1027,7 @@ public class LiveMiniMap : MonoBehaviour
         rt.anchorMin = rt.anchorMax = new Vector2(nx, ny);
         rt.anchoredPosition = Vector2.zero;
 
-        if (!string.IsNullOrEmpty(m.label) && _expanded)
+        if (!string.IsNullOrEmpty(m.label) && _expanded&&Layer("LABELS")&&_labelUsed<8)
         {
             var candidate=new Rect(nx*_iconLayer.rect.width-75,ny*_iconLayer.rect.height+m.size*.55f,150,28);
             if(labelRects.Exists(r=>r.Overlaps(candidate)))return;

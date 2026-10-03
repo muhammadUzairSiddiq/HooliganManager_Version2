@@ -121,6 +121,10 @@ public sealed class CityGameplay : MonoBehaviour
         CityActionSystem.Ensure(this);
         if(!GetComponent<CityDevelopmentSystem>())gameObject.AddComponent<CityDevelopmentSystem>();
         CityActivityStreaming.Ensure();
+        if (!GetComponent<RtsBuildingVisibility>()) gameObject.AddComponent<RtsBuildingVisibility>();
+        if (!GetComponent<CityTrainSchedule>()) gameObject.AddComponent<CityTrainSchedule>();
+        if (!GetComponent<LivingRivalDirector>()) gameObject.AddComponent<LivingRivalDirector>();
+        if (!GetComponent<ConciseCityButtons>()) gameObject.AddComponent<ConciseCityButtons>();
         while(!FindFirstObjectByType<LandscapeBattleHUD>())yield return null;
         frame=FindFirstObjectByType<LandscapeBattleHUD>().frame;
         NpcConversationUI.Ensure(frame);
@@ -428,7 +432,7 @@ public sealed class CityGameplay : MonoBehaviour
         float fov=PlayerPrefs.GetFloat("CityCameraFov",65),height=PlayerPrefs.GetFloat("CityCameraHeight",65),pitch=PlayerPrefs.GetFloat("CityCameraPitch",65),yaw=PlayerPrefs.GetFloat("CityCameraYaw",45);
         SliderRow(cameraPanel.transform,"FIELD OF VIEW",65,45,85,fov,v=>{fov=v;Apply();});
         SliderRow(cameraPanel.transform,"HEIGHT",135,18,120,height,v=>{height=v;Apply();});
-        SliderRow(cameraPanel.transform,"ANGLE",205,50,85,pitch,v=>{pitch=v;Apply();});
+        SliderRow(cameraPanel.transform,"ANGLE",205,38,85,pitch,v=>{pitch=v;Apply();});
         SliderRow(cameraPanel.transform,"360 ROTATE",275,0,360,yaw,v=>{yaw=v;Apply();});
         LandscapeUI.Button("ResetCamera",cameraPanel.transform,"RESET",20,365,145,48).onClick.AddListener(()=>
         {
@@ -530,6 +534,10 @@ public sealed class CityGameplay : MonoBehaviour
         options.Add(new GamePopup.Option("MOVE SELECTED",LandscapeUI.Green,()=>AgentSelectionManager.instance?.CommandSelectedMoveTo(Locations[index])));
         if(HomeMode && index==0)
         {
+            options.Add(new GamePopup.Option("RECRUIT", LandscapeUI.Green, () => OpenRecruitment(Locations[0], "HEADQUARTERS")));
+            options.Add(new GamePopup.Option("TRAINING", LandscapeUI.Green, () => OpenLocation(3)));
+            options.Add(new GamePopup.Option("RECOVERY", LandscapeUI.Green, () => GetComponent<SquadBoard>()?.ShowWard()));
+            options.Add(new GamePopup.Option("UPGRADES / INCOME", LandscapeUI.PanelColor, () => GetComponent<CityDevelopmentSystem>()?.OpenBoard()));
             options.Add(new GamePopup.Option("MANAGE / AWAY TRIPS",LandscapeUI.PanelColor,()=>{BattleManager.instance.PersistBattleProgress();GameManager.LoadScene(GameManager.SCENE_DASHBOARD);}));
             options.Add(new GamePopup.Option("DEFEND HOME",LandscapeUI.Red,BeginDefence));
         }

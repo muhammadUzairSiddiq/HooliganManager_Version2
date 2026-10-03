@@ -39,6 +39,7 @@ public class AgentAnimController
 
     // ── One-shot lock — Tick() does nothing while locked ─────────────────
     private float _lockUntil;
+    float attackUntil;
     private bool  IsLocked => Time.time < _lockUntil;
 
     // ── Current state tracking — avoids redundant CrossFade calls ─────────
@@ -129,10 +130,11 @@ public class AgentAnimController
         if (IsLocked) return;
         speed = Mathf.Clamp01(speed);
 
-        if (speed > WalkThreshold)
+        bool runOrder=_anim&&_anim.GetComponentInParent<AgentController>()&&CrewMovementPreference.RunOnTap;
+        if (speed > WalkThreshold && (isFighting||runOrder))
         {
             // Full combat sprint
-            if (_anim != null) _anim.speed = Mathf.Lerp(_anim.speed, Mathf.Clamp(speed, .7f, 1.15f), 1 - Mathf.Exp(-12 * Time.deltaTime));
+            if (_anim != null) _anim.speed = 1f;
             SmoothCrossFade(s_RunStates[_runVariant], GameplayTuning.Current.animationBlend);
         }
         else if (speed > IdleThreshold)
@@ -145,6 +147,8 @@ public class AgentAnimController
         {
             if (_anim != null) _anim.speed = 1f;
             string idleState = isFighting ? AgentAnimParams.States.BattleIdle : AgentAnimParams.States.Idle;
+            var officer=_anim?_anim.GetComponentInParent<EnemyController>():null;
+            if(!isFighting&&officer&&officer.firmName=="POLICE"&&_anim.HasState(0,Animator.StringToHash("Police Watch")))idleState="Police Watch";
             if(_anim&&!isFighting)
             {
                 if(!taskAnimation)taskAnimation=_anim.GetComponentInParent<SupporterGestureAnimation>();
@@ -164,9 +168,13 @@ public class AgentAnimController
     /// </summary>
     public void PlayAttack()
     {
+        if(Time.time<attackUntil)return;
+        int variant=Random.Range(0,s_AttackStates.Length);
+        var profile=_anim?_anim.GetComponent<CharacterVisualProfile>():null;
+        float duration=profile&&profile.attackSeconds!=null&&profile.attackSeconds.Length>variant?profile.attackSeconds[variant]:AttackLockDuration;
         if (_anim) _anim.speed = 1;
-        Lock(AttackLockDuration);
-        ForceCrossFade(s_AttackStates[Random.Range(0, s_AttackStates.Length)], FadeToAttack);
+        attackUntil=Time.time+duration;Lock(duration);
+        ForceCrossFade(s_AttackStates[variant], FadeToAttack);
     }
 
     /// <summary>
@@ -176,8 +184,10 @@ public class AgentAnimController
     /// </summary>
     public void PlayHit()
     {
-        Lock(0.16f);
-        ForceCrossFade(AgentAnimParams.States.ReadyIdle, 0.04f);
+        attackUntil=0;
+        string state=Random.value>.5f?"Head Hit":"Hit To Body";
+        Lock(.32f);
+        ForceCrossFade(_anim&&_anim.HasState(0,Animator.StringToHash(state))?state:AgentAnimParams.States.ReadyIdle, 0.04f);
     }
 
     public void PlayKnockdown()
@@ -192,9 +202,11 @@ public class AgentAnimController
     /// </summary>
     public void PlayDie()
     {
+        if(_anim){_anim.enabled=true;_anim.cullingMode=AnimatorCullingMode.AlwaysAnimate;_anim.speed=1;}
         _lockUntil = float.MaxValue; // terminal lock — never released
         ForceCrossFade(s_DieStates[Random.Range(0, s_DieStates.Length)], FadeToDie);
     }
+    public float DeathSeconds { get {var profile=_anim?_anim.GetComponent<CharacterVisualProfile>():null;return profile?profile.deathSeconds:2f;} }
 
     // ── Direct play (bypasses lock and current-state guard) ───────────────
 

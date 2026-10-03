@@ -604,6 +604,12 @@ public class BattleManager : MonoBehaviour
 
         // 3. Spawn 3D agents — locked in cinematic idle for the intro
         SpawnAllAgents();
+        if (AlivePlayerCount() == 0)
+        {
+            Debug.LogWarning("[BattleManager] Police raid: no living crew spawned — routing to recovery.");
+            GameManager.instance?.OpenRecoveryHeadquarters();
+            yield break;
+        }
         SetAllAgentsCinematicIdle(true);
 
         // 4. Pre-battle cinematic intro (reads PendingBattleMode == PoliceRaid)
@@ -641,6 +647,18 @@ public class BattleManager : MonoBehaviour
         // They are immediately locked in cinematic idle: standing still,
         // playing the idle animation, no combat or NavMesh movement.
         SpawnAllAgents();
+
+        // Empty spawn is NOT a mid-fight wipe. Stale saves (all 0 HP or empty away
+        // selection) used to hit AlivePlayerCount==0 on the first tick and flash WASTED.
+        if (AlivePlayerCount() == 0)
+        {
+            Debug.LogWarning("[BattleManager] No living crew spawned — routing to squad recovery (skipping WASTED).");
+            BattleActive = false;
+            _skipEndBattle = true;
+            GameManager.instance?.OpenRecoveryHeadquarters();
+            yield break;
+        }
+
         SetAllAgentsCinematicIdle(true);
 
         // ── Pre-battle cinematic intro ──────────────────────────────────────
@@ -845,10 +863,14 @@ public class BattleManager : MonoBehaviour
         var roster = GameData.instance?.PlayerData?.RecruitedAgents;
         if (roster == null) return;
 
+        // Repair empty/customized away selection so living bench agents still deploy.
+        if (!CityGameplay.HomeMode)
+            GameData.instance?.SyncAwaySelectionWithRoster(maxPlayerAgents);
+
         int spawnIdx = 0;
         foreach (var data in roster)
         {
-            if (!data.IsAlive) continue;
+            if (data == null || !data.IsAlive) continue;
             if (!CityGameplay.HomeMode && !IsSelectedForAwayTrip(data)) continue;
             if (spawnIdx >= maxPlayerAgents) break;
 
@@ -883,10 +905,8 @@ public class BattleManager : MonoBehaviour
     {
         var d = GameData.instance?.PlayerData;
         if (data == null || d == null) return false;
-        if (d.SelectedAwayAgentIds == null)
-            return true;
-        if (d.SelectedAwayAgentIds.Count == 0)
-            return false;
+        if (d.SelectedAwayAgentIds == null || d.SelectedAwayAgentIds.Count == 0)
+            return true; // no selection → deploy any living member
         return d.SelectedAwayAgentIds.Contains(data.AgentId);
     }
 
@@ -999,6 +1019,14 @@ public class BattleManager : MonoBehaviour
     public void ReinforceLivingRivals()
     {
         if (!CityGameplay.HomeMode || enemyAgentPrefab == null) return;
+        if (_reinforcingRivals) return;
+        StartCoroutine(ReinforceRivalsOverFrames());
+    }
+
+    bool _reinforcingRivals;
+    IEnumerator ReinforceRivalsOverFrames()
+    {
+        _reinforcingRivals = true;
         var plan = RivalGrowthSystem.BuildSpawnPlan(GameManager.Data);
         int onMap = 0;
         foreach (var e in _enemyAgents)
@@ -1019,12 +1047,24 @@ public class BattleManager : MonoBehaviour
                     break;
                 }
                 if (!found) break;
-                SpawnOneRival(order, center + new Vector3(1.4f * need, 0f, 0.8f), hpScale(order), dmgScale(order));
+                var area = FindObjectsByType<GangArea>(FindObjectsSortMode.None).FirstOrDefault(g => g.GangName == order.firmName);
+                if (area) center = area.transform.position;
+                Vector3 arrival = center + new Vector3(24f, 0, 18f);
+                if (!NavMesh.SamplePosition(arrival, out var arrivalHit, 12f, NavMesh.AllAreas)) break;
+                var member = SpawnOneRival(order, arrivalHit.position, hpScale(order), dmgScale(order));
+                if (member)
+                {
+                    Color color = area ? area.ZoneColor : new Color(.75f,.2f,.15f);
+                    member.primaryColor = color; CrewKit.PaintShirt(member.transform,color);
+                    member.WalkToRally(center);
+                }
                 need--;
                 onMap++;
+                yield return null;
             }
         }
 
+        _reinforcingRivals = false;
         float hpScale(RivalGrowthSystem.SpawnOrder order)
         {
             float hpMul = LevelSystem.Instance != null ? LevelSystem.Instance.EnemyHealthMultiplier : .85f;
@@ -1108,7 +1148,7 @@ public class BattleManager : MonoBehaviour
         if (!CityActivityStreaming.TryReserveBody(pos)) return null;
         if (NavMesh.SamplePosition(pos, out NavMeshHit hit, 10f, NavMesh.AllAreas))
             pos = hit.position;
-        var go = RivalBodyPool.Take(enemyAgentPrefab, pos, Quaternion.identity);
+        var go = RivalBodyPool.Take(enemyAgentPrefab, pos, Quaternion.identity,role==MatchdayUnitRole.Police?"police":"supporter");
         if (go == null) return null;
         var ec = go.GetComponent<EnemyController>();
         if (ec == null) return null;
@@ -1117,7 +1157,8 @@ public class BattleManager : MonoBehaviour
         ec.detectionRadius = firm == "POLICE" ? 16f : 8f;
         ec.firmName = firm;
         ec.primaryColor = color;
-        ec.Initialise(hp, dmg, 2.1f, 1f);
+        var roleModels=RoleCharacterModels.Current;
+        ec.Initialise(hp, dmg, 2.1f, 1f,roleModels?(role==MatchdayUnitRole.Police?roleModels.police:roleModels.civilians):null);
         ec.isHostile = false;
         ec.ConfigureMatchdayRole(role, groupName ?? firm);
         CrewKit.PaintShirt(ec.transform, color);
@@ -1134,7 +1175,8 @@ public class BattleManager : MonoBehaviour
         if(!enemy || !enemy.IsAmbientMatchdayUnit)return;
         _enemyAgents.Remove(enemy);
         enemy.StandDown();
-        Destroy(enemy.gameObject); // Bound live memory; the data-only group owns HP and task state.
+        CityActivityStreaming.ReleaseBody();
+        RivalBodyPool.Release(enemy.gameObject);
     }
 
     private EnemyController SpawnOneRival(RivalGrowthSystem.SpawnOrder order, Vector3 pos, float hp, float dmg)
@@ -1616,8 +1658,17 @@ public class BattleManager : MonoBehaviour
 
     public void OnEnemyDied(EnemyController enemy)
     {
+        bool playerCredited=enemy&&enemy.LastHitter&&_playerAgents.Contains(enemy.LastHitter);
+        if(playerCredited&&enemy.firmName!="HOME SUPPORT")
+        {
+            var hitter=enemy.LastHitter;
+            if(hitter.Data!=null&&hitter.Data.GrantKnockout())hitter.ApplyGrowth();
+            bool slipped=hitter.Data!=null&&hitter.Data.Intelligence>=5&&Random.value<.5f;
+            if(!slipped)LivePoliceSystem.Instance?.NotifyKill();
+        }
         if (enemy != null && enemy.IsAmbientMatchdayUnit)
         {
+            CityActivityStreaming.ReleaseBody();
             FindFirstObjectByType<StadiumMatchdayActivity>()?.NoteBodyDown(enemy);
             _enemyAgents.Remove(enemy);
             BroadcastCounts();
@@ -1628,21 +1679,7 @@ public class BattleManager : MonoBehaviour
         BroadcastCounts();
 
         // Per-kill brawl scraps.
-        sessionMoneyEarned += 200;
-        sessionReputationGained += 1;
-
-        // Heat only rises on rival kills (not police).
-        if (enemy != null && enemy.firmName != "POLICE" && enemy.firmName != "HOME SUPPORT")
-        {
-            var hitter = enemy.LastHitter;
-            if (hitter && hitter.Data != null && hitter.Data.GrantKnockout())
-            {
-                hitter.ApplyGrowth();
-                CityGameplay.Instance?.PostEvent(hitter.Data.AgentName.ToUpperInvariant() + "  LV " + hitter.Data.FightLevel + "  —  TOUGHER");
-            }
-            bool slipped = hitter && hitter.Data != null && hitter.Data.Intelligence >= 5 && Random.value < 0.5f;
-            if (!slipped) LivePoliceSystem.Instance?.NotifyKill();
-        }
+        if(playerCredited){sessionMoneyEarned += 200;sessionReputationGained += 1;}
 
         if (enemy != null && !string.IsNullOrEmpty(enemy.firmName) && enemy.firmName != "POLICE" && enemy.firmName != "HOME SUPPORT")
         {
@@ -1650,7 +1687,7 @@ public class BattleManager : MonoBehaviour
             var remaining = _enemyAgents.Count(e =>
                 e != null && e.IsAlive && !e.IsAmbientMatchdayUnit && e.firmName == enemy.firmName);
 
-            if (remaining == 0)
+            if (remaining == 0 && RivalGrowthSystem.DesiredVisible(GameData.instance?.PlayerData,enemy.firmName)==0)
             {
                 foreach (var go in FindObjectsByType<GangArea>(FindObjectsSortMode.None))
                 {
@@ -1658,12 +1695,12 @@ public class BattleManager : MonoBehaviour
                         Destroy(go.gameObject);
                 }
 
-                GrantGangWipeReward(enemy.firmName);
-                LevelSystem.Instance?.OnGangEliminated(enemy.firmName);
-                UnstickPlayerAgents();
+                if(playerCredited){GrantGangWipeReward(enemy.firmName);LevelSystem.Instance?.OnGangEliminated(enemy.firmName);}
+                // Survivors finish their local combat in AgentController. Orders
+                // elsewhere in the city must survive another group's victory.
 
                 // Police may have been waiting for this scrap to finish.
-                if (!IsRivalGangFightActive())
+                if (playerCredited && !IsRivalGangFightActive())
                     LivePoliceSystem.Instance?.NotifyGangFightEnded();
             }
         }
@@ -1920,7 +1957,7 @@ public class BattleManager : MonoBehaviour
         foreach (var a in _playerAgents)
         {
             if (a == null || a == source || !a.IsAlive || a.IsActivityLocked) continue;
-            if (a.IsOnAssignment && !a.IsSelected) continue;
+            if (a.IsOnAssignment) continue;
             if (a.CurrentState == AgentController.State.AutoAttacking) continue;
             if (Vector3.Distance(a.transform.position, source.transform.position) > radius) continue;
             if (Vector3.Distance(a.transform.position, enemy.transform.position) > limit) continue;
@@ -1952,6 +1989,7 @@ public class BattleManager : MonoBehaviour
                 if (a != null && a.IsAlive && !a.IsActivityLocked) squad.Add(a);
         }
         if (squad.Count == 0) return;
+        RivalSettlement.Break(gangName);
         bool alreadyFighting = false;
         foreach (var enemy in gangMembers)
             if (enemy.isHostile) { alreadyFighting = true; break; }

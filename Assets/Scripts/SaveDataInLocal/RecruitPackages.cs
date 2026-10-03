@@ -12,7 +12,7 @@ public static class RecruitPackages
         public string Title, Description;
         public int Cost, MinFans, MaxFans;
         public Package(string title, string description, int cost, int minFans, int maxFans)
-        { Title = title; Description = description; Cost = cost; MinFans = minFans; MaxFans = maxFans; }
+        { Title = title; Description = description; Cost = cost; MinFans = minFans * 4; MaxFans = maxFans * 4; }
     }
 
     public static readonly Package[] All =

@@ -107,6 +107,8 @@ public sealed class LandscapeBattleHUD : MonoBehaviour
 
         PositionCommand("Move",365,dx,dy);
         PositionCommand("Attack",505,dx,dy);
+        PositionCommand("Guard",645,dx,dy);
+        PositionCommand("Patrol",785,dx,dy);
         PositionCommand("Talk",645,dx,dy);
         PositionCommand("Capture",785,dx,dy);
         PositionCommand("Actions",925,dx,dy);

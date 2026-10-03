@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47013e4ebf0ae4c00a75cb1cabb59706, type: 3}
+  m_Name: CivilianCharacters
+  m_EditorClassIdentifier: 
+  entries:
+  - modelPrefab: {fileID: 2280588606478889135, guid: a5c4380a7a5090a429081eddbce16e4f, type: 3}
+    optimizedModelPrefab: {fileID: 2280588606478889135, guid: a5c4380a7a5090a429081eddbce16e4f, type: 3}
+    sourceModelAssetPath: Assets/Floreswa/Models/CivilianCharacters.fbx
+    animatorController: {fileID: 9100000, guid: 8d1dcd2ea46c72140b97c9acf72f0e77, type: 2}
+    portrait: {fileID: 21300000, guid: 3b0306de92b6dce49928c8a2a9cced97, type: 3}

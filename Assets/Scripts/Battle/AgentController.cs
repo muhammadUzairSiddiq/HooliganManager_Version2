@@ -24,6 +24,14 @@ public class AgentController : MonoBehaviour
     // ── State machine ─────────────────────────────────────────────────────
     public enum State { Idle, MovingToPoint, AutoAttacking, Retreating, Dead }
     public State CurrentState { get; private set; } = State.Idle;
+    public enum StandingOrder { None, Guard, Patrol }
+    public StandingOrder CurrentOrder { get; private set; }
+    Vector3 _orderStart, _orderEnd;
+    bool _patrolReturning;
+    const float DefenceRadius = 12f;
+    NavMeshPath _commandPath;
+    public Bounds GuardRegion { get; private set; }
+    bool rectangularGuard;
 
     // ── Data (set by BattleManager on spawn) ──────────────────────────────
     public AgentData Data { get; private set; }
@@ -32,13 +40,14 @@ public class AgentController : MonoBehaviour
     public float CurrentHp  { get; private set; }
     public bool  IsAlive    => CurrentHp > 0;
     public bool  IsSelected { get; private set; }
-    /// <summary>True after this member was sent on an order. They ignore later taps until selected again.</summary>
+    /// <summary>True while carrying out an order; selection and manual commands remain available.</summary>
     public bool  IsOnAssignment { get; private set; }
     /// <summary>Scales hits during a chosen gang fight so larger firms last longer.</summary>
     public float FightPace = 1f;
     static readonly Color SelectedRing = new Color(.12f, 1f, .36f, 1f);
     static readonly Color BusyRing = new Color(1f, .78f, .12f, 1f);
     public Vector3 CommandDestination => _moveTarget;
+    public bool IsTargetingFirm(string firm)=>_target&&_target.firmName==firm;
 
     // ── Inspector ─────────────────────────────────────────────────────────
     [Header("References")]
@@ -203,13 +212,6 @@ public class AgentController : MonoBehaviour
             _affiliationMarker.SetVisible(true);
             _affiliationMarker.SetSelected(true);
         }
-        else if (IsOnAssignment)
-        {
-            _affiliationMarker.KeepVisibleWhenIdle = true;
-            _affiliationMarker.ApplyColor(BusyRing);
-            _affiliationMarker.SetVisible(true);
-            _affiliationMarker.SetSelected(false);
-        }
         else
         {
             _affiliationMarker.KeepVisibleWhenIdle = false;
@@ -245,6 +247,7 @@ public class AgentController : MonoBehaviour
         }
         if (locked)
         {
+            CurrentOrder = StandingOrder.None;
             _target = null;
             SetState(State.Idle);
             Vector3 direction = facePoint - transform.position;
@@ -276,6 +279,7 @@ public class AgentController : MonoBehaviour
     public void JobMoveTo(Vector3 point)
     {
         if (!IsAlive || _cinematicIdle || _nav == null || !_nav.isOnNavMesh) return;
+        CurrentOrder = StandingOrder.None;
         _jobHold = true;
         _activityLocked = false;
         _nav.isStopped = false;
@@ -292,18 +296,122 @@ public class AgentController : MonoBehaviour
     /// <summary>Move to a world-space point, then return to Idle.</summary>
     public void CommandMoveTo(Vector3 point)
     {
-        if (!IsAlive || _cinematicIdle || _nav == null || !_nav.isOnNavMesh) return;
+        TryCommandMoveTo(point);
+    }
+
+    public bool TryCommandMoveTo(Vector3 point)
+    {
+        if (!TryNavigate(point)) return false;
+        CurrentOrder = StandingOrder.None;
         if (_jobHold) EndJob();
-        if (_activityLocked) return;
-        if (!NavMesh.SamplePosition(point,out var destination,3f,_nav.areaMask)) return;
-        var path=new NavMeshPath();
-        if (!_nav.CalculatePath(destination.position,path) || path.status!=NavMeshPathStatus.PathComplete) return;
-        point=destination.position;
-        _moveTarget = point;
-        _target     = null;
+        return true;
+    }
+
+    bool TryNavigate(Vector3 point)
+    {
+        if (!IsAlive || _cinematicIdle || _activityLocked || !_nav || !_nav.enabled || !_nav.isOnNavMesh) return false;
+        if (!NavMesh.SamplePosition(point, out var destination, 3f, _nav.areaMask)) return false;
+        if (_commandPath == null) _commandPath = new NavMeshPath();
+        if (!_nav.CalculatePath(destination.position, _commandPath) || _commandPath.status != NavMeshPathStatus.PathComplete) return false;
+        _nav.isStopped = false;
+        _nav.stoppingDistance = .15f;
+        if (!_nav.SetPath(_commandPath)) return false;
+        _moveTarget = destination.position;
+        _target = null;
         BeginAssignment();
         SetState(State.MovingToPoint);
-        _nav.SetDestination(point);
+        return true;
+    }
+
+    /// <summary>Guard the destination, or patrol from the current position to it and back.</summary>
+    public bool CommandArea(Vector3 point, bool patrol)
+    {
+        rectangularGuard = false;
+        Vector3 start = transform.position;
+        if (!TryNavigate(point)) return false;
+        if (_jobHold) EndJob();
+        CurrentOrder = patrol ? StandingOrder.Patrol : StandingOrder.Guard;
+        _orderStart = patrol ? start : _moveTarget;
+        _orderEnd = _moveTarget;
+        _patrolReturning = false;
+        return true;
+    }
+
+    public bool HasPatrolRoute(Vector3 a,Vector3 b) => CurrentOrder==StandingOrder.Patrol && (_orderStart-a).sqrMagnitude<1 && (_orderEnd-b).sqrMagnitude<1;
+    public bool CommandGuard(Bounds area)
+    { return CommandGuard(area,area.center); }
+
+    public bool CommandGuard(Bounds area, Vector3 post)
+    {
+        if (!CommandArea(post, false)) return false;
+        GuardRegion = area;
+        rectangularGuard = true;
+        return true;
+    }
+
+    public bool CommandPatrol(Vector3 a, Vector3 b)
+    {
+        if (!_nav || !_nav.enabled || !_nav.isOnNavMesh) return false;
+        if (!NavMesh.SamplePosition(a, out var start, 3f, _nav.areaMask) || !NavMesh.SamplePosition(b, out var end, 3f, _nav.areaMask)) return false;
+        var path = new NavMeshPath();
+        if (!NavMesh.CalculatePath(start.position, end.position, _nav.areaMask, path) || path.status != NavMeshPathStatus.PathComplete) return false;
+        if (!TryNavigate(start.position)) return false;
+        if (_jobHold) EndJob();
+        rectangularGuard = false;
+        CurrentOrder = StandingOrder.Patrol;
+        _orderStart = start.position; _orderEnd = end.position; _patrolReturning = true;
+        return true;
+    }
+
+    float DistanceFromDuty(Vector3 position)
+    {
+        if (CurrentOrder == StandingOrder.Guard && rectangularGuard)
+        {
+            position.y = GuardRegion.center.y;
+            return Vector3.Distance(position, GuardRegion.ClosestPoint(position));
+        }
+        Vector3 route = _orderEnd - _orderStart;
+        float t = route.sqrMagnitude > .01f ? Mathf.Clamp01(Vector3.Dot(position - _orderStart, route) / route.sqrMagnitude) : 0f;
+        return Vector3.Distance(position, _orderStart + route * t);
+    }
+
+    bool IsDutyThreat(EnemyController enemy)
+    {
+        return enemy && enemy.IsAlive && enemy.gameObject.activeInHierarchy && !enemy.IsHomeMatchdaySupporter && !RivalSettlement.IsSettled(enemy.firmName)
+            && (enemy.firmName != "POLICE" || enemy.isHostile)
+            && DistanceFromDuty(enemy.transform.position) <= (rectangularGuard && CurrentOrder == StandingOrder.Guard ? 3f : DefenceRadius)
+            && Vector3.Distance(transform.position, enemy.transform.position) <= (rectangularGuard && CurrentOrder == StandingOrder.Guard ? GuardRegion.size.magnitude + 3f : DefenceRadius);
+    }
+
+    void ScanDutyThreats()
+    {
+        if (!BattleManager.instance) return;
+        EnemyController nearest = null;
+        float best = float.MaxValue;
+        foreach (var enemy in BattleManager.instance.EnemyAgents)
+        {
+            if (!IsDutyThreat(enemy)) continue;
+            float distance = (enemy.transform.position - transform.position).sqrMagnitude;
+            if (distance < best) { best = distance; nearest = enemy; }
+        }
+        if (nearest) EngageForDefence(nearest);
+    }
+
+    void EngageForDefence(EnemyController enemy)
+    {
+        _target = enemy;
+        BeginAssignment();
+        SetState(State.AutoAttacking);
+    }
+
+    void ResumeDuty()
+    {
+        _target = null;
+        if (!TryNavigate(_patrolReturning ? _orderStart : _orderEnd))
+        {
+            if (_nav && _nav.enabled && _nav.isOnNavMesh) _nav.ResetPath();
+            SetState(State.Idle);
+        }
     }
 
     /// <summary>Switch to aggressive auto-attack mode.</summary>
@@ -312,6 +420,7 @@ public class AgentController : MonoBehaviour
         if (!IsAlive) return;
         if (_jobHold) EndJob();
         if (_activityLocked) return;
+        CurrentOrder = StandingOrder.None;
         BeginAssignment();
         SetState(State.AutoAttacking);
     }
@@ -322,6 +431,7 @@ public class AgentController : MonoBehaviour
         if (!IsAlive) return;
         if (_jobHold) EndJob();
         if (_activityLocked) return;
+        CurrentOrder = StandingOrder.None;
         _target = target;
         BeginAssignment();
         SetState(State.AutoAttacking);
@@ -330,10 +440,13 @@ public class AgentController : MonoBehaviour
     /// <summary>Move back to spawn / retreat zone.</summary>
     public void CommandRetreat()
     {
-        if (!IsAlive) return;
+        if (!IsAlive || _cinematicIdle || !_nav || !_nav.enabled || !_nav.isOnNavMesh) return;
         if (_jobHold) EndJob();
         if (_activityLocked) return;
+        CurrentOrder = StandingOrder.None;
         _target = null;
+        _nav.isStopped = false;
+        _nav.stoppingDistance = .15f;
         BeginAssignment();
         SetState(State.Retreating);
         _nav.SetDestination(_retreatPoint);
@@ -346,10 +459,11 @@ public class AgentController : MonoBehaviour
         _anim?.PlayAttack();
     }
 
-    public void TakeDamage(float amount)
+    public void TakeDamage(float amount, EnemyController attacker = null)
     {
         if (!IsAlive) return;
         float guard = Data != null ? Mathf.Clamp(Data.Intelligence, 0, 8) * 0.03f : 0f;
+        if (amount > 0) StreetCombatPresentation.Hit(transform.position);
         CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount) * (1f - guard) * Mathf.Clamp(FightPace, 0.2f, 1f));
         SyncHpToData();
         RefreshHealthBar();
@@ -362,12 +476,15 @@ public class AgentController : MonoBehaviour
         else _anim?.PlayHit();
         if (!_injuryReported && CurrentHp <= Data.MaxHp * .3f) { _injuryReported = true; InjuryNotifications.Report(Data); }
 
-        // Always fight back when punched — even if the turf popup was skipped.
-        if (!_activityLocked && !_cinematicIdle && CurrentState != State.AutoAttacking && CurrentState != State.Dead)
+        // Defend idle members and standing duties, but let an explicit MOVE or
+        // RETREAT pull a member out of danger even while blows are landing.
+        bool manualMovement = CurrentOrder == StandingOrder.None &&
+            (CurrentState == State.MovingToPoint || CurrentState == State.Retreating);
+        if (!manualMovement && !_activityLocked && !_cinematicIdle && CurrentState != State.AutoAttacking && CurrentState != State.Dead)
         {
-            var nearest = FindNearestEnemy();
+            var nearest = attacker && attacker.IsAlive ? attacker : FindNearestEnemy();
             if (nearest != null)
-                CommandAttackTarget(nearest);
+                EngageForDefence(nearest);
             else
                 CommandAttack();
             BattleManager.instance?.AlertNearbyCrew(this);
@@ -376,6 +493,8 @@ public class AgentController : MonoBehaviour
 
     private void Die()
     {
+        CurrentOrder = StandingOrder.None;
+        AgentSelectionManager.instance?.Deselect(this);
         SetState(State.Dead);
         if (Data != null) Data.CurrentHp = 0;
 
@@ -389,7 +508,8 @@ public class AgentController : MonoBehaviour
     private IEnumerator DeathSequence()
     {
         // Wait for the death animation to finish before disabling the GO.
-        yield return new WaitForSeconds(1.8f);
+        yield return new WaitForSeconds(_anim!=null?_anim.DeathSeconds:2f);
+        StreetCombatPresentation.LeaveBody(transform);
         gameObject.SetActive(false);
         BattleManager.instance?.OnAgentDied(this);
     }
@@ -415,11 +535,15 @@ public class AgentController : MonoBehaviour
         if (_scanTimer >= SCAN_INTERVAL)
         {
             _scanTimer = 0;
-            if (CurrentState == State.AutoAttacking && (_target == null || !_target.IsAlive))
+            if (CurrentOrder != StandingOrder.None && (!_target || !_target.IsAlive))
+                ScanDutyThreats();
+            else if (CurrentState == State.AutoAttacking && (_target == null || !_target.IsAlive))
                 _target = FindNearestEnemy();
         }
 
         // Drive animation — AgentAnimController handles idle vs run crossfade.
+        if(_nav&&CurrentState==State.MovingToPoint)_nav.speed=Data.Speed*(CrewMovementPreference.RunOnTap?1f:.52f);
+        else if(_nav&&CurrentState==State.AutoAttacking)_nav.speed=Data.Speed;
         float speed = _nav.enabled ? _nav.velocity.magnitude : 0f;
         _anim?.Tick(speed / Mathf.Max(.1f, Data.Speed), CurrentState == State.AutoAttacking);
 
@@ -432,15 +556,20 @@ public class AgentController : MonoBehaviour
                 break;
 
             case State.MovingToPoint:
-                if (!_nav.pathPending && _nav.remainingDistance < 0.2f)
+                if (!_nav.pathPending && _nav.remainingDistance <= _nav.stoppingDistance + .1f)
                 {
                     SetState(State.Idle);
-                    if (!_activityLocked && !_jobHold) EndAssignment();
+                    if (CurrentOrder == StandingOrder.Patrol && (_orderEnd - _orderStart).sqrMagnitude > 1f)
+                    {
+                        _patrolReturning = !_patrolReturning;
+                        ResumeDuty();
+                    }
+                    else if (CurrentOrder == StandingOrder.None && !_activityLocked && !_jobHold) EndAssignment();
                 }
                 break;
 
             case State.Retreating:
-                if (!_nav.pathPending && _nav.remainingDistance < 0.2f)
+                if (!_nav.pathPending && _nav.remainingDistance <= _nav.stoppingDistance + .1f)
                 {
                     SetState(State.Idle);
                     EndAssignment();
@@ -448,6 +577,11 @@ public class AgentController : MonoBehaviour
                 break;
 
             case State.AutoAttacking:
+                if (CurrentOrder != StandingOrder.None && !IsDutyThreat(_target))
+                {
+                    ResumeDuty();
+                    break;
+                }
                 if (_target == null || !_target.IsAlive)
                 {
                     _target = FindNearestEnemy();
@@ -456,6 +590,7 @@ public class AgentController : MonoBehaviour
                 float dist = DistanceTo(_target.transform);
                 if (dist > Data.AttackRange)
                 {
+                    _nav.stoppingDistance = Data.AttackRange * .9f;
                     _nav.SetDestination(_target.transform.position);
                 }
                 else
@@ -512,6 +647,7 @@ public class AgentController : MonoBehaviour
         gameObject.SetActive(true); CurrentHp = Data.CurrentHp;
         _nav.enabled = true; if (_nav.isOnNavMesh) _nav.ResetPath();
         ApplyRosterStats(); _nav.isStopped = false; _target = null; _cinematicIdle = false; _activityLocked = false;
+        CurrentOrder = StandingOrder.None;
         _anim = new AgentAnimController(animator); SetState(State.Idle); RefreshHealthBar();
     }
 
@@ -523,6 +659,7 @@ public class AgentController : MonoBehaviour
 
         if (dir.sqrMagnitude > 0.01f)
         {
+            CurrentOrder = StandingOrder.None;
             Vector3 worldDir = new Vector3(dir.x, 0, dir.y).normalized;
             Vector3 target   = transform.position + worldDir * 2f;
             _nav.SetDestination(target);
@@ -681,6 +818,16 @@ public class AgentController : MonoBehaviour
 
 public static class CrewKit
 {
+    public static Color RivalColor(Color color,string firm)
+    {
+        Color.RGBToHSV(color,out var hue,out var saturation,out var value);
+        if((hue>.20f&&hue<.47f)||(hue>.53f&&hue<.70f)||saturation<.25f)
+        {
+            uint hash=2166136261;foreach(char c in firm??"Rival")hash=(hash^c)*16777619;
+            float[] hues={.0f,.075f,.13f,.78f,.9f};color=Color.HSVToRGB(hues[hash%(uint)hues.Length],.78f,.85f);
+        }
+        color.a=1;return color;
+    }
     static readonly MaterialPropertyBlock kitBlock=new MaterialPropertyBlock();
     static Material plainShirt;
     public static bool IsShirtRenderer(string value)
@@ -691,8 +838,20 @@ public static class CrewKit
     public static void PaintShirt(Transform model, Color color)
     {
         if (!model) return;
+        var enemy=model.GetComponentInParent<EnemyController>();
+        if(model.GetComponentInParent<AgentController>())color=new Color(.025f,.32f,.12f);
+        else if(enemy&&enemy.firmName!="POLICE")color=enemy.IsHomeMatchdaySupporter?new Color(.38f,.88f,.14f):RivalColor(color,enemy.firmName);
         foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
         {
+            bool importedClothing=false;
+            var slots=renderer.sharedMaterials;
+            for(int slot=0;slot<slots.Length;slot++)
+            {
+                if(!slots[slot]||!slots[slot].name.StartsWith("FactionCloth"))continue;
+                kitBlock.Clear();kitBlock.SetColor("_BaseColor",color);kitBlock.SetColor("_Color",color);
+                renderer.SetPropertyBlock(kitBlock,slot);importedClothing=true;
+            }
+            if(importedClothing)continue;
             // Never infer "body" means shirt: many atlases include exposed skin.
             // Only an explicitly separated clothing renderer can lose its texture.
             if(!IsShirtRenderer(renderer.name))continue;
@@ -752,3 +911,4 @@ public static class CrewKit
         else self.position = pos;
     }
 }
+
