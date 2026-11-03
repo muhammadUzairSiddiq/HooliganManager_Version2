@@ -4,7 +4,7 @@ using TMPro;
 
 /// <summary>
 /// Main Menu — Continue jumps straight into gameplay; New Game starts with the
-/// default club and opens the dashboard (team change lives on the dashboard).
+/// default club and enters home gameplay (team change lives on the dashboard).
 /// </summary>
 public class MainMenuController : MonoBehaviour
 {
@@ -33,11 +33,11 @@ public class MainMenuController : MonoBehaviour
     void Start()
     {
         if (versionLabel != null)
-            versionLabel.text = "v0.3 - APK3";
+            versionLabel.text = "v"+Application.version+" · RTS RECOVERY";
 
         ApplyContinueState();
 
-        SetButtonLabel(newGameBtn ? newGameBtn.gameObject : null, "PLAY");
+        SetButtonLabel(newGameBtn ? newGameBtn.gameObject : null, "PLAY · CHOOSE ROLE");
         var headquarters = GameObject.Find("LoadGame");
         if (headquarters) headquarters.SetActive(false);
 
@@ -66,9 +66,10 @@ public class MainMenuController : MonoBehaviour
         if (note) note.text = "LAST SAVE    " + GameManager.LastSaveCaption();
     }
 
-    void OnNewGame()
+    void OnNewGame(){if(!SimpleShellLayout.ShowModes())ConfirmNewFirm();}
+
+    public void ConfirmNewFirm()
     {
-        if (SimpleShellLayout.ShowModes()) return;
         if (GameManager.HasSaveData())
         {
             GamePopup.Instance.Show(

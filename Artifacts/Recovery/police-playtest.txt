@@ -1,0 +1,52 @@
+PASS PLAY AS POLICE loads a real city patrol session
+PASS Three controllable officers spawn as the player side
+PASS Police patrol checks are distinct reachable locations away from the station
+PASS Police roster is separate from the preserved firm roster
+PASS Launching police leaves the firm save bytes unchanged
+PASS Selected officer accepts a real A/B patrol duty
+PASS Patrol walks the officer and preserves selection (travel=1.2, order=Patrol, selected=True)
+PASS Physical officer presence completes patrol check 1
+PASS Physical officer presence completes patrol check 2
+PASS Physical officer presence completes patrol check 3
+PASS Dispatch sends only the selected officer to a reported incident
+PASS Actual travel and on-site assessment identify the reported suspect
+PASS Dispatch does not overwrite the other officer's patrol
+PASS A nearby selected officer can detain the identified suspect
+PASS Five-second local detention records one arrest
+PASS A repeated detention request cannot duplicate the arrest
+PASS The assigned arresting officer accepts a station escort route
+PASS A partial officer loss keeps the detained suspect and existing arrest outcome
+PASS Escort handover rejects a distant selected officer
+PASS Handover action and world marker point to the waiting suspect, not the station
+PASS SHOW ME focuses the detained suspect when a replacement escort is required
+PASS A nearby selected living officer takes over the existing escort without a second arrest
+PASS Transferred escort action and world marker direct booking to the station
+PASS Booking marker keeps its ring while the permanent station caption remains the only station label
+PASS Officer and suspect physically return to the station and complete booking
+PASS Resolved police call removes its world objective marker
+PASS A second officer can respond independently to the station-route call ()
+PASS Sustained presence resolves the public route task without a fight
+PASS A completed patrol/booking shift grants the documented budget once
+PASS Repeated shift completion cannot duplicate budget
+PASS Actual police save preserves patrol, booking, incidents and shift outcomes
+PASS Police Continue has saved officer positions and duties
+PASS Repeated police saves never overwrite the firm save
+PASS Continue fixture assigns a custom rectangular guard with an off-centre post ()
+PASS Continue fixture assigns a full two-endpoint patrol
+PASS Native police save stores versioned A/B patrol and exact guard rectangle/post geometry
+PASS Actual Police Continue reloads career outcomes and the down officer without touching the firm
+PASS Police Continue preserves original patrol A/B endpoints and current travel direction
+PASS Police Continue preserves the chosen guard geometry and off-centre post
+PASS Resumed patrol physically reaches and reverses between its original endpoints
+PASS Next-shift fixture contains a down officer and an injured survivor
+PASS NEXT SHIFT creates fresh dispatch tasks while retaining career progress
+PASS NEXT SHIFT preserves healed saved/runtime officers instead of recapturing previous down or injured actors
+PASS Police world commands remain available after dispatch closes
+PASS Open dispatch blocks accidental orders through its sheet
+PASS Lost officers do not trigger the firm campaign's Wasted flow
+PASS Recover officers restores a playable team without dead actor saves overwriting recovery
+PASS Leaving police restores the exact original firm campaign
+PASS Firm campaign remains byte-identical after full police shift and exit
+RESULT 49 passed, 0 failed
+Native city fixture: disposable firm and police files; officer movement speed raised for test travel; simulation time accelerated; no real account save touched.
+UTC 2026-11-02T19:20:11.3345869Z

@@ -3,25 +3,16 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-/// <summary>One-word actions; details go to the selection/status line on focus.</summary>
+/// <summary>Retains meaningful action labels, costs and consequences.</summary>
 public sealed class ConciseButtonCaption : MonoBehaviour, IPointerDownHandler, IPointerEnterHandler
 {
     TextMeshProUGUI label;
     string detail, last;
     public static string Shorten(string text)
     {
-        if(string.IsNullOrWhiteSpace(text))return text;
-        string clean=System.Text.RegularExpressions.Regex.Replace(text,"<.*?>","").Trim();
-        if(clean=="SELECT ALL"||clean=="DESELECT ALL")return clean;
-        if(clean.StartsWith("MOVE ON"))return "LEAVE";
-        if(clean.StartsWith("START PATROL"))return "START";
-        if(clean.StartsWith("SHOW NEXT"))return "OBJECTIVE";
-        if(clean.StartsWith("PLAN &"))return "DEVELOP";
-        if(clean.StartsWith("▢"))return "SELECT";
-        if(clean.StartsWith("BRIBE"))return "PAY";
-        if(clean.StartsWith("STAND &"))return "FIGHT";
-        var words=clean.Split(new[]{' ','\n','\r','\t'},System.StringSplitOptions.RemoveEmptyEntries);
-        return words.Length>0?words[0]:clean;
+        // Blind first-word truncation made both incident buttons say ASSIGN,
+        // removed loot costs/heat and hid what a confirmation would do.
+        return text;
     }
     void LateUpdate()
     {
@@ -34,11 +25,6 @@ public sealed class ConciseButtonCaption : MonoBehaviour, IPointerDownHandler, I
 }
 public sealed class ConciseCityButtons : MonoBehaviour
 {
-    float next;
-    void Update()
-    {
-        if(Time.unscaledTime<next)return;next=Time.unscaledTime+.5f;
-        foreach(var button in FindObjectsByType<Button>(FindObjectsInactive.Include,FindObjectsSortMode.None))
-            if(!button.GetComponent<ConciseButtonCaption>())button.gameObject.AddComponent<ConciseButtonCaption>();
-    }
+    // Kept for saved scene compatibility. Each surface owns its captions;
+    // the former global rescan/rewriter no longer runs every half second.
 }

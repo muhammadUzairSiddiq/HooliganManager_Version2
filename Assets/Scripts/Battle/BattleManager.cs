@@ -704,7 +704,7 @@ public class BattleManager : MonoBehaviour
                 OnRoundChanged?.Invoke(1, TimeRemaining); // display elapsed time in HUD
                 OnCountsChanged?.Invoke(AlivePlayerCount(), AliveEnemyCount());
 
-                if (AlivePlayerCount() == 0)
+                if (AlivePlayerCount() == 0 && !PoliceCityMode.Active)
                 {
                     Debug.Log("[BattleManager] Player squad fully wiped — defeat popup.");
                     BattleActive = false;
@@ -884,7 +884,7 @@ public class BattleManager : MonoBehaviour
                 : pos - Vector3.right * 3f;
 
             CharacterPortraitRegistry playerVisuals = GameManager.IsPolicePlayer
-                ? PoliceManager.instance?.policeRegistry?.officerTypes
+                ? (RoleCharacterModels.Current ? RoleCharacterModels.Current.police : PoliceManager.instance?.policeRegistry?.officerTypes)
                 : null;
             ac?.Initialise(data, retreat, playerVisuals);
 
@@ -895,7 +895,8 @@ public class BattleManager : MonoBehaviour
         }
 
         // Select all spawned units by default so player can click/tap to move them immediately
-        AgentSelectionManager.instance?.SelectAll();
+        if(GameManager.Data?.RecoveryGuidedStart==true&&!GameManager.Data.LearnedSelection)AgentSelectionManager.instance?.DeselectAll();
+        else AgentSelectionManager.instance?.SelectAll(false);
 
         // Snapshot roster once per battle session (leave keeps recruits; Try Again restores).
         GameData.instance?.EnsureBattleSessionSnapshot();
@@ -905,9 +906,8 @@ public class BattleManager : MonoBehaviour
     {
         var d = GameData.instance?.PlayerData;
         if (data == null || d == null) return false;
-        if (d.SelectedAwayAgentIds == null || d.SelectedAwayAgentIds.Count == 0)
-            return true; // no selection → deploy any living member
-        return d.SelectedAwayAgentIds.Contains(data.AgentId);
+        var travellers=d.ActiveAwayAgentIds??d.SelectedAwayAgentIds;
+        return travellers!=null&&travellers.Contains(data.AgentId);
     }
 
     private void SpawnEnemyAgents()
@@ -1146,8 +1146,10 @@ public class BattleManager : MonoBehaviour
     {
         if (enemyAgentPrefab == null || string.IsNullOrEmpty(firm)) return null;
         if (!CityActivityStreaming.TryReserveBody(pos)) return null;
-        if (NavMesh.SamplePosition(pos, out NavMeshHit hit, 10f, NavMesh.AllAreas))
-            pos = hit.position;
+        var sourceNav=enemyAgentPrefab.GetComponent<NavMeshAgent>();
+        var spawnFilter=new NavMeshQueryFilter{agentTypeID=sourceNav?sourceNav.agentTypeID:0,areaMask=sourceNav?sourceNav.areaMask:NavMesh.AllAreas};
+        if(!NavMesh.SamplePosition(pos,out NavMeshHit hit,10f,spawnFilter)){CityActivityStreaming.ReleaseBody();return null;}
+        pos=hit.position;
         var go = RivalBodyPool.Take(enemyAgentPrefab, pos, Quaternion.identity,role==MatchdayUnitRole.Police?"police":"supporter");
         if (go == null) return null;
         var ec = go.GetComponent<EnemyController>();
@@ -1159,6 +1161,8 @@ public class BattleManager : MonoBehaviour
         ec.primaryColor = color;
         var roleModels=RoleCharacterModels.Current;
         ec.Initialise(hp, dmg, 2.1f, 1f,roleModels?(role==MatchdayUnitRole.Police?roleModels.police:roleModels.civilians):null);
+        var spawnedNav=ec.GetComponent<NavMeshAgent>();
+        if(spawnedNav&&!spawnedNav.Warp(pos)){CityActivityStreaming.ReleaseBody();RivalBodyPool.Release(go);return null;}
         ec.isHostile = false;
         ec.ConfigureMatchdayRole(role, groupName ?? firm);
         CrewKit.PaintShirt(ec.transform, color);
@@ -1887,6 +1891,11 @@ public class BattleManager : MonoBehaviour
         {
             if (!GameData.instance.PlayerData.DeploymentSelectionCustomized)
                 GameData.instance.AddAgentToAwaySelection(data, maxPlayerAgents);
+            if(!CityGameplay.HomeMode)
+            {
+                var travellers=GameData.instance.PlayerData.ActiveAwayAgentIds??=new List<string>();
+                if(!travellers.Contains(data.AgentId))travellers.Add(data.AgentId);
+            }
             GameData.instance.SyncFanCountWithAgents();
             GameData.instance.SaveData();
         }
@@ -2079,6 +2088,7 @@ public class BattleManager : MonoBehaviour
     // ── Counts ────────────────────────────────────────────────────────────
     public void NotifySquadWiped()
     {
+        if(PoliceCityMode.Active)return;
         LevelSystem.EnsureExists();
         if (LivePoliceSystem.Instance != null && LivePoliceSystem.Instance.ClaimArrestWipe())
             LevelSystem.Instance?.OnCrewArrested();

@@ -198,44 +198,13 @@ public class GameManager : MonoBehaviour
         }
 
         var d = GameData.instance.PlayerData;
-        if (d != null) { d.CurrentLevel = 1; d.PoliceHeat = 7; d.LastSessionMode = "AwayPlan"; CampaignMissions.Ensure(d); }
+        if (d != null) { d.CurrentLevel = 1; d.PoliceHeat = RecoveryProgression.StarterHeat; d.LastSessionMode = "Home"; CampaignMissions.Ensure(d); }
         GameData.instance.SaveData();
     }
 
     /// <summary>Milestone 3 hook. Current production build starts the firm campaign only.</summary>
-    public void StartNewPoliceGame()
-    {
-        if (!PlayablePoliceEnabled)
-        {
-            StartNewGameWithDefaultClub(null);
-            return;
-        }
-
-        GameData.instance.StartNewGame(
-            "City Police", "CPD", "#2878D0", "#FFFFFF",
-            "CITY POLICE", "City Gangs",
-            8, 34, 10, 0, 5, 5000);
-
-        var d = GameData.instance.PlayerData;
-        if (d != null)
-        {
-            d.PlayerFaction = "Police";
-            d.CurrentLevel = 1;
-            d.PoliceHeat = 0;
-            d.RecentEvents = new[] { "Police operations started. Secure contested districts and stop rival gangs." };
-            if (d.RecruitedAgents != null)
-                for (int i = 0; i < d.RecruitedAgents.Count; i++)
-                    if (d.RecruitedAgents[i] != null)
-                        d.RecruitedAgents[i].AgentName = $"Officer {i + 1:00}";
-        }
-        if (Data != null) Data.LastSessionMode = "Police";
-        GameData.instance.SaveData();
-        LoadScene(SCENE_DASHBOARD, "POLICE COMMAND", "Deploy your unit and secure the city.");
-    }
-
-    public static bool IsPolicePlayer =>
-        PlayablePoliceEnabled &&
-        string.Equals(Data?.PlayerFaction, "Police", System.StringComparison.OrdinalIgnoreCase);
+    public void StartNewPoliceGame()=>PoliceCityMode.Launch();
+    public static bool IsPolicePlayer=>PoliceCityMode.Active;
 
     public void OnClubConfirmed(string clubName, string clubShortName,
                                 string primaryColor, string secondaryColor,
@@ -249,16 +218,17 @@ public class GameManager : MonoBehaviour
             fans, strength, reputation, policeHeat, ranking, money);
 
         var d = GameData.instance.PlayerData;
-        if (d != null) { d.CurrentLevel = 1; d.PoliceHeat = 7; d.LastSessionMode = "AwayPlan"; CampaignMissions.Ensure(d); }
+        if (d != null) { d.CurrentLevel = 1; d.PoliceHeat = RecoveryProgression.StarterHeat; d.LastSessionMode = "Home"; CampaignMissions.Ensure(d); }
         GameData.instance.SaveData();
 
-        LoadScene(SCENE_DASHBOARD, "YOUR FIRM", "Pick a trip and hit the streets.");
+        ReloadHomeTerritory("YOUR HOME TERRITORY", "Learn direct crew control and build your firm.");
     }
 
     public void OnEndMatchDay() => GameData.instance.EndMatchDay();
 
     public void OnReturnToMainMenu()
     {
+        if(PoliceCityMode.Active){PoliceCityMode.ExitToMenu();return;}
         BattleManager.instance?.PersistBattleProgress();
         LoadScene(SCENE_MAIN_MENU);
     }
@@ -272,7 +242,12 @@ public class GameManager : MonoBehaviour
     public void StartRivalFight(int enemyCount, int enemyStrength, int reward, string enemyFirmName = "")
     {
         CityGameplay.HomeMode = false;
-        if (Data != null) Data.LastSessionMode = "Away";
+        if (Data != null)
+        {
+            Data.LastSessionMode = "Away";
+            Data.ActiveAwayAgentIds = new System.Collections.Generic.List<string>(Data.SelectedAwayAgentIds??new System.Collections.Generic.List<string>());
+            Data.AwayExtractionSeconds=0;
+        }
         // New away session — refresh mode context so Try Again never reuses a stale HQ snapshot.
         GameData.instance?.RefreshBattleSessionContext(homeMode: false);
 
@@ -394,7 +369,17 @@ public class GameManager : MonoBehaviour
     {
         if (!RequireLivingCrewOrPrompt()) return;
         var d = Data;
-        GameData.instance?.SyncAwaySelectionWithRoster();
+        // Legacy saves can adopt their saved selection once. A current trip
+        // resumes its travellers; Home reserves are never silently substituted.
+        if(d.ActiveAwayAgentIds==null)
+        {
+            GameData.instance?.SyncAwaySelectionWithRoster();
+            d.ActiveAwayAgentIds=new System.Collections.Generic.List<string>(d.SelectedAwayAgentIds);
+        }
+        if(CampaignMissions.LivingTravellers(d)==0)
+        {
+            ReloadHomeTerritory("RETURNING TO HQ","The travelling crew was lost. Home reserves can rebuild the operation.");return;
+        }
         CityGameplay.HomeMode = false;
         if (d != null) d.LastSessionMode = "Away";
         PendingBattleMode = BattleManager.BattleMode.RivalFight;
@@ -485,9 +470,31 @@ public class GameManager : MonoBehaviour
     {
         GamePopup.Instance.Show(
             "NO CREW",
-            "You don't have any living crew members.\n\nRecruit new lads (or revive fallen ones) before you can continue or return home.",
+            "The crew was lost. Rebuild three members at HQ without an advert. Cash falls by up to £500 and morale by 10; your campaign and businesses remain saved.",
+            new GamePopup.Option("REBUILD AT HQ",LandscapeUI.Green,RebuildAtHeadquarters),
             new GamePopup.Option("RECRUIT", LandscapeUI.Green, OpenRecruitmentPlans),
             new GamePopup.Option("BACK", LandscapeUI.PanelColor, null));
+    }
+
+    public void RebuildAtHeadquarters()
+    {
+        var d=Data;
+        if(d==null||HasLivingCrew(d))return;
+        d.RecruitedAgents??=new System.Collections.Generic.List<AgentData>();
+        int count=0;
+        foreach(var member in d.RecruitedAgents)
+        {
+            if(member==null)continue;
+            member.FullHeal();if(++count>=RecoveryProgression.StarterCrew)break;
+        }
+        while(count<RecoveryProgression.StarterCrew)
+        {d.RecruitedAgents.Add(new AgentData("HQ Reserve "+(++count),count%4));}
+        d.Money=Mathf.Max(0,d.Money-500);d.FanMorale=Mathf.Max(25,d.FanMorale-10);
+        d.PoliceHeat=Mathf.Min(d.PoliceHeat,3);
+        GameData.instance.ClearBattleSessionSnapshot();
+        d.DeploymentSelectionCustomized=false;d.ActiveAwayAgentIds=null;
+        GameData.instance.SyncFanCountWithAgents();GameData.instance.SaveData();
+        ReloadHomeTerritory("REBUILDING AT HQ","Three members are ready. Recover your income and regroup.");
     }
 
     /// <summary>Opens the same GROW YOUR FOLLOWING / recruitment package options.</summary>

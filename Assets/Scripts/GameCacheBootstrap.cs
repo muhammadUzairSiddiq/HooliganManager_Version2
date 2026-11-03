@@ -25,6 +25,10 @@ public static class GameCacheBootstrap
     /// </summary>
     public static void ClearAllGameCacheForFirstInstall()
     {
+#if UNITY_EDITOR
+        // Isolated playtests must never clear the developer's real save/settings.
+        if (!string.IsNullOrEmpty(SaveDataInLocal.EditorSaveOverride)) return;
+#endif
         if (PlayerPrefs.HasKey(InstallMarkerKey))
             return;
 

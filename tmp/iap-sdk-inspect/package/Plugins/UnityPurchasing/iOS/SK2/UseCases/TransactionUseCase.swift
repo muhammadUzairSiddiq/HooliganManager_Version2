@@ -1,0 +1,184 @@
+import Foundation
+import StoreKit
+
+@available(iOS 15.0, macOS 12.0, tvOS 15.0, visionOS 1.0, *)
+// sourcery: AutoMockable
+protocol TransactionUseCaseProtocol {
+    func getPurchaseState(_ productId: String) async throws -> PurchaseState
+    func isPending(_ productId: String) async throws -> PurchaseState
+    func fetchAllTransactions() async -> (finishedTransactions: [String : PurchaseDetails], unfinishedTransactions: [String : PurchaseDetails])
+    func fetchTransactions(for productIds: [String]) async -> TransactionResponse
+    func finishTransaction(transactionId: UInt64, logFinishTransaction: Bool) async -> Bool
+}
+
+@available(iOS 15.0, macOS 12.0, tvOS 15.0, visionOS 1.0, *)
+// @unchecked Sendable: required under Swift 6 strict concurrency as this type is resolved via the
+// (@unchecked Sendable) DependencyContainer and used across async contexts. Safe because it is
+// effectively immutable — it holds only a `@Dependency`; every method operates on local state.
+class TransactionUseCase: TransactionUseCaseProtocol, @unchecked Sendable {
+    @Dependency private(set) var transactionObserver: TransactionObserverUseCaseProtocol
+
+    public func getPurchaseState(_ productId: String) async throws -> PurchaseState {
+        guard let result = await Transaction.latest(for: productId) else {
+            return PurchaseState.NotPurchased;
+        }
+
+        // Ensure we don't deliver content that is refunded by checking the `revocationDate` is nil
+        let transaction = try transactionObserver.checkVerified(result)
+        let isPending = await isPendingTransaction(transaction.id)
+
+        let isPurchased = !isPending && transaction.revocationDate == nil && !transaction.isUpgraded && (transaction.expirationDate == nil || transaction.expirationDate! > Date())
+        return isPurchased ? PurchaseState.Purchased : isPending ? PurchaseState.Pending : PurchaseState.NotPurchased
+    }
+
+    public func isPending(_ productId: String) async -> PurchaseState {
+        // Fetch all unfinished transactions
+        let transactions = Transaction.unfinished
+
+        // Find the first verified transaction with the matching transactionId
+        let transaction = await transactions.first(where: { result in
+            if case .verified(let txn) = result {
+                return txn.productID == productId
+            }
+            return false
+        })
+
+        return (transaction != nil) ? PurchaseState.Pending : PurchaseState.NotPurchased
+    }
+
+    public func isPendingTransaction(_ transactionId: UInt64) async -> Bool {
+        // Fetch all unfinished transactions
+        let transactions = Transaction.unfinished
+
+        // Find the first verified transaction with the matching transactionId
+        let transaction = await transactions.first(where: { result in
+            if case .verified(let txn) = result {
+                return txn.id == transactionId
+            }
+            return false
+        })
+
+        return transaction != nil
+    }
+
+    /**
+     Use `Transaction.currentEntitlements` to fetch all purchases and `Transaction.unfinished` to fetch all pending purchases for the user
+     */
+    public func fetchAllTransactions() async -> (finishedTransactions: [String : PurchaseDetails], unfinishedTransactions: [String : PurchaseDetails]) {
+
+        async let finishedTask = processCurrentEntitlements()
+        async let unfinishedTask = processUnfinishedTransactions()
+
+        let (finished, unfinished) = await (finishedTask, unfinishedTask)
+
+        let unfinishedTransactionIds: Set<UInt64> = Set(unfinished.values.compactMap { $0.transactionId })
+        let filteredFinishedTransactions: [String: PurchaseDetails] = finished.filter { _, details in
+            guard let txnId = details.transactionId else {
+                // Drop entries without a transactionId
+                return false
+            }
+            // Keep only if its transactionId is not present in unfinished
+            return !unfinishedTransactionIds.contains(txnId)
+        }
+
+        return (finishedTransactions: filteredFinishedTransactions, unfinishedTransactions: unfinished)
+    }
+
+    private func processCurrentEntitlements() async -> [String: PurchaseDetails] {
+        var result: [String: PurchaseDetails] = [:]
+
+        for await transactionResult in Transaction.currentEntitlements {
+            do {
+                let transaction = try transactionObserver.checkVerified(transactionResult)
+                let details = transactionResult.purchaseDetails()
+                result[String(transaction.id)] = details
+            } catch {
+                printLog("Verification failed: \(error.localizedDescription)")
+            }
+        }
+
+        return result
+    }
+
+    private func processUnfinishedTransactions() async -> [String: PurchaseDetails] {
+        var result: [String: PurchaseDetails] = [:]
+
+        for await transactionResult in Transaction.unfinished {
+            do {
+                let transaction = try transactionObserver.checkVerified(transactionResult)
+
+                if transaction.revocationDate != nil {
+                    await transactionObserver.finishRevokedTransaction(transaction, transactionResult)
+                    continue
+                }
+                if transaction.isUpgraded {
+                    await transactionObserver.finishExpiredTransaction(transaction, transactionResult)
+                    continue
+                }
+                if let expirationDate = transaction.expirationDate, expirationDate < Date() {
+                    await transactionObserver.finishExpiredTransaction(transaction, transactionResult)
+                    continue
+                }
+
+                let details = transactionResult.purchaseDetails()
+                result[String(transaction.id)] = details
+            } catch {
+                printLog("Verification failed: \(error.localizedDescription)")
+            }
+        }
+
+        return result
+    }
+
+    /**
+     Fetch the latest transaction for the list of product Identifiers.
+     */
+    public func fetchTransactions(for productIds: [String]) async -> TransactionResponse {
+        var transactions: Array<VerificationResult<Transaction>> = []
+        var failures: Array<String> = []
+
+        for productId in productIds {
+            await fetchTransaction(for: productId, transactions: &transactions, failures: &failures)
+        }
+
+        return TransactionResponse(successes: transactions, failures: failures)
+    }
+
+    private func fetchTransaction(for productId: String, transactions: inout Array<VerificationResult<Transaction>>, failures: inout Array<String>) async {
+        if let transaction = await Transaction.latest(for: productId) {
+            transactions.append(transaction)
+        } else {
+            failures.append(productId)
+        }
+    }
+
+    /**
+     Use `Transaction.finish` to finish the specified transaction.
+     - Returns: `true` if the transaction was found in `Transaction.unfinished` and finished,
+     `false` if it was not found (StoreKit already considers it finished).
+     */
+    public func finishTransaction(transactionId: UInt64, logFinishTransaction: Bool) async -> Bool {
+        // Fetch all unfinished transactions
+        let transactions = Transaction.unfinished
+
+        // Find the first verified transaction with the matching transactionId
+        if let transaction = await transactions.first(where: { result in
+            if case .verified(let txn) = result {
+                return txn.id == transactionId
+            }
+            return false
+        }) {
+            // Extract the verified transaction
+            if case .verified(let txn) = transaction {
+                // Finish the transaction
+                await txn.finish()
+                if (logFinishTransaction)
+                {
+                    printLog("Finishing transaction \(transactionId) \(txn.productID)")
+                }
+                return true
+            }
+        }
+        return false
+    }
+}

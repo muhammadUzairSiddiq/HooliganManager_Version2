@@ -40,8 +40,8 @@ public sealed class CityLocationLabel : MonoBehaviour
         RectTransformUtility.ScreenPointToLocalPointInRectangle(frame, projected, null, out var local);
         float x = local.x - frame.rect.xMin, y = frame.rect.yMax - local.y;
         var pinRect = new Rect(x - 105f, y - 24f, 210f, 48f);
-        bool visible = projected.z > 0.1f && x > 250f && x < frame.rect.width - 190f && y > 120f && y < frame.rect.height - 70f
-            && !WorldButtonLayer.ChoiceCovers(pinRect);
+        bool visible = (!ModernCityHud.Instance||ModernCityHud.InspectWorld)&&projected.z > 0.1f && x > 250f && x < frame.rect.width - 190f && y > 120f && y < frame.rect.height - 70f
+            && !AgentSelectionManager.BlocksWorldTap() && !WorldButtonLayer.ChoiceCovers(pinRect) && !WorldButtonLayer.CoversCrew(pinRect);
         pin.gameObject.SetActive(visible);
         if (pinLabel) pinLabel.color = Color.white;
         if (visible) LandscapeUI.Place(pin, x - 105, y - 24, 210, 48);
@@ -50,18 +50,40 @@ public sealed class CityLocationLabel : MonoBehaviour
     void OnDestroy() { if (pin) Destroy(pin.gameObject); }
 }
 
-/// <summary>World labels sit above the gameplay HUD so a panel underneath cannot swallow the click.
-/// Mission and other decision sheets use a higher canvas so they cover those labels.</summary>
+/// <summary>World annotations sit below the core HUD. Deliberate management and
+/// decision sheets sit above both, so labels cannot cover essential controls.</summary>
 public static class WorldButtonLayer
 {
-    public const int ButtonOrder = 16000;
-    public const int ChoiceOrder = 16800;
+    public const int ButtonOrder = 10500;
+    public const int ChoiceOrder = 10800;
     public const int MissionOrder = 17500;
     static RectTransform frame;
     static RectTransform choiceFrame;
     static RectTransform missionFrame;
     static readonly System.Collections.Generic.List<Rect> choiceCovers = new System.Collections.Generic.List<Rect>();
     static int choiceFrameStamp = -1;
+    static int crewStamp=-1;
+    static readonly System.Collections.Generic.List<Rect> crewRects=new System.Collections.Generic.List<Rect>();
+
+    public static bool CoversCrew(Rect area)
+    {
+        if(crewStamp!=Time.frameCount)
+        {
+            crewStamp=Time.frameCount;crewRects.Clear();
+            var cam=Camera.main;var f=Frame();var battle=BattleManager.instance;
+            if(cam&&f&&battle)foreach(var member in battle.PlayerAgents)
+            {
+                if(!member||!member.IsAlive)continue;
+                var p=cam.WorldToScreenPoint(member.transform.position+Vector3.up*1.6f);
+                if(p.z<=0)continue;
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(f,p,null,out var local);
+                float x=local.x-f.rect.xMin,y=f.rect.yMax-local.y;
+                crewRects.Add(new Rect(x-30,y-36,60,72));
+            }
+        }
+        foreach(var member in crewRects)if(member.Overlaps(area))return true;
+        return false;
+    }
 
     public static RectTransform Frame() => frame ? frame : frame = Make("WorldButtonCanvas", ButtonOrder);
 

@@ -1,0 +1,34 @@
+PASS Fresh fixture has a viable crew and waits for a deliberate matchday start
+PASS First lesson names the actual CREW button and waits for selection
+PASS Opening the crew sheet alone cannot complete the selection lesson
+PASS Real selection, repeated movement and group split advance to the Home construction lesson
+PASS The tutorial's headquarters action assigns real selected crew
+PASS On-site work visibly grows the construction model before completion
+PASS Headquarters completes once without a cash charge
+PASS Finished headquarters leads to a specific supply-production lesson
+PASS Selected crew starts the supply yard in the world
+PASS Supply yard consumes its declared investment only after construction
+PASS Training ground can be developed after the headquarters
+PASS All three developed facilities complete the short coach through actual outcomes
+PASS A completed base permits a second-level production investment
+PASS Native save retains unfinished investment, work progress and actual builder identity
+PASS A real scene reload resumes unfinished construction rather than charging or resetting it
+PASS Resumed investment completes to level two and debits its price once
+PASS Production upgrade changes supply capacity and adds visible built-world development
+PASS Completed investment clears its saved work assignment
+PASS Roads, station platforms and parking are excluded from the building-only reveal rule
+PASS A building is not automatically hidden just because a unit is behind it
+FAIL System.IO.IOException: Sharing violation on path D:\Holligan Manager Version 2\HooliganManager_Version2\Artifacts\Recovery\production-strategy-playtest.txt
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.Boolean anonymous, System.IO.FileOptions options) [0x0019e] in <4449e9424e7e4d4d81a660907c68cb97>:0 
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.IO.FileOptions options) [0x00000] in <4449e9424e7e4d4d81a660907c68cb97>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.FileStream..ctor(string,System.IO.FileMode,System.IO.FileAccess,System.IO.FileShare,int,System.IO.FileOptions)
+  at System.IO.StreamWriter..ctor (System.String path, System.Boolean append, System.Text.Encoding encoding, System.Int32 bufferSize) [0x00055] in <4449e9424e7e4d4d81a660907c68cb97>:0 
+  at System.IO.StreamWriter..ctor (System.String path) [0x00008] in <4449e9424e7e4d4d81a660907c68cb97>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.StreamWriter..ctor(string)
+  at System.IO.File.WriteAllLines (System.String path, System.Collections.Generic.IEnumerable`1[T] contents) [0x00034] in <4449e9424e7e4d4d81a660907c68cb97>:0 
+  at ProductionStrategyPlaytest.Check (System.Boolean ok, System.String label) [0x0001f] in D:\Holligan Manager Version 2\HooliganManager_Version2\Assets\Scripts\Editor\Landscape\ProductionStrategyPlaytest.cs:68 
+  at ProductionStrategyPlaytest+<Run>d__20.MoveNext () [0x00d3a] in D:\Holligan Manager Version 2\HooliganManager_Version2\Assets\Scripts\Editor\Landscape\ProductionStrategyPlaytest.cs:140 
+  at ProductionStrategyPlaytest+<Observe>d__13.MoveNext () [0x0001b] in D:\Holligan Manager Version 2\HooliganManager_Version2\Assets\Scripts\Editor\Landscape\ProductionStrategyPlaytest.cs:66 
+RESULT 20 passed, 1 failed
+Native disposable fixture: five durable fast crew; accelerated time; unrelated rival/police pressure suppressed. Matchday clock frozen after explicit start to isolate allocation, escort and staffing, then resumed through its real aftermath timer. Later preparation is seeded; not a natural campaign, device touch, performance or client-acceptance test.
+UTC 2026-11-02T19:09:36.1282733Z

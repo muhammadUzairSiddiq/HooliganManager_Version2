@@ -1,0 +1,43 @@
+PASS Legacy migration preserves heat, cash and campaign level without forcing tutorial
+PASS New campaign remains quiet after repeated campaign normalization
+PASS New tutorial cannot complete from opening the UI
+PASS Repeated movement is recorded once per teaching step; split lesson still required
+PASS Clearing the entire selection does not fake individual split control
+PASS Additive selection followed by removing one member completes the control lesson
+PASS Guard and patrol learning persists independently of selection
+PASS Home has eleven connected goals including base construction; extortion, taxi and sabotage are optional
+PASS Business initialization is idempotent and supplies six distinct archetypes
+PASS Control changes ownership once
+PASS Income is not paid before its simulation interval
+PASS A full interval pays the configured burger income once
+PASS Pause and reopening/normalizing the ledger do not pay again
+PASS Loot pays once and adds the declared police heat
+PASS Immediate repeated loot is rejected without a second payout
+PASS A disrupted business earns nothing during its full disruption
+PASS Trading income resumes after disruption
+PASS Loot cooldown persists after trading resumes
+PASS Loot becomes available only when the full cooldown elapses
+PASS Capturing just before a payout earns only the controlled portion of the interval
+PASS Pizza and pub have explicit matchday demand bonuses
+PASS Income is consistent across different update chunk sizes
+PASS Contested business does not generate new income
+PASS Unknown business IDs cannot create rewards
+PASS Matchday cannot auto-start before teaching and preparation
+PASS Prepared viable crew can choose to start matchday
+PASS Unlocking an Away chapter does not reset Home resources while still at Home
+PASS Away starts with its own operation resource context
+PASS Returning Home restores permanent preparation and resources without repeating tasks
+PASS Different strategic actions retain distinct descriptive captions
+PASS Button captions preserve visible loot rewards and heat consequences
+PASS Away active crew excludes a nondeployed Home reserve
+PASS Launch requirements grow from three to four actual travellers
+PASS Chapter 2 has a reachable connected core and an extraction goal
+PASS Chapter 3 has a reachable connected core and an extraction goal
+PASS Chapter 4 has a reachable connected core and an extraction goal
+PASS Chapter 5 has a reachable connected core and an extraction goal
+PASS A district cannot extract before its objectives are ready
+PASS District readiness does not award success until physical extraction is recorded
+PASS Riverside extraction advances once and pays the chapter reward
+PASS Rechecking a finished Away chapter cannot replay its reward
+PASS Stadium and pub responses have distinct visible opportunity windows
+RESULT 42 passed, 0 failed. Rules only; no Unity scene, save serializer or device execution.

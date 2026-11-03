@@ -1,0 +1,977 @@
+openapi: 3.0.3
+info:
+  title: IAP API
+  contact:
+    name: 'Team: Creator Economy'
+  version: 1.0.0
+  description: |
+    # Introduction
+      Unity IAP is a unified solution for managing digital commerce and implementing in-app purchases across games, stores, and third-party payment providers. These APIs provide a fully managed entitlement system that handles orders and fulfillment through third-party payment providers.
+    # Concepts
+      ## Payment Providers
+      - Order: A purchase initiated through a third-party payment provider, managed through the entitlement system from creation to fulfillment.
+      - Entitlement: A player's right to access a purchased product, tracked and managed across all supported payment providers.
+tags:
+  - name: Payment provider
+    description: Payment provider endpoints
+servers:
+  - url: https://iap.services.api.unity.com
+  - url: https://iap-stg.services.api.unity.com
+paths:
+  /v1/projects/{projectId}/environments/{environmentId}/order:
+    parameters:
+      - $ref: '#/components/parameters/projectId'
+      - $ref: '#/components/parameters/environmentId'
+    post:
+      summary: Create an order
+      description: |-
+        Initiates an order for a player to purchase a specific product from a payment provider.
+        Supports webview-based flows and will support other flows in the future (which could return additional
+        order data). The player information is stored and used to personalize the order experience.
+        Currently supports exactly one SKU in the request.
+      operationId: initiatePaymentProviderOrder
+      tags:
+        - Payment provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/order-request'
+      responses:
+        '200':
+          description: Order successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/order-response'
+        '400':
+          $ref: '#/components/responses/error-response-bad-request'
+        '401':
+          $ref: '#/components/responses/error-response-unauthorized'
+        '403':
+          $ref: '#/components/responses/error-response-forbidden'
+        '404':
+          $ref: '#/components/responses/error-response-not-found'
+        '409':
+          $ref: '#/components/responses/error-response-order-already-entitled'
+        '422':
+          $ref: '#/components/responses/error-response-unprocessable-entity'
+        '429':
+          $ref: '#/components/responses/error-response-too-many-requests'
+        '500':
+          $ref: '#/components/responses/error-response-internal-server-error'
+        '503':
+          $ref: '#/components/responses/error-response-service-unavailable'
+      security:
+        - Client: []
+  /v1/projects/{projectId}/environments/{environmentId}/link-out-session:
+    parameters:
+      - $ref: '#/components/parameters/projectId'
+      - $ref: '#/components/parameters/environmentId'
+    post:
+      summary: Register a link-out session
+      description: Registers a link-out session and returns its identifier, for use with webshops.
+      operationId: registerLinkOutSession
+      tags:
+        - Payment provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/link-out-session-register-request'
+      responses:
+        '200':
+          description: Link-out session stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/link-out-session-register-response'
+        '400':
+          $ref: '#/components/responses/error-response-bad-request'
+        '401':
+          $ref: '#/components/responses/error-response-unauthorized'
+        '403':
+          $ref: '#/components/responses/error-response-forbidden'
+        '422':
+          $ref: '#/components/responses/error-response-unprocessable-entity'
+        '429':
+          $ref: '#/components/responses/error-response-too-many-requests'
+        '500':
+          $ref: '#/components/responses/error-response-internal-server-error'
+        '503':
+          $ref: '#/components/responses/error-response-service-unavailable'
+      security:
+        - Client: []
+  /v1/projects/{projectId}/environments/{environmentId}/payment-providers:
+    parameters:
+      - $ref: '#/components/parameters/projectId'
+      - $ref: '#/components/parameters/environmentId'
+    get:
+      summary: List eligible configured payment providers
+      description: |-
+        Returns the list of configured payment providers the calling player is eligible for, based on their Live Releases
+        variant tags and the project's tag-to-provider routing configuration. Providers are listed in priority
+        order, highest first; clients should use the first entry by default. An empty list means no provider is
+        eligible for this player; clients should handle this as a normal "external payment unavailable" state.
+      operationId: listPaymentProviders
+      tags:
+        - Payment provider
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/payment-providers-response'
+        '401':
+          $ref: '#/components/responses/error-response-unauthorized'
+        '403':
+          $ref: '#/components/responses/error-response-forbidden'
+        '500':
+          $ref: '#/components/responses/error-response-internal-server-error'
+        '503':
+          $ref: '#/components/responses/error-response-service-unavailable'
+      security:
+        - Client: []
+  /v1/projects/{projectId}/environments/{environmentId}/orders/entitled:
+    parameters:
+      - $ref: '#/components/parameters/projectId'
+      - $ref: '#/components/parameters/environmentId'
+    get:
+      summary: List player entitlements
+      description: |-
+        Returns an array of all orders that the player is entitled to.
+
+        **Important**: Revoked orders are never included in the response, regardless of product type.
+
+        Entitlement logic by product type:
+        - **Consumables**: Included if not yet fulfilled.
+        - **Non-consumables**: Always included.
+        - **Subscriptions**: Not yet supported for external payment providers. Future behavior will be similar to non-consumables but will also require the subscription to not be expired.
+
+        If there is a mix of types in the order, the order will be returned if any of the types are entitled.
+      operationId: listEntitled
+      tags:
+        - Payment provider
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/order-response'
+        '401':
+          $ref: '#/components/responses/error-response-unauthorized'
+        '403':
+          $ref: '#/components/responses/error-response-forbidden'
+        '404':
+          $ref: '#/components/responses/error-response-not-found'
+        '429':
+          $ref: '#/components/responses/error-response-too-many-requests'
+        '500':
+          $ref: '#/components/responses/error-response-internal-server-error'
+        '503':
+          $ref: '#/components/responses/error-response-service-unavailable'
+      security:
+        - Client: []
+  /v1/projects/{projectId}/environments/{environmentId}/orders/{orderId}:
+    parameters:
+      - $ref: '#/components/parameters/projectId'
+      - $ref: '#/components/parameters/environmentId'
+      - $ref: '#/components/parameters/unityOrderId'
+    get:
+      summary: Get order status
+      description: |-
+        Retrieves the status of an order. Returns 404 if no information has been received from the payment provider about the purchase yet.
+      operationId: getOrder
+      tags:
+        - Payment provider
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/order-response'
+        '401':
+          $ref: '#/components/responses/error-response-unauthorized'
+        '403':
+          $ref: '#/components/responses/error-response-forbidden'
+        '404':
+          $ref: '#/components/responses/error-response-not-found'
+        '429':
+          $ref: '#/components/responses/error-response-too-many-requests'
+        '500':
+          $ref: '#/components/responses/error-response-internal-server-error'
+        '503':
+          $ref: '#/components/responses/error-response-service-unavailable'
+      security:
+        - Client: []
+    patch:
+      summary: Update an order
+      description: |-
+        Updates an order. Used to mark an order as fulfilled or cancelled.
+      operationId: updateOrder
+      tags:
+        - Payment provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/update-order-request'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/order-response'
+        '401':
+          $ref: '#/components/responses/error-response-unauthorized'
+        '403':
+          $ref: '#/components/responses/error-response-forbidden'
+        '404':
+          $ref: '#/components/responses/error-response-not-found'
+        '409':
+          $ref: '#/components/responses/error-response-order-invalid-state-transition'
+        '429':
+          $ref: '#/components/responses/error-response-too-many-requests'
+        '500':
+          $ref: '#/components/responses/error-response-internal-server-error'
+        '503':
+          $ref: '#/components/responses/error-response-service-unavailable'
+      security:
+        - Client: []
+  /v1/projects/{projectId}/catalog/store-overrides:
+    parameters:
+      - $ref: '#/components/parameters/projectId'
+    get:
+      summary: Resolve store-specific product ids to their Unity SKUs
+      description: |-
+        Reverse-lookup endpoint that resolves store-specific product ids
+        (Apple/Google/etc.) back to their Unity SKU and product type for the
+        caller's live release. Returned as a map keyed by store, then by
+        store-specific id; unmatched ids are omitted. When no storeOverrideId is
+        supplied, every store-specific id for the requested store is returned.
+
+        A single store-specific id is expected to map to exactly one Unity SKU
+        across the catalog. If multiple Unity SKUs (or multiple variants of the
+        same Unity SKU with different types) declare the same store-specific id
+        on the same store, only the first match is returned; later collisions
+        are skipped and logged server-side. Keep store-specific ids unique
+        across your catalog to avoid this.
+      operationId: lookupStoreOverrides
+      tags:
+        - Payment provider
+      parameters:
+        - name: storeOverrideId
+          in: query
+          description: Store-specific product id to resolve. Optional, may be supplied multiple times. When omitted, all store-specific ids for the given store are returned.
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          example: ['com.example.coins.100', 'gems_30_google']
+        - name: store
+          in: query
+          description: Case-insensitive store filter (e.g., 'apple', 'google', 'xbox', 'applemacos'). Only that store key appears in the response.
+          required: true
+          schema:
+            type: string
+          example: 'apple'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/store-override-lookup-response'
+        '400':
+          $ref: '#/components/responses/error-response-bad-request'
+        '401':
+          $ref: '#/components/responses/error-response-unauthorized'
+        '403':
+          $ref: '#/components/responses/error-response-forbidden'
+        '404':
+          $ref: '#/components/responses/error-response-not-found'
+        '429':
+          $ref: '#/components/responses/error-response-too-many-requests'
+        '500':
+          $ref: '#/components/responses/error-response-internal-server-error'
+        '503':
+          $ref: '#/components/responses/error-response-service-unavailable'
+      security:
+        - Client: []
+components:
+  schemas:
+    basic-error-response:
+      title: BasicErrorResponse
+      description: |
+        Referenced from - https://tools.ietf.org/html/rfc7807#page-3 Consumers MUST use the 'type' string as the primary identifier for the problem type; the 'title' string is advisory and included only for users who are not aware of the semantics of the URI and do not have the ability to discover them (for example, offline log analysis). Consumers SHOULD NOT automatically dereference the type URI. The "status" member, if present, is only advisory; it conveys the HTTP status code used for the convenience of the consumer. Generators MUST use the same status code in the actual HTTP response, to assure that generic HTTP software that does not understand this format still behaves correctly.  See Section 5 for further caveats regarding its use. Consumers can use the status member to determine what the original status code used by the generator was, in cases where it has been changed (for example, by an intermediary or cache), and when message bodies persist without HTTP information.  Generic HTTP software still uses the HTTP status code. The "detail" member, if present, should focus on helping the client correct the problem, rather than giving debugging information.
+      type: object
+      x-examples:
+        example-1:
+          type: problems/basic
+          title: service unavailable
+          status: 500
+          code: 1000
+          detail: service unavailable
+          details:
+            - health:
+                - service health ping failed
+      properties:
+        type:
+          type: string
+          description: 'A URI reference [RFC3986] that identifies the problem type. This specification encourages that, when dereferenced, it provide human-readable documentation for the problem type (for example, using HTML [W3C.REC-html5-20141028]). When this member is not present, its value is assumed to be "about:blank".'
+        title:
+          type: string
+          description: 'A short, human-readable summary of the problem type. It SHOULD NOT change from occurrence to occurrence of the problem, except for purposes of localization (for example, using proactive content negotiation; see [RFC7231], Section 3.4).'
+        status:
+          type: integer
+          description: 'The HTTP status code ([RFC7231], Section 6) generated by the origin server for this occurrence of the problem.'
+        code:
+          description: Service specific error code.
+          type: integer
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem.
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence of the problem. It may or may not yield further information if dereferenced.
+        details:
+          type: array
+          description: Machine readable service specific errors.
+          items:
+            type: object
+      required:
+        - type
+    validation-error-body:
+      title: ValidationErrorBody
+      type: object
+      properties:
+        field:
+          type: string
+        messages:
+          type: array
+          items:
+            type: string
+      required:
+        - field
+        - messages
+      description: Single error in the Validation Error Response.
+      x-examples: {}
+    validation-error-response:
+      title: ValidationErrorResponse
+      type: object
+      description: |
+        Validation error response when a value provided from the client does not pass validation on server.
+      x-examples:
+        Validation Error Example:
+          type: problems/validation
+          title: validation error
+          status: 400
+          code: 1009
+          detail: See 'errors' for specific validation errors
+          errors:
+            - field: name
+              messages:
+                - Only alphanumeric characters allowed
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        code:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/validation-error-body'
+      required:
+        - type
+        - title
+        - status
+        - code
+        - detail
+        - errors
+    update-order-request:
+      title: UpdateOrderRequest
+      type: object
+      description: Request body for updating an order
+      properties:
+        status:
+          type: string
+          enum: [fulfilled, cancelled, revoked]
+          description: >-
+            Updates the order status. Supported values are `fulfilled`, `cancelled`, and `revoked`. Only orders with `created` status can be marked as `cancelled`. Orders with `created` or `fulfilled` status can be marked as `revoked`. Once cancelled or revoked, an order cannot be changed to another status.
+          example: fulfilled
+      required:
+        - status
+    order-request:
+      title: OrderRequest
+      type: object
+      description: Request body for creating an order
+      properties:
+        player:
+          $ref: '#/components/schemas/player'
+        skus:
+          type: array
+          description: >-
+            Array of product SKUs. Currently must contain exactly one SKU. Deprecated in favour of `catalogListingIds`; still supported during the transition period. Provide either `skus` or `catalogListingIds`.
+          deprecated: true
+          items:
+            type: string
+            minLength: 1
+          minItems: 1
+          maxItems: 1
+          example: ['product-sku-123']
+        catalogListingIds:
+          type: array
+          description: >-
+            Array of catalog listing identifiers to purchase. Currently must contain exactly one identifier. Replaces `skus` because SKUs are not guaranteed to be unique. Each identifier is the Live Content config path of the catalog listing and typically looks like a relative file path. Provide either `skus` or `catalogListingIds`.
+          items:
+            type: string
+            minLength: 1
+          minItems: 1
+          maxItems: 1
+          example: ['endgame/gems-100.ucat']
+        currency:
+          type: string
+          description: >-
+            Currency code in ISO 4217 format. Required. If the requested currency is not configured for the product, the order falls back to USD pricing. If neither the requested currency nor USD is configured, the order is rejected.
+          pattern: '^[A-Z]{3}$'
+          example: 'USD'
+        country:
+          type: string
+          description: Country of purchase in ISO 3166-1 alpha-2 format. Used by payment providers that require a country-of-purchase signal (currently Codapay only); ignored by others. When omitted, the country is derived from the player's locale as a temporary backward-compatibility fallback for older SDK versions.
+          pattern: '^[A-Z]{2}$'
+          example: 'US'
+        paymentProvider:
+          type: string
+          description: Optional. Specify payment provider instead of using the default one configured for this project environment.
+          example: 'stripe'
+        uiMode:
+          type: string
+          default: hosted
+          description: >-
+            Optional. One of `hosted` or `embedded`. How the checkout is presented. `hosted` (default) returns a provider-hosted checkout page in `url`. `embedded` returns an `embeddedInfo` object (client secret, plus a publishable key for Stripe) for rendering an in-page form via the payment provider's JS SDK and leaves `url` empty. Only `stripe` supports `embedded`; other providers reject the request. In `embedded` mode the player is never redirected, so only payment methods that don't require a redirect are offered (cards, Apple Pay, Google Pay, Link).
+          example: 'embedded'
+        externalTransactionTokens:
+          type: array
+          description: >-
+            Optional external-link transaction tokens, used by developers to self-report the transaction to Apple/Google. Stored with the order and surfaced in order webhooks; not returned in the order response. Up to two tokens may be supplied because a single Apple external purchase can yield two distinct token types depending on the region — for example an `acquisition` token and a `linkOut` token.
+          maxItems: 2
+          items:
+            type: object
+            required: [store, token]
+            properties:
+              store:
+                type: string
+                enum: [apple, google]
+                description: The app store the token targets, determining where the transaction is reported.
+              token:
+                type: string
+                maxLength: 4096
+                description: The external purchase/transaction token, stored and forwarded opaquely.
+              type:
+                type: string
+                enum: [acquisition, services, linkOut]
+                description: Apple-only token category. Only valid when store is "apple"; omit for Google.
+        redirectUrls:
+          type: object
+          description: >-
+            Optional. Per-order override of the project's globally configured redirect URLs. When provided, `successUrl` is required and the object fully replaces the global config for this order; when omitted, the global config is used.
+          properties:
+            successUrl:
+              type: string
+              description: >-
+                Redirect target after a successful checkout. Must be an absolute https URL on the project's webshop host (e.g. `shop.unity.com`); other hosts are rejected.
+              maxLength: 2048
+              example: 'https://shop.unity.com/studio/game?status=success'
+            cancelUrl:
+              type: string
+              description: >-
+                Redirect target when the player cancels or abandons checkout. Applies to Stripe checkout only; ignored by providers without a cancel step. Must be on the project's webshop host.
+              maxLength: 2048
+              example: 'https://shop.unity.com/studio/game?status=cancelled'
+          required:
+            - successUrl
+        customReferenceId:
+          type: string
+          description: >-
+            Optional. A unique custom identifier that you can set to any value to help reconcile IAP Orders with your internal system. Stored with the order and returned in the order response and order webhooks.
+        linkOutSessionId:
+          type: string
+          format: uuid
+          description: Optional, internal. Link-out session ID, for use with webshops.
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: >-
+            Optional. Arbitrary key/value metadata stored with the order and returned in the order response and order webhooks.
+        deviceInfo:
+          $ref: '#/components/schemas/device-info'
+      required:
+        - player
+        - currency
+    player:
+      title: Player
+      type: object
+      description: Player information for creating an order
+      properties:
+        playerId:
+          type: string
+          description: Unity Player ID (automatically set from authentication token, should not be provided in request)
+          readOnly: true
+        displayName:
+          type: string
+          description: Player's display name
+        locale:
+          type: string
+          description: Player's locale in BCP 47 format
+          example: en-US
+        identity:
+          $ref: '#/components/schemas/player-identity'
+      required:
+        - locale
+        - identity
+    player-identity:
+      title: PlayerIdentity
+      type: object
+      description: Player identity information. The identity object is required but can be empty.
+      properties:
+        unity.impression_id:
+          type: string
+          description: Impression ID
+        unity.installation_id:
+          type: string
+          description: Unity installation ID
+        unity.fid:
+          type: string
+          description: Unity FID
+        unity.gaid:
+          type: string
+          description: Google Advertising ID
+        unity.gappid:
+          type: string
+          description: >-
+            Google App ID (same value as the Firebase app ID). Declared in the
+            contract but not currently populated by the SDK, so this is always
+            empty in practice; use unity.firebase_app_id for the Firebase app ID.
+        unity.idfa:
+          type: string
+          description: iOS Identifier for Advertisers
+        unity.idfv:
+          type: string
+          description: iOS Identifier for Vendors
+        unity.mega_session_id:
+          type: string
+          description: Unity mega session ID
+        session.id:
+          type: string
+          description: Session ID
+        unity.consent_state.ads_intent:
+          type: string
+          description: User consent for ads
+        unity.consent_state.analytics_intent:
+          type: string
+          description: User consent for analytics
+        unity.analytics_id:
+          type: string
+          description: UA2 Analytics ID
+        unity.app_instance_id:
+          type: string
+          description: Firebase ID
+        unity.firebase_session_id:
+          type: string
+          description: Firebase session ID
+        unity.firebase_app_id:
+          type: string
+          description: Firebase app ID (from google-services.json, set in the Firebase console)
+        unity.iap_sdk_version:
+          type: string
+          description: IAP SDK version
+        unity.engine_version:
+          type: string
+          description: Unity Engine version
+        unity.application_version:
+          type: string
+          description: Developer-set application/build version of the game (e.g. semver)
+        unity.user_id:
+          type: string
+          description: Unity user identifier provided by the Game Developer
+        unity.installation_timestamp:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp of when the game was installed on the player's device
+      additionalProperties:
+        type: string
+      example:
+        unity.installation_id: 'abc123'
+        session.id: 'xyz789'
+    payment-providers-response:
+      title: PaymentProvidersResponse
+      type: object
+      description: |-
+        List of configured payment provider identifiers the calling player is eligible for, listed in priority order, highest
+        first. The list may be empty when no provider is eligible.
+      required:
+        - providers
+        - paymentOptionsPopupEnabled
+      properties:
+        providers:
+          type: array
+          description: Ordered, deduplicated list of configured payment provider identifiers eligible for the calling player.
+          items:
+            type: string
+            example: stripe
+        paymentOptionsPopupEnabled:
+          type: boolean
+          description: Indicates whether the client should display the payment options popup (interstitial) before initiating checkout.
+    device-info:
+      title: DeviceInfo
+      type: object
+      description: Device information provided by the IAP SDK for analytics enrichment.
+      properties:
+        language:
+          type: string
+          description: System language of the device (BCP 47 format).
+          example: 'en-US'
+        platform:
+          type: string
+          description: Platform the game is running on (e.g. `ios`, `android`).
+          example: 'ios'
+        localeList:
+          type: array
+          description: Ordered list of locales configured on the device.
+          items:
+            type: string
+          example: ['en-US', 'es-US']
+        deviceModel:
+          type: string
+          description: Device model identifier.
+          example: 'iPhone13,3'
+        systemBootTime:
+          type: integer
+          format: int64
+          description: Unix timestamp (seconds) of the last system boot.
+          example: 1778138688
+        osVersion:
+          type: string
+          description: Operating system version.
+          example: '17.0'
+        appBundleId:
+          type: string
+          description: Application bundle identifier.
+          example: 'com.example.game'
+        totalSpace:
+          type: integer
+          format: int64
+          description: Total device storage in bytes.
+          example: 256000000000
+    link-out-session-register-request:
+      title: LinkOutSessionRegisterRequest
+      type: object
+      required:
+        - identity
+      properties:
+        identity:
+          $ref: '#/components/schemas/player-identity'
+        deviceInfo:
+          $ref: '#/components/schemas/device-info'
+    link-out-session-register-response:
+      title: LinkOutSessionRegisterResponse
+      type: object
+      properties:
+        linkOutSessionId:
+          type: string
+          format: uuid
+          description: Backend-minted opaque key the webshop relays at order-create.
+          example: 7f3d8c2a-1b4e-4c6a-9d2f-7a1b2c3d4e5f
+    order-response:
+      title: OrderResponse
+      type: object
+      description: >-
+        Response containing the order. Read `uiMode` first to know how to present checkout: `hosted` populates `url`; `embedded` populates `embeddedInfo` (the credentials to render the in-page form) and leaves `url` empty.
+      required:
+        - id
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: the UUID of the order object
+        projectId:
+          type: string
+          format: uuid
+          description: the project ID.
+        environmentId:
+          type: string
+          format: uuid
+          description: the environment ID.
+        playerId:
+          type: string
+          description: the player ID.
+        paymentProvider:
+          type: string
+          description: the payment provider
+          example: stripe
+        paymentProviderResourceId:
+          type: string
+          description: the payment provider resource Id. For example the order session id with stripe.
+        url:
+          type: string
+          description: The URL used to complete the order on the payment provider's hosted page. Empty string when `uiMode` is `embedded` (use `embeddedInfo` instead).
+          example: 'https://example-webshop.com/products/sku123?session=...'
+        uiMode:
+          type: string
+          description: One of `hosted` or `embedded`. How the checkout is presented. `hosted` populates `url`; `embedded` populates `embeddedInfo`.
+          example: 'hosted'
+        embeddedInfo:
+          type: object
+          description: >-
+            Transient credentials for rendering the in-page (embedded) checkout via the payment provider's JS SDK. Present only when `uiMode` is `embedded`, and only on the create-order response — it is not persisted and not returned by other endpoints.
+          required:
+            - clientSecret
+          properties:
+            clientSecret:
+              type: string
+              description: Embedded form token used to initialize the provider's JS SDK.
+              example: 'cs_test_..._secret'
+            publishableKey:
+              type: string
+              description: >-
+                The connected account's public client key (Stripe `pk_`), used together with `clientSecret` to initialize the JS SDK. Present for providers that require a public client key (Stripe); omitted for providers that mount with the client secret alone (Coda).
+              example: 'pk_test_...'
+        lineItems:
+          type: array
+          description: line items to be purchased with the order.
+          items:
+            type: object
+            properties:
+              sku: {$ref: '#/components/schemas/uSku'}
+              catalogListingId:
+                type: string
+                description: >-
+                  Live Content config path of the catalog listing this line item resolves to. Present whenever the product comes from the current (per-listing) catalog — for orders created via either `catalogListingIds` or `skus`. Omitted for legacy-catalog products and orders created before this field existed.
+                example: 'endgame/gems-100.ucat'
+              productType:
+                type: string
+                description: Type of the product.
+                example: 'consumable'
+        status:
+          type: string
+          description: |
+            Status of the order. Possible values:
+            - `created`: Order has been created.
+            - `paid`: Payment has been received and the payment provider has informed us.
+            - `fulfilled`: Order has been fulfilled and rewarded.
+            - `cancelled`: Order has been cancelled.
+            - `expired`: Payment provider checkout session reached its terminal unpaid state (e.g. Stripe `checkout.session.expired`, or a non-success Codapay result code). Can transition back to `paid` if the provider settles the payment late.
+            - `revoked`: Order has been revoked.
+        fulfilledAt:
+          type: string
+          nullable: true
+          format: date-time
+          description: Date time in ISO 8601 format. `null` if the order has not been fulfilled.
+          example: '2020-04-01T13:07:23Z'
+        revokedAt:
+          type: string
+          nullable: true
+          format: date-time
+          description: Date time in ISO 8601 format. `null` if the order has not been revoked.
+          example: '2020-04-01T13:07:23Z'
+        customReferenceId:
+          type: string
+          nullable: true
+          description: |
+            Optional. A unique custom identifier that you can set to any value to help reconcile IAP Orders with
+            your internal system.
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional metadata about the player
+        createdAt:
+          type: string
+          format: date-time
+          description: Date and time at which the Order has been created. ISO 8601 format.
+          example: '2020-04-01T13:07:23Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last Date and time at which the Order has been updated. ISO 8601 format.
+          example: '2020-04-01T13:07:23Z'
+    uSku:
+      type: string
+      description: Unity SKU identifier
+      example: 'product-123'
+    store-override-match:
+      title: StoreOverrideMatch
+      type: object
+      description: A single resolution of a store-specific id to its Unity SKU and product type.
+      properties:
+        uSku:
+          type: string
+          description: Unity SKU identifier
+          example: '100_coins'
+        type:
+          type: string
+          description: Product type (e.g., 'Consumable', 'NonConsumable')
+          example: 'Consumable'
+      required:
+        - uSku
+        - type
+    store-override-lookup-response:
+      title: StoreOverrideLookupResponse
+      type: object
+      description: |-
+        Nested map of resolved store overrides. The outer key is the
+        lower-cased store identifier; the inner key is the store-specific id
+        from the request; the value is the matching Unity SKU + type.
+      additionalProperties:
+        type: object
+        description: Map of store-specific id to its matching Unity SKU for one store.
+        additionalProperties:
+          $ref: '#/components/schemas/store-override-match'
+      example:
+        google:
+          '30_GEMS_GOOGLE':
+            uSku: 'gems_30'
+            type: 'Consumable'
+        apple:
+          '30_GEMS_APPLE':
+            uSku: 'gems_30'
+            type: 'Consumable'
+        xbox:
+          '30_GEMS_XBOX':
+            uSku: 'gems_30'
+            type: 'Consumable'
+        applemacos:
+          '30_GEMS_MACOS':
+            uSku: 'gems_30'
+            type: 'Consumable'
+  responses:
+    error-response-unauthorized:
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/basic-error-response'
+    error-response-bad-request:
+      description: |-
+        Bad Request. Returned code indicates one of:
+          - Request parameter validation failure
+          - Other
+        See the response schema for more details
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/basic-error-response'
+              - $ref: '#/components/schemas/validation-error-response'
+            discriminator:
+              propertyName: type
+              mapping:
+                'problems/basic': '#/components/schemas/basic-error-response'
+                'problems/validation': '#/components/schemas/validation-error-response'
+    error-response-forbidden:
+      description: Forbidden
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/basic-error-response'
+    error-response-not-found:
+      description: Not Found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/basic-error-response'
+    error-response-service-unavailable:
+      description: Service Unavailable
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/basic-error-response'
+    error-response-too-many-requests:
+      description: Too Many Requests
+      headers:
+        Retry-After:
+          schema:
+            type: number
+          description: The number of seconds until a request is accepted.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/basic-error-response'
+    error-response-order-already-entitled:
+      description: Conflict. The player is already entitled to the item being purchased.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/basic-error-response'
+    error-response-order-invalid-state-transition:
+      description: |-
+        Conflict. The order is not in a state that allows the requested status change.
+        For example, only orders with 'created' status can be marked as 'cancelled'.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/basic-error-response'
+    error-response-unprocessable-entity:
+      description: Unprocessable Entity
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/basic-error-response'
+    error-response-internal-server-error:
+      description: Internal Server Error
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/basic-error-response'
+  parameters:
+    projectId:
+      name: projectId
+      in: path
+      description: ID of the Unity project.
+      required: true
+      schema:
+        type: string
+    environmentId:
+      name: environmentId
+      in: path
+      description: ID of the Unity environment.
+      required: true
+      schema:
+        type: string
+    unityOrderId:
+      name: orderId
+      in: path
+      description: ID of the Unity order.
+      required: true
+      schema:
+        type: string
+  securitySchemes:
+    Client:
+      type: http
+      scheme: bearer
+      description: |-
+        To get started with Authentication, please visit the [Client Authentication section](https://services.docs.unity.com/docs/client-auth).

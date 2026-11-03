@@ -23,17 +23,18 @@ public sealed class RtsOrderVisual : MonoBehaviour
         var visual=new GameObject("Attack target").AddComponent<RtsOrderVisual>();visual.crew=members.ToList();visual.attackTarget=target;
         visual.transform.position=target.transform.position;Pin(visual.transform,target.transform.position,"ATTACK",LandscapeUI.Gold);
     }
-    public static void Scout(Vector3 point,IEnumerable<AgentController> members)
+    public static int Scout(Vector3 point,IEnumerable<AgentController> members)
     {
-        var accepted=members.Where(a=>a&&a.TryCommandMoveTo(point)).ToList();if(accepted.Count==0)return;
+        var accepted=members.Where(a=>a&&a.TryCommandMoveTo(point)).ToList();if(accepted.Count==0)return 0;
         var visual=new GameObject("Scout objective").AddComponent<RtsOrderVisual>();visual.crew=accepted;visual.scouting=true;visual.destination=point;
         Pin(visual.transform,point,"SCOUT",Color.cyan);
         CityGameplay.Instance?.PostEvent("SCOUT · reach the marker for local intel");
+        return accepted.Count;
     }
     public static GameObject Pin(Transform parent,Vector3 point,string label,Color colour)
     {
         var pin=new GameObject(label+" marker");pin.transform.SetParent(parent);pin.transform.position=point;
-        var ring=ZoneVolumeFactory.BuildFlatCircle(pin.transform,"Boundary",2.3f,.2f,colour,true,24);
+        ZoneVolumeFactory.BuildFlatCircle(pin.transform,"Boundary",1.4f,.14f,colour,true,4);
         var pole=GameObject.CreatePrimitive(PrimitiveType.Cylinder);pole.transform.SetParent(pin.transform,false);pole.transform.localPosition=Vector3.up*1.2f;pole.transform.localScale=new Vector3(.2f,1.2f,.2f);
         Destroy(pole.GetComponent<Collider>());
         var shader=Shader.Find("Universal Render Pipeline/Unlit");var material=new Material(shader){color=colour};pole.GetComponent<Renderer>().sharedMaterial=material;

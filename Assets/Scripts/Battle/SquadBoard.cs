@@ -11,6 +11,8 @@ public sealed class SquadBoard : MonoBehaviour
     RectTransform _list;
     string _tab = "active";
     bool _ward;
+    public bool IsOpen=>_root&&_root.activeInHierarchy;
+    public void Close(){if(_root)_root.SetActive(false);}
 
     void Awake()
     {
@@ -26,6 +28,7 @@ public sealed class SquadBoard : MonoBehaviour
         var hud = FindFirstObjectByType<LandscapeBattleHUD>();
         if (!hud || !hud.frame) return;
         if (!_root) Build(hud.frame);
+        CityUiSheets.Open(this,Close);
         _root.SetActive(true);
         _root.transform.SetAsLastSibling();
         Refresh();

@@ -14,6 +14,14 @@ public enum CityOperationType
     ObservePolice, PrepareTransport, FirstAid, PrepareStadium
 }
 
+[Serializable]
+public sealed class CityResourceState
+{
+    public int mission,intel,supplies,tickets,social;
+    public bool transport,stadium;
+    public List<string> completed;
+}
+
 /// <summary>Persistent resource rules for the non-combat live-city RTS loop.</summary>
 public static class CityOperationsLedger
 {
@@ -24,11 +32,33 @@ public static class CityOperationsLedger
         if(d==null)return;
         CampaignMissions.Ensure(d);
         if(d.CompletedCityOperations==null)d.CompletedCityOperations=new List<string>();
-        if(d.CampaignResourceMission==d.CurrentLevel)return;
-        d.CampaignResourceMission=d.CurrentLevel;
+        d.CityResourceStates??=new List<CityResourceState>();
+        int context=CampaignMissions.ContextMission(d);
+        if(d.CampaignResourceMission==context)return;
+        if(d.CampaignResourceMission>0)
+        {
+            var previous=d.CityResourceStates.Find(s=>s!=null&&s.mission==d.CampaignResourceMission);
+            if(previous==null){previous=new CityResourceState{mission=d.CampaignResourceMission};d.CityResourceStates.Add(previous);}
+            previous.intel=d.CityIntel;previous.supplies=d.CitySupplies;previous.tickets=d.MatchTickets;previous.social=d.SocialMomentum;
+            previous.transport=d.TransportPrepared;previous.stadium=d.StadiumAccessPrepared;
+            previous.completed=new List<string>(d.CompletedCityOperations);
+        }
+        d.CampaignResourceMission=context;
         d.OperationsMatchday=d.MatchDay;
+        var saved=d.CityResourceStates.Find(s=>s!=null&&s.mission==context);
+        if(saved!=null)
+        {
+            d.CityIntel=saved.intel;d.CitySupplies=saved.supplies;d.MatchTickets=saved.tickets;d.SocialMomentum=saved.social;
+            d.TransportPrepared=saved.transport;d.StadiumAccessPrepared=saved.stadium;
+            d.CompletedCityOperations=new List<string>(saved.completed??new List<string>());
+            return;
+        }
         d.CityIntel=0;d.CitySupplies=0;d.MatchTickets=0;d.SocialMomentum=0;
         d.TransportPrepared=false;d.StadiumAccessPrepared=false;
+        // A legacy completed Home must not become an impossible preparation
+        // loop just because its old save has no per-district resource snapshot.
+        if(context==1&&(d.CurrentLevel>1||d.CompletedCampaignMissions.Contains(1)))
+        {d.TransportPrepared=true;d.StadiumAccessPrepared=true;}
         d.CompletedCityOperations.Clear();
         if(d.RecruitedAgents!=null)
             for(int i=0;i<d.RecruitedAgents.Count;i++)
@@ -113,7 +143,7 @@ public sealed class CityOperationsSystem : MonoBehaviour
         if(Instance==null||!agent)return null;
         foreach(var node in Instance.nodes)
             if(node&&node.Includes(agent))return node.Title;
-        return null;
+        return CityBusinessSystem.AssignmentFor(agent);
     }
     public string ResourceSummary=>CityOperationsLedger.Resources(GameManager.Data);
     public bool IsBoardOpen=>panel&&panel.activeInHierarchy;
@@ -135,6 +165,9 @@ public sealed class CityOperationsSystem : MonoBehaviour
         if(frame||!root)return;frame=root;
         boardButton=LandscapeUI.Button("CityOperations",frame,"OPERATIONS",478,18,150,50,"dark");
         boardButton.onClick.AddListener(OpenBoard);
+        // CityMissionHUD exposes this through MANAGE. This widget is created
+        // after the HUD, so hiding old navigation during HUD construction was too early.
+        if(CityGameplay.Instance)boardButton.gameObject.SetActive(false);
         Sprite opIcon=null; // Text-only navigation: preserve width for the button title.
         if(opIcon)
         {
@@ -238,16 +271,7 @@ public sealed class CityOperationsSystem : MonoBehaviour
         var selected=AgentSelectionManager.instance?.SelectedAgents
             .Where(a=>a&&a.IsAlive&&!a.IsActivityLocked&&a.Data!=null&&a.Data.Stamina>=node.StaminaCost)
             .ToArray()??Array.Empty<AgentController>();
-        if(selected.Length==0)
-        {
-            var fallback=BattleManager.instance?.PlayerAgents
-                .Where(a=>a&&a.IsAlive&&!a.IsActivityLocked&&!a.IsOnAssignment&&a.Data!=null&&a.Data.Stamina>=node.StaminaCost)
-                .OrderByDescending(a=>RoleMatches(a.Data.ManagementRole,node.RecommendedRole))
-                .ThenBy(a=>Horizontal(a.transform.position,node.transform.position)).FirstOrDefault();
-            if(fallback){AgentSelectionManager.instance?.DeselectAll();AgentSelectionManager.instance?.Select(fallback);selected=new[]{fallback};}
-        }
-        if(selected.Length==0)
-        {Feedback("NO RESTED MEMBER AVAILABLE FOR "+node.Title);return;}
+        if(selected.Length==0){Feedback("Select the rested crew you want to assign. Existing groups keep their orders.");return;}
         if(selected.Any(a=>Horizontal(a.transform.position,node.transform.position)>10f))
         {
             node.Queue(selected);
@@ -324,7 +348,7 @@ public sealed class CityOperationsSystem : MonoBehaviour
         CameraPanTouchOnly.Instance?.FocusOn(node.transform.position);
     }
 
-    public void OpenBoard(){if(!panel)return;panel.SetActive(true);panel.transform.SetAsLastSibling();RefreshBoard();}
+    public void OpenBoard(){if(!panel)return;CityUiSheets.Open(this,CloseBoard);panel.SetActive(true);panel.transform.SetAsLastSibling();RefreshBoard();}
     public void CloseBoard(){if(panel)panel.SetActive(false);}
 
 #if UNITY_EDITOR

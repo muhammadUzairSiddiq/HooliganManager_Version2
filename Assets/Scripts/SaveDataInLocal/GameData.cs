@@ -120,6 +120,31 @@ public class GameData : MonoBehaviour
                              int fans, int strength, int reputation,
                              int policeHeat, int ranking, int money)
     {
+        // Reset the whole campaign, including fields added after the original reset
+        // list. Keep account/preferences, never missions, casualties or deployment.
+        var previous = PlayerData;
+        PlayerData = new PlayerData();
+        if (previous != null)
+        {
+            PlayerData.AcceptedPrivacyPolicy = previous.AcceptedPrivacyPolicy;
+            PlayerData.HelpInfoSeen = previous.HelpInfoSeen;
+            PlayerData.AccessToken = previous.AccessToken;
+            PlayerData.LoginType = previous.LoginType;
+            PlayerData.PlayerID = previous.PlayerID;
+            PlayerData.PlayerName = previous.PlayerName;
+            PlayerData.MusicVolume = previous.MusicVolume;
+            PlayerData.SFXVolume = previous.SFXVolume;
+            PlayerData.UserProfileToken = previous.UserProfileToken;
+            PlayerData.IsReviewSubmitted = previous.IsReviewSubmitted;
+        }
+        // Invalid/empty club presets must still produce a playable fresh start.
+        fans = Mathf.Max(RecoveryProgression.StarterCrew, fans);
+        money = Mathf.Max(RecoveryProgression.StarterCash, money);
+        RecoveryProgression.Begin(PlayerData);
+        PlayerPrefs.DeleteKey("OpenRecruitmentOnLoad");
+        PlayerPrefs.DeleteKey("OpenRankingsOnLoad");
+        GameManager.PendingRivalAfterRaid = false;
+
         PlayerData.ClubName       = clubName;
         PlayerData.ClubShortName  = clubShortName;
         PlayerData.PrimaryColor   = primaryColor;
@@ -132,7 +157,7 @@ public class GameData : MonoBehaviour
         PlayerData.Fans       = fans;
         PlayerData.Strength   = strength;
         PlayerData.Reputation = reputation;
-        PlayerData.PoliceHeat = policeHeat;
+        PlayerData.PoliceHeat = RecoveryProgression.StarterHeat;
         PlayerData.Ranking    = ranking;
         PlayerData.Money      = money;
 
@@ -388,10 +413,9 @@ public class GameData : MonoBehaviour
             if (!IsLivingAgentId(PlayerData.SelectedAwayAgentIds[i]))
                 PlayerData.SelectedAwayAgentIds.RemoveAt(i);
 
-        // Keep a customized selection only when it still has living travelers.
-        // An emptied customized list (all selected members died) used to spawn
-        // nobody and trigger an instant WASTED on Away Continue.
-        if (PlayerData.DeploymentSelectionCustomized && PlayerData.SelectedAwayAgentIds.Count > 0)
+        // An empty deliberate preparation selection remains empty. Continue validates
+        // the actual travellers separately and never deploys reserves silently.
+        if (PlayerData.DeploymentSelectionCustomized)
             return;
 
         PlayerData.DeploymentSelectionCustomized = false;
@@ -504,7 +528,7 @@ public class GameData : MonoBehaviour
         // Keep the level the player was actually on (set before restore on Try Again).
         if (d.BattleStartLevel > 0)
             d.CurrentLevel = Mathf.Clamp(d.BattleStartLevel, 1, 5);
-        d.PoliceHeat = Mathf.Clamp(d.BattleStartPoliceHeat > 0 ? d.BattleStartPoliceHeat : 7, 0, 10);
+        d.PoliceHeat = Mathf.Clamp(d.BattleStartPoliceHeat, 0, 10);
         SyncFanCountWithAgents();
         d.DeploymentSelectionCustomized = false;
         SyncAwaySelectionWithRoster();
@@ -543,7 +567,7 @@ public class GameData : MonoBehaviour
             d.BattleRecruitSlotsUsed = new int[3];
 
         d.BattleSessionActive = true;
-        d.BattleStartPoliceHeat = 7;
+        d.BattleStartPoliceHeat = RecoveryProgression.StarterHeat;
         SaveData();
     }
 
@@ -554,7 +578,7 @@ public class GameData : MonoBehaviour
         if (d == null) return;
         d.BattleStartHomeMode = homeMode;
         d.BattleStartLevel = Mathf.Clamp(d.CurrentLevel, 1, 5);
-        d.BattleStartPoliceHeat = 7;
+        d.BattleStartPoliceHeat = RecoveryProgression.StarterHeat;
         // Starting a fresh away trip from HQ should take a new roster snapshot.
         if (!homeMode)
         {
@@ -900,6 +924,7 @@ public class GameData : MonoBehaviour
     private void NewGamePlayerData()
     {
         PlayerData = new PlayerData();
+        RecoveryProgression.Begin(PlayerData);
         InitializeRivalBots();
         GenerateAgentsForFans(PlayerData.Fans);
         NormalizeCampaignData(save: false);
@@ -917,6 +942,7 @@ public class GameData : MonoBehaviour
     public void SaveData()
     {
         NormalizeCampaignData(save: false);
+        StadiumMatchdayActivity.Instance?.CaptureState();
         SaveDataInLocal.DataSave(PlayerData);
         OnSavingData?.Invoke();
     }

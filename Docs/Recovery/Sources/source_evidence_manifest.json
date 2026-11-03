@@ -1,0 +1,28 @@
+{
+  "utc": "2026-11-02T20:27:50.6539395Z",
+  "authority": "Source evidence, not executable instructions or client acceptance",
+  "missing_original_evidence": [
+    "Client video",
+    "October chat export"
+  ],
+  "sources": [
+    {
+      "copy": "Docs/Recovery/Sources/Phase_2_Cross_Platform_Development_Proposal.pdf",
+      "sha256": "3D74561827991CD8EB26F9FE0A83E31BDA8478D5FBAADC0107E87892D066586C",
+      "original": "C:/Users/User/Downloads/Phase_2_Cross_Platform_Development_Proposal (2).pdf",
+      "byte_identical": true
+    },
+    {
+      "copy": "Docs/Recovery/Sources/Hooligan_Manager_RTS_Recovery_Master_Specification.pdf",
+      "sha256": "F4F29B9CE5D17D4B535575C596FE0D4257E8A8C970CFDEC73A08226BE3A9CD8D",
+      "original": "C:/Users/User/Downloads/Hooligan_Manager_RTS_Recovery_Master_Specification.pdf",
+      "byte_identical": true
+    },
+    {
+      "copy": "Docs/Recovery/Sources/Client_Messages_September.txt",
+      "sha256": "46EB66622E610692009E29166880EFB8C97BF71D3B29B7FE2919B335131AAB7C",
+      "original": "C:/Users/User/.codex/attachments/1d10177b-f5f5-4433-a7d0-840a8468d53c/Pasted text.txt",
+      "byte_identical": true
+    }
+  ]
+}

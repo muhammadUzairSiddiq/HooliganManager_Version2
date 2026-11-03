@@ -1,0 +1,7 @@
+Result: Succeeded
+Errors: 0
+Warnings: 37
+Bytes: 1336332669
+Duration: 00:21:46.5549734
+UTC: 2026-11-01T19:36:02.0224363Z
+Physical device validation: not performed

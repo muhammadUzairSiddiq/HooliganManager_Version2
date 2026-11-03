@@ -44,11 +44,13 @@ public class AgentSelectionManager : MonoBehaviour
     private bool _touchDragged, _touchStartedOnUI;
     private int _fingersDown;
 
-    public enum TargetCommand { Move, Attack, Guard, Patrol }
+    public enum TargetCommand { Move, Attack, Guard, Patrol, Scout }
     public TargetCommand PendingCommand { get; private set; }
+    public int LastAcceptedOrderCount {get;private set;}
     int _ignoreWorldTapFrame = -1;
     public bool IsMoveCommandArmed => PendingCommand == TargetCommand.Move;
     readonly List<RaycastResult> _uiHits = new List<RaycastResult>();
+    bool automaticSelection;
     PointerEventData _pointerData;
     EventSystem _pointerEventSystem;
 
@@ -61,10 +63,16 @@ public class AgentSelectionManager : MonoBehaviour
     {
         if (instance && Time.frameCount == instance._ignoreWorldTapFrame) return true;
         if (Time.timeScale == 0f || LiveMiniMap.IsExpanded) return true;
+        if(PoliceCityMode.Instance&&PoliceCityMode.Instance.IsDispatchOpen)return true;
+        if (ModernCityHud.Instance && (ModernCityHud.Instance.SheetOpen || ModernCityHud.Instance.OrdersOpen)) return true;
         if (GamePopup.AnyOpen || RecruitPackagePanel.AnyOpen || RecruitDialogBox.AnyOpen) return true;
         if (CityMissionHUD.MissionOpen || (CityDevelopmentSystem.Instance && CityDevelopmentSystem.Instance.IsOpen)) return true;
         if (NpcConversationUI.Instance && NpcConversationUI.Instance.IsConversationOpen) return true;
         if (CityOperationsSystem.Instance && CityOperationsSystem.Instance.IsBoardOpen) return true;
+        if (CityBusinessSystem.Instance && CityBusinessSystem.Instance.IsOpen) return true;
+        if(CityCommerceSystem.Instance&&CityCommerceSystem.Instance.IsOpen)return true;
+        if (MatchdayStrategySystem.Instance && MatchdayStrategySystem.Instance.IsOpen) return true;
+        if (SquadBoard.Instance && SquadBoard.Instance.IsOpen) return true;
         return false;
     }
 
@@ -160,6 +168,7 @@ public class AgentSelectionManager : MonoBehaviour
     public void HandleTap(Vector2 screenPos)
     {
         if (!_cam || BlocksWorldTap() || IsPointerOverUI(screenPos)) return;
+        if(PolicePatrolVehicle.TryHandleTap(screenPos))return;
 
         // 3D raycast from camera through tap point
         Ray ray = _cam.ScreenPointToRay(screenPos);
@@ -200,6 +209,8 @@ public class AgentSelectionManager : MonoBehaviour
                 operationHit.OpenInteraction();
                 return;
             }
+            var homePlot=hitInfo.collider.GetComponentInParent<HomePlotInteraction>();
+            if(homePlot){homePlot.Open();return;}
         }
         
         // ── 1. Check if we hit an Agent (Player or Enemy) ──
@@ -243,7 +254,7 @@ public class AgentSelectionManager : MonoBehaviour
                 }
                 if (!enemy.isHostile)
                 {
-                    NotifyCommand("SELECT THE CREW, THEN TAP THE YELLOW MARKER");
+                    NotifyCommand("NEUTRAL POLICE PATROL - KEEP MOVING. IF OFFICERS STOP YOUR CREW, RESPOND TO THEIR LOCAL CHOICE.");
                 }
                 else
                 {
@@ -264,6 +275,8 @@ public class AgentSelectionManager : MonoBehaviour
         }
 
         // ── 2. Tapped empty space (Ground movement) ──
+        if(CityCommerceSystem.TryHandleTap(screenPos))return;
+        if(RtsBuildingVisibility.Instance&&RtsBuildingVisibility.Instance.TryRevealAt(screenPos))return;
         Vector3 groundPoint = Vector3.zero;
         bool groundHit = false;
 
@@ -319,6 +332,7 @@ public class AgentSelectionManager : MonoBehaviour
             agent.SetSelected(true);
         }
         LastPicked = agent;
+        if (!automaticSelection&&RecoveryProgression.RecordSelection(GameManager.Data, _selected.Count)) GameManager.Save();
         NotifyUI();
     }
 
@@ -327,6 +341,7 @@ public class AgentSelectionManager : MonoBehaviour
         if (!_selected.Remove(agent)) return;
         if (agent) agent.SetSelected(false);
         if (_selected.Count == 0) PendingCommand = TargetCommand.Move;
+        if (RecoveryProgression.RecordSelection(GameManager.Data, _selected.Count, true)) GameManager.Save();
         NotifyUI();
     }
 
@@ -339,13 +354,17 @@ public class AgentSelectionManager : MonoBehaviour
     }
 
     /// <summary>Select all currently alive player agents.</summary>
-    public void SelectAll()
+    public void SelectAll()=>SelectAll(true);
+    public void SelectAll(bool learn)
     {
-        DeselectAll();
-        if (BattleManager.instance == null) return;
-        foreach (var a in BattleManager.instance.PlayerAgents)
-            if (a != null && a.IsAlive)
-                Select(a);
+        automaticSelection=!learn;
+        try
+        {
+            DeselectAll();
+            if (BattleManager.instance == null) return;
+            foreach (var a in BattleManager.instance.PlayerAgents)if(a&&a.IsAlive)Select(a);
+        }
+        finally{automaticSelection=false;}
     }
 
     // ── Commands — forwarded to all selected agents ───────────────────────
@@ -372,19 +391,24 @@ public class AgentSelectionManager : MonoBehaviour
     public void CommandSelectedRetreat()
     {
         if (_selected.Count == 0) { NotifyCommand("SELECT A CREW MEMBER FIRST"); return; }
+        CancelTargeting();
         bool safeTransport = GameManager.Data != null && GameManager.Data.TransportPrepared;
+        int accepted=0;
         foreach (var a in _selected)
             if (a != null && a.IsAlive)
             {
                 // The city-management layer directly affects the tactical layer:
                 // a prepared transport route gives retreating members a short speed window.
                 if (safeTransport) a.ApplyTemporaryBoost(BoostType.Speed, .30f, 12f);
-                a.CommandRetreat();
+                if(a.TryCommandRetreat())accepted++;
             }
+        LastAcceptedOrderCount=accepted;
+        if(accepted==0){NotifyCommand("REGROUP BLOCKED - no selected crew has a complete route to base");return;}
         var retreat = BattleManager.instance != null && BattleManager.instance.retreatPoint
             ? BattleManager.instance.retreatPoint.position : Vector3.zero;
+        if(PoliceCityMode.Active&&PoliceCityMode.Instance)retreat=PoliceCityMode.Instance.Station;
         CreateCommandMarker(retreat, new Color(.20f, .60f, 1f, .95f), "RETREAT");
-        NotifyCommand(safeTransport ? "SAFE TRANSPORT ROUTE ACTIVE - RETREAT SPEED +30%" :
+        NotifyCommand(PoliceCityMode.Active?"REGROUPING AT POLICE STATION":safeTransport ? "SAFE TRANSPORT ROUTE ACTIVE - RETREAT SPEED +30%" :
             CityGameplay.HomeMode ? "REGROUPING AT HEADQUARTERS" : "RETREAT ORDER CONFIRMED");
     }
 
@@ -396,10 +420,17 @@ public class AgentSelectionManager : MonoBehaviour
 
     public void CommandSelectedGround(Vector3 worldPoint)
     {
+        LastAcceptedOrderCount=0;
         if (PendingCommand == TargetCommand.Attack) { NotifyCommand("TAP A RIVAL GROUP TO ATTACK"); return; }
         if (_selected.Count == 0) { NotifyCommand("SELECT A CREW MEMBER FIRST"); return; }
         int accepted = 0;
+        string blockedReason="crew busy or destination unreachable";
         string label = PendingCommand.ToString().ToUpperInvariant();
+        if(PendingCommand==TargetCommand.Scout)
+        {
+            LastAcceptedOrderCount=RtsOrderVisual.Scout(worldPoint,_selected);PendingCommand=TargetCommand.Move;
+            NotifyCommand(LastAcceptedOrderCount>0?$"SCOUT CONFIRMED: {LastAcceptedOrderCount} crew. Reach the marker to gain local intel.":"SCOUT BLOCKED - no available selected crew has a complete route");return;
+        }
         // Use a roomy two-row formation so affiliation rings remain distinct.
         const float spacing = 3.2f;
         int columns = Mathf.Min(4, Mathf.CeilToInt(Mathf.Sqrt(_selected.Count)));
@@ -414,12 +445,17 @@ public class AgentSelectionManager : MonoBehaviour
                 ? _selected[i].TryCommandMoveTo(target)
                 : _selected[i].CommandArea(target, PendingCommand == TargetCommand.Patrol);
             if (ordered) accepted++;
+            else if(!string.IsNullOrEmpty(_selected[i].LastOrderFailure))blockedReason=_selected[i].LastOrderFailure;
         }
-        if (accepted == 0) { NotifyCommand("ORDER BLOCKED - CREW BUSY OR DESTINATION UNREACHABLE"); return; }
+        LastAcceptedOrderCount=accepted;
+        if (accepted == 0) { NotifyCommand("ORDER BLOCKED - "+blockedReason.ToUpperInvariant()); return; }
+        if (RecoveryProgression.RecordOrder(GameManager.Data, label)) GameManager.Save();
         CreateCommandMarker(worldPoint, new Color(.25f, 1f, .55f, .9f), label);
         NotifyCommand(label + " CONFIRMED: " + accepted + "/" + _selected.Count + " SELECTED MEMBERS");
         PendingCommand = TargetCommand.Move;
     }
+
+    public void CancelTargeting() => PendingCommand = TargetCommand.Move;
 
     public void ArmMoveCommand()
     {
@@ -428,6 +464,13 @@ public class AgentSelectionManager : MonoBehaviour
 
     public void ArmGuardCommand() => ArmCommand(TargetCommand.Guard, "GUARD READY - TAP AN AREA; DEFEND NEARBY AND RETURN");
     public void ArmPatrolCommand() => ArmCommand(TargetCommand.Patrol, "PATROL READY - TAP THE OTHER END OF THE ROUTE; AUTO-DEFEND AND RESUME");
+    public void ArmScoutCommand()=>ArmCommand(TargetCommand.Scout,"SCOUT READY - tap a street to inspect; arrival earns local intel");
+    public void CommandSelectedStop()
+    {
+        RtsGestureController.Instance?.Cancel();CancelTargeting();LastAcceptedOrderCount=0;
+        foreach(var actor in _selected)if(actor&&actor.IsAlive&&actor.TryCommandMoveTo(actor.transform.position,1f))LastAcceptedOrderCount++;
+        NotifyCommand(LastAcceptedOrderCount>0?$"STOP CONFIRMED: {LastAcceptedOrderCount} selected crew. Other groups retain their jobs.":"STOP BLOCKED - select an available living crew member");
+    }
 
     void ArmCommand(TargetCommand command, string hint)
     {

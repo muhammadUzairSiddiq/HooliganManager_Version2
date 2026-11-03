@@ -1,0 +1,88 @@
+PASS Fresh city has no automatic matchday or popup
+PASS Fresh startup does not complete selection lessons automatically
+PASS Six business archetypes are associated with distinct existing storefronts
+PASS Complete mandatory path from HQ to (117.96, 0.01, 81.30)
+PASS Complete return path to HQ from (117.96, 0.01, 81.30)
+PASS Complete mandatory path from HQ to (-64.20, 0.01, -216.90)
+PASS Complete return path to HQ from (-64.20, 0.01, -216.90)
+PASS Complete mandatory path from HQ to (-304.89, 15.03, 90.69)
+PASS Complete return path to HQ from (-304.89, 15.03, 90.69)
+PASS Complete mandatory path from HQ to (-109.20, 0.01, 129.75)
+PASS Complete return path to HQ from (-109.20, 0.01, 129.75)
+PASS Complete mandatory path from HQ to (-186.27, 0.01, -1.13)
+PASS Complete return path to HQ from (-186.27, 0.01, -1.13)
+PASS Complete mandatory path from HQ to (78.88, 0.01, -216.90)
+PASS Complete return path to HQ from (78.88, 0.01, -216.90)
+PASS Complete mandatory path from HQ to (-185.94, 0.01, 77.10)
+PASS Complete return path to HQ from (-185.94, 0.01, 77.10)
+PASS Complete mandatory path from HQ to (673.15, 0.01, -144.09)
+PASS Complete return path to HQ from (673.15, 0.01, -144.09)
+PASS Complete mandatory path from HQ to (-168.44, 0.01, -65.44)
+PASS Complete return path to HQ from (-168.44, 0.01, -65.44)
+PASS Complete mandatory path from HQ to (-301.83, 15.04, 87.76)
+PASS Complete return path to HQ from (-301.83, 15.04, 87.76)
+PASS Complete mandatory path from HQ to (723.69, 0.01, 21.68)
+PASS Complete return path to HQ from (723.69, 0.01, 21.68)
+PASS Complete mandatory path from HQ to (34.31, 0.01, -160.48)
+PASS Complete return path to HQ from (34.31, 0.01, -160.48)
+PASS Complete mandatory path from HQ to (-85.61, 0.01, -216.39)
+PASS Complete return path to HQ from (-85.61, 0.01, -216.39)
+PASS Complete mandatory path from HQ to (-182.40, 0.01, -215.88)
+PASS Complete return path to HQ from (-182.40, 0.01, -215.88)
+PASS Complete mandatory path from HQ to (-379.91, 15.01, 86.30)
+PASS Complete return path to HQ from (-379.91, 15.01, 86.30)
+PASS Business ledger opens deliberately
+PASS Opening operations closes the previous business sheet
+PASS Matchday sheet replaces operations without stacked panels
+PASS Showing an available business interaction does not execute it
+PASS A deliberate venue tap opens its local choices
+PASS Selected crew accepts a timed business control assignment
+PASS Business assignment moves the actual character along the street
+PASS Control completes from arrival and on-site presence
+PASS Business control keeps crew selected
+PASS Native city Update pays controlled business income after active simulation time
+PASS A second business assignment starts
+PASS A manual MOVE cancels business work without awarding ownership
+PASS A separate selected group can loot while the defender keeps its duty
+NAV TRACE loot completed at (-301.83, 15.04, 87.76), target burger (-301.83, 15.04, 87.76), order (-301.83, 15.04, 87.76), state Idle
+PASS Native on-site loot sets saved cooldown and trade disruption
+PASS Loot does not overwrite another group's GUARD
+PASS Duplicate loot is rejected without paying twice
+PASS Native save keeps ownership and loot cooldown after world actions
+PASS A control assignment can approach a contested venue
+PASS Hostile presence blocks business control progress
+PASS Control resumes when the hostile contest leaves
+PASS A living venue defender prevents hostile takeover pressure
+PASS An undefended venue is lost after the visible takeover window
+PASS Lost business control can be recovered through a real crew assignment
+NAV TRACE after ledger (-301.83, 15.04, 87.76), state Idle
+PASS Prepared player explicitly starts matchday
+NAV PROBE from=(-301.83, 15.04, 87.76) nav=(-301.83, 15.04, 87.76) target=(78.88, 0.01, -216.90) offLink=False direct=True/PathComplete global=True/PathComplete
+PASS Matchday response uses actual GUARD orders (accepted=1, reason=)
+PASS Separate living crews cover both matchday responses through timed presence
+PASS Early response coverage does not finish the chapter before aftermath
+PASS Aftermath commits one matchday chapter outcome
+PASS Resolved matchday does not replay response rewards on Save
+PASS Ignoring both response deadlines applies local consequences
+PASS Missed deadline penalties apply once
+PASS Aftermath offers a deliberate response retry without ads
+PASS Active matchday serializes named group and member records
+PASS Scene resume keeps matchday phase and elapsed time
+PASS Continue keeps group count, casualties and injured member health
+PASS Home business ownership survives a real scene reload
+PASS NONE remains an intentional empty preparation selection after Save
+PASS Actual Away launch debits travel once despite a repeated launch callback
+PASS Away scene deploys exactly the chosen three travellers
+PASS Nondeployed living members remain Home reserves
+PASS Home businesses continue earning simulation income while Away
+PASS Riverside uses linked objectives with optional civilian crimes
+PASS Extraction refuses incomplete district goals
+PASS Extraction request retains the player's chosen subgroup
+PASS Physical extraction completes Riverside and unlocks North End
+PASS Completed Away chapter cannot pay its reward again
+PASS Actual return preserves Home ownership and completed Home chapter
+PASS A completely lost crew can rebuild a playable Home team without ads
+PASS Zero-cash recovery preserves campaign and businesses without granting farmable cash
+RESULT 82 passed, 0 failed
+Fixture: five durable fast crew; ambient pressure disabled for economy isolation. Later mission prerequisites are seeded for extraction/return checks, not claimed as a played campaign.
+UTC 2026-11-01T14:34:02.5572068Z

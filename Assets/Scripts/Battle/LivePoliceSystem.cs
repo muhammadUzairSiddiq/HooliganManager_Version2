@@ -845,6 +845,7 @@ public class LivePoliceSystem : MonoBehaviour
 
     private void OnBribe()
     {
+        if(_state==PoliceState.BribedOff)return;
         int cost = BribeCost();
         var pd = GameData.instance != null ? GameData.instance.PlayerData : null;
         if (pd == null || pd.Money < cost)
@@ -854,6 +855,7 @@ public class LivePoliceSystem : MonoBehaviour
             return;
         }
 
+        _state=PoliceState.BribedOff;
         pd.Money -= cost;
         GameData.instance.SaveData();
 
@@ -870,33 +872,48 @@ public class LivePoliceSystem : MonoBehaviour
         CityGameplay.Instance?.PostEvent("POLICE TAKING THE BRIBE · FALLING BACK");
         OrderOfficersToward(carPos, true);
 
-        float timeout = 8f;
-        float elapsed = 0f;
-        while (elapsed < timeout && OfficersAlive() && NearestOfficerDistance(carPos) > 2.4f)
+        float timeout=45f,elapsed=0f,nextOrder=1f;
+        while(elapsed<timeout&&_waveOfficers.Any(o=>o&&o.IsAlive&&o.gameObject.activeInHierarchy))
         {
-            elapsed += Time.deltaTime;
-            OrderOfficersToward(carPos, true);
+            elapsed+=Time.deltaTime;
+            foreach(var officer in _waveOfficers)
+            {
+                if(!officer||!officer.IsAlive||!officer.gameObject.activeInHierarchy)continue;
+                if(CityBusinessSystem.HorizontalDistance(officer.transform.position,carPos)>3.4f)continue;
+                officer.EndEscort();officer.gameObject.SetActive(false);
+            }
+            if(elapsed>=nextOrder){nextOrder=elapsed+1f;OrderOfficersToward(carPos,true);}
             yield return null;
         }
-
-        // Brief beat as they climb into the van.
-        foreach (var officer in _waveOfficers)
+        foreach(var officer in _waveOfficers)
         {
-            if (officer == null) continue;
-            officer.EndEscort();
-            officer.gameObject.SetActive(false);
+            if(!officer)continue;
+            if(!officer.gameObject.activeInHierarchy)Destroy(officer.gameObject);
+            else
+            {
+                // A blocked officer stays visible on foot instead of popping
+                // into a distant van when a timer expires.
+                officer.EndEscort();officer.StandDown();officer.HoldFire(true);
+                StartCoroutine(ReturnFootOfficer(officer));
+            }
         }
+        _waveOfficers.Clear();
         yield return new WaitForSeconds(0.45f);
 
+        // The response van remains a living city vehicle. Remove boarded officers
+        // but keep the van so it visibly drives away into its normal patrol.
+        var departingVan=_responseCar?_responseCar.GetComponent<PoliceCarChaser>():null;
+        _responseCar=null;
         DespawnWave();
         RestoreHiddenGangs();
         UnfreezeWorld();
         SSetVignetteOff();
-        // Bribe cools heat to halfway (5/10) — not cleared to zero.
-        _heat = Mathf.Clamp(5, 0, maxHeat);
+        // A bribe must never increase low earned heat.
+        _heat = Mathf.Clamp(Mathf.Min(_heat,5), 0, maxHeat);
 
         foreach (var c in _patrolCars)
-            if (c != null) c.StopAndIdle();
+            if (c != null) c.ResumePatrolFromCurrentPosition();
+        departingVan?.ResumePatrolFromCurrentPosition();
 
         var pd = GameData.instance != null ? GameData.instance.PlayerData : null;
         if (pd != null)
@@ -909,6 +926,18 @@ public class LivePoliceSystem : MonoBehaviour
         _trouble.Clear();
         _state = PoliceState.Idle;
         BattleUIController.instance?.ShowAlert("POLICE PAID OFF. THIS MEMBER IS CLEAR.", 2.6f);
+    }
+
+    IEnumerator ReturnFootOfficer(EnemyController officer)
+    {
+        var city=CityGameplay.Instance;
+        var destination=city?CityGameplay.ReachableApproach(officer.transform.position,city.Locations[7]):officer.transform.position+Vector3.forward*40;
+        officer.BeginEscort(destination,true);
+        while(officer&&officer.IsAlive)
+        {
+            if(!CityActivityStreaming.InView(officer.transform.position,.15f)){Destroy(officer.gameObject);yield break;}
+            yield return new WaitForSeconds(1f);
+        }
     }
 
     private int BribeCost() => bribeBaseCost + bribeCostPerWave * Mathf.Max(0, _wave - 1);

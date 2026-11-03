@@ -19,8 +19,9 @@ public static class LandscapeUI
         if (scaler == null) return;
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = Resolution;
-        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = 1f;
+        // Fit both axes: height-only scaling crops fixed-width overlays on tablets
+        // and phones whose usable landscape area is narrower than 16:9.
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
     }
 
     public static RectTransform Rect(string name, Transform parent, float x, float y, float w, float h)
@@ -152,6 +153,15 @@ public static class LandscapeUI
         fitter.verticalFit = horizontal ? ContentSizeFitter.FitMode.Unconstrained : ContentSizeFitter.FitMode.PreferredSize;
         scroll.viewport = viewport; scroll.content = content; scroll.horizontal = horizontal; scroll.vertical = !horizontal;
         scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 32; scroll.decelerationRate = .12f;
+        if(!horizontal)
+        {
+            var track=Rect("ScrollIndicator",rt,w-13,6,10,h-12);
+            var trackImage=track.gameObject.AddComponent<Image>();trackImage.color=new Color(.08f,.13f,.14f,.7f);
+            var handle=Rect("Handle",track,0,0,10,h-12);Stretch(handle);
+            var grip=handle.gameObject.AddComponent<Image>();grip.color=new Color(.32f,.76f,.66f,.9f);
+            var scrollbar=track.gameObject.AddComponent<Scrollbar>();scrollbar.direction=Scrollbar.Direction.BottomToTop;scrollbar.handleRect=handle;scrollbar.targetGraphic=grip;
+            scroll.verticalScrollbar=scrollbar;scroll.verticalScrollbarVisibility=ScrollRect.ScrollbarVisibility.AutoHide;
+        }
         return scroll;
     }
     public static void LayoutSize(GameObject go, float w, float h)

@@ -118,6 +118,9 @@ public sealed class CityGameplay : MonoBehaviour
             CityLifeActivity.Ensure("AWAY STAND",Locations[5]+new Vector3(-8,0,-8),3);
         }
         var operations=CityOperationsSystem.Ensure(this);
+        CityBusinessSystem.Ensure(this);
+        if(!HomeMode&&!GetComponent<AwayExtractionSystem>())gameObject.AddComponent<AwayExtractionSystem>();
+        if(!GetComponent<CrewWorldLabels>())gameObject.AddComponent<CrewWorldLabels>();
         CityActionSystem.Ensure(this);
         if(!GetComponent<CityDevelopmentSystem>())gameObject.AddComponent<CityDevelopmentSystem>();
         CityActivityStreaming.Ensure();
@@ -136,15 +139,18 @@ public sealed class CityGameplay : MonoBehaviour
             if(HomeMode)
             {
                 var matchday=FindFirstObjectByType<StadiumMatchdayActivity>();
-                if(matchday)matchday.OpenBriefing();else districtPanel.SetActive(!districtPanel.activeSelf);
+                if(matchday)matchday.OpenBriefing();else ToggleDestinations();
             }
-            else districtPanel.SetActive(!districtPanel.activeSelf);
+            else ToggleDestinations();
         });
         status=null;
         BuildCameraPanel(); BuildDistrictPanel();
         gameObject.AddComponent<CityMissionHUD>().Build(frame);
         operations.AttachHud(frame);
-        PostEvent(HomeMode ? "MATCHDAY "+(GameManager.Data?.MatchDay??1).ToString("00")+" - SUPPORTERS ARE GATHERING AT THE STADIUM" : "Away trip started. Move from the arrival point and secure the district.");
+        if(HomeMode&&!PoliceCityMode.Active&&!GetComponent<HomeTerritorySystem>())gameObject.AddComponent<HomeTerritorySystem>();
+        if(!PoliceCityMode.Active)gameObject.AddComponent<ModernCityHud>().Initialize(frame,GetComponent<CityMissionHUD>());
+        if(!GetComponent<FocusedWorldPresentation>())gameObject.AddComponent<FocusedWorldPresentation>();
+        PostEvent(HomeMode ? "HOME TERRITORY - select your crew and follow the current objective. Prepare before starting matchday." : "Away trip started. Move from the arrival point and secure the district.");
         while(BattleManager.instance.PlayerAgents.Count==0)yield return null;
         CameraPanTouchOnly.Instance?.CenterOnSelection();
         float wait=8f;
@@ -402,6 +408,10 @@ public sealed class CityGameplay : MonoBehaviour
     public static Vector3 ReachableApproach(Vector3 origin,Vector3 destination)
     {
         var path=new NavMeshPath();
+        var returnPath=new NavMeshPath();
+        var crew=BattleManager.instance?BattleManager.instance.PlayerAgents.FirstOrDefault(a=>a&&a.IsAlive):null;
+        var agent=crew?crew.GetComponent<NavMeshAgent>():null;
+        var filter=new NavMeshQueryFilter{agentTypeID=agent?agent.agentTypeID:0,areaMask=agent?agent.areaMask:NavMesh.AllAreas};
         Vector3 best=origin;
         float bestDistance=(destination-origin).sqrMagnitude;
         bool found=false;
@@ -410,9 +420,10 @@ public sealed class CityGameplay : MonoBehaviour
         {
             float angle=direction*Mathf.PI*2f/24f;
             var candidate=destination+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*ring*14f;
-            if(NavMesh.SamplePosition(candidate,out var hit,8f,NavMesh.AllAreas) &&
+            if(NavMesh.SamplePosition(candidate,out var hit,8f,filter) &&
                 CityActivityStreaming.TryStreetPoint(hit.position,out _,.5f) &&
-                NavMesh.CalculatePath(origin,hit.position,NavMesh.AllAreas,path) && path.status==NavMeshPathStatus.PathComplete)
+                NavMesh.CalculatePath(origin,hit.position,filter,path) && path.status==NavMeshPathStatus.PathComplete &&
+                NavMesh.CalculatePath(hit.position,origin,filter,returnPath) && returnPath.status==NavMeshPathStatus.PathComplete)
             {
                 float distance=(hit.position-destination).sqrMagnitude;
                 if(distance<bestDistance){bestDistance=distance;best=hit.position;found=true;}
@@ -454,7 +465,8 @@ public sealed class CityGameplay : MonoBehaviour
             if(slider)slider.value=value;
         }
     }
-    public void ToggleCameraSettings(){if(cameraPanel)cameraPanel.SetActive(!cameraPanel.activeSelf);}
+    public void CloseCityPanels(){if(cameraPanel)cameraPanel.SetActive(false);if(districtPanel)districtPanel.SetActive(false);}
+    public void ToggleCameraSettings(){if(cameraPanel){bool open=!cameraPanel.activeSelf;CityUiSheets.Open(this,CloseCityPanels);cameraPanel.SetActive(open);}}
     public void ShowIntelReport()
     {
         var d=GameManager.Data;if(d==null)return;
@@ -488,7 +500,8 @@ public sealed class CityGameplay : MonoBehaviour
 
     public void ToggleDestinations()
     {
-        if(districtPanel)districtPanel.SetActive(!districtPanel.activeSelf);
+        if(!districtPanel)return;
+        bool open=!districtPanel.activeSelf;CityUiSheets.Open(this,CloseCityPanels);districtPanel.SetActive(open);
     }
 
     void SendSquadTo(int index)
@@ -518,6 +531,7 @@ public sealed class CityGameplay : MonoBehaviour
         if(Locations==null || index<0 || index>=Locations.Length)return;
         districtPanel.SetActive(false);
         CameraPanTouchOnly.Instance?.FocusOn(Locations[index]);
+        if(!HomeMode&&index==0){AwayExtractionSystem.Instance?.RequestExtraction();return;}
         bool major=HomeMode && (index==0 || index==1 || index==3 || index==4);
         if(!major && index!=2)
         {
@@ -622,19 +636,22 @@ public sealed class CityGameplay : MonoBehaviour
     }
     public void CaptureNearest()
     {
-        var squad=BattleManager.instance.PlayerAgents.Where(a=>a&&a.IsAlive).ToArray();
-        if(squad.Length==0)return;
+        var selection=AgentSelectionManager.instance;
+        var squad=selection?.SelectedAgents.Where(a=>a&&a.IsAlive).ToArray();
+        if(squad==null||squad.Length==0){PostEvent("SELECT CREW TO CAPTURE AN AREA");return;}
         var target=FindObjectsByType<TerritoryControlPoint>(FindObjectsSortMode.None)
-            .Where(p=>!p.IsCaptured).OrderBy(p=>Vector3.Distance(p.transform.position,squad[0].transform.position)).FirstOrDefault();
+            .Where(p=>p&&p.gameObject.activeInHierarchy&&!p.IsCaptured).OrderBy(p=>squad.Min(a=>Vector3.Distance(p.transform.position,a.transform.position))).FirstOrDefault();
         if(!target){PostEvent("ALL AVAILABLE TERRITORY SECURED");return;}
-        AgentSelectionManager.instance.CommandSelectedMoveTo(target.transform.position);
-        AgentSelectionManager.CreateCommandMarker(target.transform.position,new Color(1f,.72f,.12f,.95f),"CAPTURE");
-        BattleUIController.instance?.ShowAlert("CAPTURE ORDER - CLEAR AND HOLD",1.8f);
-        PostEvent("CAPTURE "+target.zoneName.ToUpperInvariant()+" - CLEAR RIVALS AND HOLD THE POINT");
+        CameraPanTouchOnly.Instance?.FocusOn(target.transform.position);
+        WorldChoiceBar.Present(target.transform,$"CAPTURE {target.zoneName} · £{target.occupationTax} / HEAT +{target.heatGained}",
+            ("CONFIRM CAPTURE",LandscapeUI.Gold,()=>{if(!target.BeginCapture(squad))PostEvent("CAPTURE BLOCKED - check funds, selected crew and a complete route.");}),
+            ("CANCEL",LandscapeUI.PanelColor,()=>{}));
     }
     void BeginDefence()
     {
         if(!HomeMode || defending)return;
+        var unfinished=CampaignMissions.Steps(GameManager.Data,1).FirstOrDefault(s=>s.id!="defence"&&!s.Complete);
+        if(!string.IsNullOrEmpty(unfinished.id)){PostEvent("HOME DEFENCE LOCKED - "+unfinished.title);return;}
         if(GameManager.Data.HomeDefenceCompleted){PostEvent("HOME DEFENCE COMPLETE - DISTRICT SECURE");return;}
         foreach(var old in intruders)if(old)Destroy(old.gameObject);
         var bm=BattleManager.instance;
@@ -681,7 +698,7 @@ public sealed class CityGameplay : MonoBehaviour
         if(!CampaignMissions.TryComplete(d,out var mission))return false;
         BattleManager.instance?.PersistBattleProgress();GameManager.Save();
         bool campaignComplete=d.CompletedCampaignMissions!=null&&d.CompletedCampaignMissions.Count>=CampaignMissions.MissionCount;
-        string next=campaignComplete?"The five-mission campaign is complete.":$"Mission {d.CurrentLevel:00} is now unlocked: {CampaignMissions.Active(d).title}.";
+        string next=campaignComplete?"The five-mission campaign is complete.":$"Mission {d.CurrentLevel:00} is now unlocked: {CampaignMissions.Get(d.CurrentLevel).title}.";
         PostEvent($"MISSION {mission.number:00} COMPLETE +£{mission.reward:N0}");
         GamePopup.Instance.Show(
             campaignComplete?"CAMPAIGN COMPLETE":$"MISSION {mission.number:00} COMPLETE",

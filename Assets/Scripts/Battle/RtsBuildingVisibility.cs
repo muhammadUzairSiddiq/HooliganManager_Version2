@@ -1,83 +1,48 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>Hides renderers only; collision, navigation and interaction stay authoritative.</summary>
+/// <summary>Touch a building to reveal behind it. Roads, terrain and colliders are never changed.</summary>
 public sealed class RtsBuildingVisibility : MonoBehaviour
 {
     public static RtsBuildingVisibility Instance { get; private set; }
-    readonly List<Renderer> buildings = new List<Renderer>();
-    readonly Dictionary<Renderer, bool> hidden = new Dictionary<Renderer, bool>();
-    readonly HashSet<Renderer> required = new HashSet<Renderer>();
-    readonly List<Renderer> restored = new List<Renderer>();
-    readonly List<Vector3> units = new List<Vector3>();
-    Camera view;
-    float next;
-    readonly List<Renderer> trafficVehicles=new List<Renderer>();
-    void Awake() { Instance = this; }
+    readonly List<Renderer> buildings=new List<Renderer>();
+    Renderer revealed;
+    bool previousHidden;
+    float restoreAt;
+    public Renderer RevealedBuilding=>revealed;
+    public static bool IsBuildingName(string value)
+    {
+        string name=(value??"").ToLowerInvariant();
+        if(name.Contains("platform")||name.Contains("parking")||name.Contains("road_")||name.Contains("bridge")||name.Contains("park_")||name.Contains("ground")||name.Contains("terrain"))return false;
+        string[] prefixes={"business_center_","casino_","airport_","college_","cosmodrome_","fire_station_","gas_station_","government_bilding_","hospital_","police_department_","railway_station_","school_","tram_depot_","university_","church_","mosque_","synagogue_","elite_residental_building_","residental_building_","bar_","barbershop_","burger_shop_","cinema_","coffee_shop_","fastfood_","gym_","ice_cream_shop_","library_","mall_","music_store_","pizzeria_","supermarket_","tool_store_","eiffel_tower_","skyscraper_"};
+        foreach(var prefix in prefixes)if(name.StartsWith(prefix))return true;
+        return false;
+    }
+    void Awake(){Instance=this;}
     void Start()
     {
-        view = Camera.main;
-        var railSegments=new List<Bounds>();
-        foreach (var renderer in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
-        {
-            var name = renderer.name.ToLowerInvariant();
-            bool city=HasAncestor(renderer.transform,"Demonstration")||name.StartsWith("railway_")||name=="road_column_001";
-            bool traffic=HasAncestor(renderer.transform,"Traffic")||name.StartsWith("road_");
-            if(traffic&&name.StartsWith("car"))trafficVehicles.Add(renderer);
-            if(!city&&!traffic)continue;
-            bool elevatedRoad=traffic&&name.StartsWith("road_")&&renderer.bounds.center.y>3f;
-            if (name.Contains("bridge")||name=="road_column_001"||name.StartsWith("railway_")||elevatedRoad)
-            {
-                if(name.StartsWith("railway_")&&!name.Contains("column"))railSegments.Add(renderer.bounds);
-                renderer.enabled = false;
-                foreach (var collider in renderer.GetComponents<Collider>()) collider.enabled = false;
-                continue;
-            }
-            if(!city)continue;
-            if (renderer.bounds.size.y >= 4 && !name.Contains("tree") && !name.Contains("lamp") && !name.Contains("pole")) buildings.Add(renderer);
-        }
-        GroundRailTrack.Build(railSegments);
+        foreach(var renderer in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+            if(IsBuildingName(renderer.name))buildings.Add(renderer);
     }
-    static bool HasAncestor(Transform node,string name){for(;node;node=node.parent)if(node.name.StartsWith(name))return true;return false;}
-    void LateUpdate()
+    public bool TryRevealAt(Vector2 screenPoint)
     {
-        if (!view || Time.unscaledTime < next) return;
-        next = Time.unscaledTime + .08f;
-        units.Clear(); required.Clear();
-        var bm = BattleManager.instance;
-        if (bm)
+        if(!Camera.main)return false;
+        var ray=Camera.main.ScreenPointToRay(screenPoint);
+        Renderer nearest=null;float best=float.MaxValue;
+        foreach(var building in buildings)
         {
-            foreach (var unit in bm.PlayerAgents) if (unit && unit.IsAlive && unit.gameObject.activeInHierarchy) Add(unit.transform.position);
-            foreach (var unit in bm.EnemyAgents) if (unit && unit.IsAlive && unit.gameObject.activeInHierarchy) Add(unit.transform.position);
+            if(!building||!building.enabled||!building.gameObject.activeInHierarchy)continue;
+            if(building.bounds.IntersectRay(ray,out float distance)&&distance>0&&distance<best){nearest=building;best=distance;}
         }
-        var cameraPosition = view.transform.position;
-        foreach(var vehicle in trafficVehicles)if(vehicle)vehicle.forceRenderingOff=vehicle.bounds.center.y>5f;
-        foreach (var building in buildings)
-        {
-            if (!building || !building.gameObject.activeInHierarchy) continue;
-            var bounds = building.bounds; bounds.Expand(2f);
-            bool obstructs = bounds.Contains(cameraPosition);
-            for (int i = 0; !obstructs && i < units.Count; i++)
-            {
-                var delta = units[i] - cameraPosition;
-                obstructs = bounds.IntersectRay(new Ray(cameraPosition, delta.normalized), out var distance) && distance < delta.magnitude;
-            }
-            if (!obstructs) continue;
-            required.Add(building);
-            if (!hidden.ContainsKey(building)) hidden.Add(building, building.forceRenderingOff);
-            building.forceRenderingOff = true;
-        }
-        restored.Clear();
-        foreach (var pair in hidden)
-            if (!pair.Key || !required.Contains(pair.Key)) { if (pair.Key) pair.Key.forceRenderingOff = pair.Value; restored.Add(pair.Key); }
-        foreach (var renderer in restored) hidden.Remove(renderer);
+        if(!nearest)return false;
+        if(nearest==revealed){RestoreAll();return true;}
+        RestoreAll();revealed=nearest;previousHidden=nearest.forceRenderingOff;
+        nearest.forceRenderingOff=true;restoreAt=Time.unscaledTime+12f;
+        CityGameplay.Instance?.PostEvent("Building temporarily hidden. Tap it again to restore; streets stay visible.");
+        return true;
     }
-    void Add(Vector3 point)
-    {
-        point += Vector3.up * 2f;
-        var p = view.WorldToViewportPoint(point);
-        if (p.z > 0 && p.x > -.02f && p.x < 1.02f && p.y > -.02f && p.y < 1.02f) units.Add(point);
-    }
-    void OnDisable() { foreach (var pair in hidden) if (pair.Key) pair.Key.forceRenderingOff = pair.Value; hidden.Clear(); }
-    void OnDestroy() { if (Instance == this) Instance = null; }
+    public void RestoreAll(){if(revealed)revealed.forceRenderingOff=previousHidden;revealed=null;}
+    void Update(){if(revealed&&Time.unscaledTime>=restoreAt)RestoreAll();}
+    void OnDisable(){RestoreAll();}
+    void OnDestroy(){RestoreAll();if(Instance==this)Instance=null;}
 }

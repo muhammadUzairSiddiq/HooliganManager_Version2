@@ -68,6 +68,7 @@ public class GangArea : MonoBehaviour
             _label.transform.rotation = Camera.main.transform.rotation;
 
         if (_choice == null || BattleManager.instance == null || string.IsNullOrEmpty(_gangName)) return;
+        if(ModernCityHud.Instance&&!ModernCityHud.InspectWorld){_choice.Hide();return;}
         bool offer = CrewInside().Count > 0 && !AlreadyFighting();
         if (!offer)
         {
@@ -194,7 +195,7 @@ public sealed class GangScreenChoice : MonoBehaviour
         RectTransformUtility.ScreenPointToLocalPointInRectangle(_frame, projected, null, out var local);
         float x = local.x - _frame.rect.xMin;
         float y = _frame.rect.yMax - local.y;
-        bool visible = projected.z > 0.1f;
+        bool visible = (!ModernCityHud.Instance||ModernCityHud.InspectWorld)&&projected.z > 0.1f;
         SetVisible(visible);
         if (!visible) return;
         LandscapeUI.Place(_fight, x - 196, y - 24, 168, 48);
@@ -242,7 +243,7 @@ public sealed class RecruitmentPin : MonoBehaviour
         RectTransformUtility.ScreenPointToLocalPointInRectangle(_frame, projected, null, out var local);
         float x = local.x - _frame.rect.xMin, y = _frame.rect.yMax - local.y;
         var pinRect = new Rect(x - 105f, y - 24f, 210f, 48f);
-        bool visible = projected.z > 0.1f && x > 250f && x < _frame.rect.width - 190f && y > 120f && y < _frame.rect.height - 70f
+        bool visible = (!ModernCityHud.Instance||ModernCityHud.InspectWorld)&&projected.z > 0.1f && x > 250f && x < _frame.rect.width - 190f && y > 120f && y < _frame.rect.height - 70f
             && !WorldButtonLayer.ChoiceCovers(pinRect);
         _pin.gameObject.SetActive(visible);
         if (visible) LandscapeUI.Place(_pin, x - 105f, y - 24f, 210f, 48f);
@@ -254,6 +255,8 @@ public sealed class RecruitmentPin : MonoBehaviour
 /// <summary>Same camera-facing title and buttons used when the crew meets a rival.</summary>
 public sealed class WorldChoiceBar : MonoBehaviour
 {
+    public static void DismissCurrent(){if(activeChoice)activeChoice.Close();}
+    static WorldChoiceBar activeChoice;
     RectTransform _frame, _title, _close;
     readonly List<RectTransform> _buttons = new List<RectTransform>();
     bool _open;
@@ -280,6 +283,8 @@ public sealed class WorldChoiceBar : MonoBehaviour
     {
         if (!anchor) return;
         var bar = anchor.GetComponent<WorldChoiceBar>() ?? anchor.gameObject.AddComponent<WorldChoiceBar>();
+        if(activeChoice&&activeChoice!=bar)activeChoice.Close();
+        activeChoice=bar;
         bar._allowClose = closable;
         bar._onClose = onClose;
         bar.Build(title, options);
@@ -295,7 +300,9 @@ public sealed class WorldChoiceBar : MonoBehaviour
         var text = titleGo.AddComponent<TextMeshProUGUI>();
         text.text = title.ToUpperInvariant();
         text.alignment = TextAlignmentOptions.Center;
-        text.fontSize = 26f;
+        text.fontSize = 20f;
+        text.enableAutoSizing=true;text.fontSizeMin=15f;text.fontSizeMax=20f;
+        text.textWrappingMode=TextWrappingModes.Normal;
         text.fontStyle = FontStyles.Bold;
         text.color = Color.white;
         text.raycastTarget = false;
@@ -337,17 +344,17 @@ public sealed class WorldChoiceBar : MonoBehaviour
         Vector3 projected = Camera.main.WorldToScreenPoint(transform.position + Vector3.up * 3.2f);
         RectTransformUtility.ScreenPointToLocalPointInRectangle(_frame, projected, null, out var local);
         float x = local.x - _frame.rect.xMin;
-        float y = _frame.rect.yMax - local.y;
-        bool visible = projected.z > 0.1f && x > 80f && x < _frame.rect.width - 80f && y > 110f && y < _frame.rect.height - 70f;
+        float y = Mathf.Clamp(_frame.rect.yMax - local.y,285f,_frame.rect.height-155f);
+        bool visible = !AgentSelectionManager.BlocksWorldTap() && projected.z > 0.1f && x > 80f && x < _frame.rect.width - 80f && y > 110f && y < _frame.rect.height - 70f;
         SetOn(visible);
         if (!visible) return;
         float row = 156f * _buttons.Count + 8f * Mathf.Max(0, _buttons.Count - 1);
         float start = Mathf.Clamp(x - (row + 56f) * 0.5f, 12f, Mathf.Max(12f, _frame.rect.width - row - 68f));
-        if (_title) LandscapeUI.Place(_title, start, y - 78f, row + 56f, 36f);
+        if (_title) LandscapeUI.Place(_title, start, y - 86f, row + 56f, 54f);
         for (int i = 0; i < _buttons.Count; i++)
             LandscapeUI.Place(_buttons[i], start + i * 164f, y - 24f, 156f, 48f);
         if (_close) LandscapeUI.Place(_close, start + row + 8f, y - 24f, 48f, 48f);
-        WorldButtonLayer.CoverChoice(new Rect(start - 8f, y - 86f, row + 72f, 116f));
+        WorldButtonLayer.CoverChoice(new Rect(start - 8f, y - 92f, row + 72f, 122f));
     }
 
     public void Hide() { _open = false; _onClose = null; SetOn(false); }
@@ -493,13 +500,15 @@ public sealed class WorldChoiceButton : MonoBehaviour
 }
 
 /// <summary>Small tappable marker in the city. Showing it does not pause the simulation.</summary>
+[DefaultExecutionOrder(-20)]
 public sealed class WorldInteractBubble : MonoBehaviour
 {
     public bool IsLive { get; private set; }
     Action _onTap;
     Transform _ball;
     TextMeshPro _text;
-    float _pulse;
+    RectTransform _pin,_frame;
+    TextMeshProUGUI _caption;
 
     public static WorldInteractBubble Create(Transform parent)
     {
@@ -526,14 +535,23 @@ public sealed class WorldInteractBubble : MonoBehaviour
 
     public void Show(string caption, Action onTap)
     {
-        if (IsLive) return;
         _onTap = onTap;
         IsLive = true;
-        // Interaction choices appear directly. The yellow intermediary is never rendered.
-        gameObject.SetActive(false);
-        if(caption=="RECRUIT")
-            WorldChoiceBar.Present(transform.parent,"RECRUITMENT",("RECRUIT",LandscapeUI.Green,onTap));
-        else onTap?.Invoke();
+        // Showing an available interaction must never execute its action or open
+        // a management board. Use a small, deliberate world button without the
+        // former yellow sphere and without a row of decisions at every venue.
+        if(_ball)_ball.gameObject.SetActive(false);
+        if(_text)_text.gameObject.SetActive(false);
+        gameObject.SetActive(true);
+        if(!_pin)
+        {
+            _frame=WorldButtonLayer.Frame();
+            var button=LandscapeUI.Button("WorldInteraction",_frame,caption,0,0,184,48,"dark");
+            _pin=button.transform as RectTransform;
+            _caption=button.GetComponentInChildren<TextMeshProUGUI>();
+            button.onClick.AddListener(Activate);
+        }
+        if(_caption)_caption.text=caption;
     }
 
     public void Hide()
@@ -543,6 +561,7 @@ public sealed class WorldInteractBubble : MonoBehaviour
         if(transform.parent)transform.parent.GetComponent<WorldChoiceBar>()?.Hide();
         _onTap = null;
         gameObject.SetActive(false);
+        if(_pin)_pin.gameObject.SetActive(false);
     }
 
     public void Activate()
@@ -552,8 +571,16 @@ public sealed class WorldInteractBubble : MonoBehaviour
 
     void LateUpdate()
     {
-        if (!IsLive) return;
-        _pulse += Time.deltaTime;
-        if (_ball) _ball.localScale = Vector3.one * (1.15f + Mathf.Sin(_pulse * 4.5f) * 0.12f);
+        if(!IsLive||!_pin||!_frame||!Camera.main)return;
+        var p=Camera.main.WorldToScreenPoint(transform.position);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(_frame,p,null,out var local);
+        float x=local.x-_frame.rect.xMin,y=_frame.rect.yMax-local.y;
+        bool chosen=transform.parent&&transform.parent.GetComponent<WorldChoiceBar>()?.IsOpen==true;
+        bool visible=(!ModernCityHud.Instance||ModernCityHud.InspectWorld)&&!chosen&&!AgentSelectionManager.BlocksWorldTap()&&p.z>0&&x>110&&x<_frame.rect.width-110&&y>195&&y<_frame.rect.height-130;
+        visible=visible&&!WorldButtonLayer.CoversCrew(new Rect(x-92,y-24,184,48))&&WorldAnnotationBudget.Reserve(Camera.main,transform.position,190,52);
+        _pin.gameObject.SetActive(visible);
+        if(visible)LandscapeUI.Place(_pin,x-92,y-24,184,48);
     }
+    void OnDisable(){if(_pin)_pin.gameObject.SetActive(false);}
+    void OnDestroy(){if(_pin)Destroy(_pin.gameObject);}
 }

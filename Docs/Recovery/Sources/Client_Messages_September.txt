@@ -1,0 +1,1359 @@
+[9/16, 3:01 PM] +45 26 13 88 43: Hi everyone, thank you. I’m happy that we can communicate directly here with the full development team.
+Before we move forward with Milestone 3, I would like us to go through everything that was previously discussed and agreed, including all the features, changes and fixes that were requested.
+My concern is that the current build still looks very different from what I understood we were building. I don’t want to approve Milestone 2 and simply move forward without making sure that the agreed game concept and gameplay are actually being implemented.
+I would therefore like to go through the requirements point by point and have the team confirm what is already completed and what is still missing.
+Please also test the game yourselves from start to finish before sending me another build. I want to evaluate a properly tested and playable version, not something that has only been partially tested.
+I’m ready to work with you and get this right, but I need clear communication and I need the agreed features to be visible in the actual game before I approve anything.
+[9/16, 3:03 PM] ~Uxayr: Currently we only focusing on milestone 1-2
+
+Police as a playeble and other stuff were part of milestone 3-4
+[9/16, 3:04 PM] +45 26 13 88 43: Yes, I have read the document carefully.
+I understand what is described for Milestone 1 and Milestone 2. However, I also want to make sure that all the corrections, changes and features we discussed during the development are included and not forgotten.
+There are several things I previously pointed out regarding the gameplay, controls, UI, graphics/presentation, mobile experience, AI, missions, units and overall game feel.
+Before we proceed further, I would like the development team to review everything we have discussed and agreed on so far, together with this milestone document, and make sure the requested corrections are included in the build.
+I am happy to communicate directly with the development team here so there is no more misunderstanding. My goal is simply that we are all working from the same requirements before Milestone 3 continues.
+[9/16, 3:04 PM] ~Uxayr: Listed down your issues ONLY related to Milestone 1-2
+I will fixed each issue by showing you the progress realtime
+[9/16, 4:28 PM] +45 26 13 88 43: Please note that some of these points may already be planned for a later milestone. I’m listing them now so you are aware of everything I noticed from the current build, in addition to the changes we have already discussed:
+
+Gameplay camera / overview
+The gameplay camera should make the crew and objectives easier to follow.
+The city currently takes up a lot of the screen, while the actual units are quite small.
+The player should be able to clearly understand what is happening during a battle.
+
+Crew visibility
+Our own crew members should be very easy to identify on the map.
+Selected members should have a clear visual indication.
+Rival units should also be clearly distinguishable from our own crew.
+
+Action feedback
+MOVE, ATTACK, CAPTURE and RETREAT should provide clear visual feedback when activated.
+The player should immediately understand what happened after selecting an action.
+
+Dock Arrival / arrival areas
+The Dock Arrival scene currently has a very large empty/grey area.
+It should eventually feel like a proper part of the city/map rather than a placeholder.
+
+City background / visual consistency
+The city background images used on the start screens currently do not match the city that is actually shown in the gameplay.
+The start-screen images and the in-game city feel like two different environments.
+Please see if the start-screen backgrounds can be adjusted so they visually match the actual city and atmosphere of the game much better.
+I understand that the in-game graphics may need to stay optimized to prevent crashes, performance issues or the game becoming too slow on mobile devices. I am not asking for heavier graphics if that would affect performance. I mainly want the start screens and their city backgrounds to match the actual game world as closely as possible while keeping the current performance optimization.
+
+Consistent UI
+Town, Squad, Missions, Recruitment, Away Trips and Rankings should feel like parts of the same game.
+The buttons, panels, fonts, spacing and overall visual style should remain consistent.
+
+Mobile readability
+Since this is ultimately a mobile game, all text, buttons and important information need to remain easy to read and interact with on a phone.
+Some information currently feels quite small.
+
+Mission screen
+Some mission content at the bottom is cut off.
+The layout should allow the player to see the complete mission information, either through proper scrolling or by adjusting the layout.
+
+Button feedback
+Important buttons such as VIEW MEMBER, CONFIRM RECRUITMENT, START AWAY TRIP, CLAIM BONUS and END MATCHDAY should clearly communicate when an action has been completed.
+
+Save / Continue
+The difference between CONTINUE CAMPAIGN and LOAD HEADQUARTERS should be clear.
+Campaign progression should save reliably.
+
+Information during gameplay
+There is a lot of information on the gameplay screen.
+The most important things should remain the focus: the map, our crew, rivals and the current objective.
+Less important information could potentially be moved into menus.
+
+Rival visibility
+Rival crews should be easy to locate and identify on the actual map, not only through the "RIVALS" counter.
+
+Territory / Capture
+Captured territory should eventually be visually obvious on the map.
+The player should be able to see which areas are controlled and which are still contested.
+
+Again, I understand that some of these may already be planned for Milestone 3 or later. I’m not saying everything needs to be implemented immediately. I just want you to have these points in mind when planning the next stages.
+[9/16, 10:15 PM] ~Uxayr: @⁨~O Kilic⁩
+
+I simplified your message and reported issues in clear bullets with proper milestone wise
+
+NOTE: we only work on milestone 1-2 so milestone 3-4 will untouched do not expect milestone 3-4 issue to be fixed in next build
+
+here's the list of reported issues
+
+Milestone 1: Landscape + Cross-Platform Foundation
+
+1. Improve gameplay camera view so crew and objectives are easier to follow.
+2. Adjust camera scale to reduce city dominance and make units more visible.
+3. Improve battle understanding through clearer gameplay presentation.
+4. Make own crew members easier to identify on the map.
+5. Add clear selection indicators for selected crew members.
+6. Differentiate rival units from own crew visually.
+7. Add clear visual feedback for MOVE, ATTACK, CAPTURE, and RETREAT actions.
+8. Improve mobile readability of text, buttons, and important information.
+9. Reduce gameplay screen clutter and prioritize map, crew, rivals, and objectives.
+10. Fix mission screen layout issues and ensure all information is visible.
+
+
+---
+
+Milestone 2: Home Territory + RTS Gameplay
+
+1. Improve Dock Arrival area and remove placeholder/empty feeling.
+2. Make arrival areas feel like a proper part of the city environment.
+3. Improve rival crew visibility directly on the map.
+4. Make controlled and contested territories clearly visible.
+
+
+---
+
+WILL WORK ON THIS LATER❌❌❌❌❌❌❌
+
+Milestone 3: Police + PlayFab + Monetization
+
+1. Improve clarity between CONTINUE CAMPAIGN and LOAD HEADQUARTERS.
+2. Ensure campaign progression saves reliably.
+
+
+---
+
+Milestone 4: Polish + QA + Store Ready Builds
+
+1. Match start-screen city backgrounds with the actual gameplay environment.
+
+2. Maintain visual consistency while keeping mobile performance optimized.
+
+3. Ensure Town, Squad, Missions, Recruitment, Away Trips, and Rankings share a consistent UI style.
+
+4. Improve consistency of buttons, panels, fonts, spacing, and overall design.
+
+5. Add clear completion feedback for important buttons:
+
+   - VIEW MEMBER
+   - CONFIRM RECRUITMENT
+   - START AWAY TRIP
+   - CLAIM BONUS
+   - END MATCHDAY
+
+6. Complete final UI polish and overall user experience improvements.
+   [9/16, 11:28 PM] +45 26 13 88 43: Thank you for organizing the list. I understand that we are focusing only on Milestone 1 and 2 for now.
+
+However, I noticed that one important part is missing from the list: MATCHDAY / STADIUM ACTIVITY.
+
+We previously discussed having matchdays with the stadium surroundings feeling alive, including people/fans, activity around the stadium and a proper matchday atmosphere.
+
+I don't see this clearly mentioned in the current list. Can you please confirm where this is included and make sure it is not forgotten?
+
+I also want the team to remember that the city should feel alive during gameplay, with people on the streets and appropriate activity around important locations.
+
+I understand that some things may belong to later milestones, but if something was agreed as part of Milestone 1–2, I want it clearly written down now so there is no misunderstanding later.
+
+Thank you.
+[9/17, 6:41 AM] ~Uxayr: Noted...
+
+Police as a playable mode
+Stadium/PUB and other sorrounding activities & MONETIZATIONS were part of Milestone 03 and we never forget, Everything is mentioned in document we're following
+[9/17, 10:13 AM] +45 26 13 88 43: Brother, understood. I’m not trying to move Milestone 3 features into Milestone 1–2.
+
+My concern is simply that the descriptions we previously received for Milestone 2 included stadium surroundings, pub/social area, recruitment, training and recovery locations. Now you are saying Stadium/PUB and surrounding activities are part of Milestone 3.
+
+That is the part I want clarified, because I want us all to follow the same written scope.
+
+Please show me exactly where in the current document these features are assigned to Milestone 3, and what exactly is included in Milestone 2 regarding the stadium and pub.
+
+I’m also not asking for final polished UI from Milestone 4 right now. I’m only asking that the Milestone 1–2 gameplay is clear, functional and matches the agreed scope.
+
+Once we clarify these points, I’m happy to continue reviewing the build properly.
+[9/17, 10:30 AM] ~Uxayr: Ok Noted...
+Will do that in Milestone-2 IA
+
+Then Milestone 3 - (police part & Monetization Ads & IAP)
+
+Milestone 4 - ( Quality Assurance, Polished & Store Upload)
+[9/17, 10:33 AM] ~Uxayr: here's the updated list of tasks
+
+Milestone 1: Landscape + Cross-Platform Foundation
+
+1. Improve gameplay camera view so crew and objectives are easier to follow.
+2. Adjust camera scale to reduce city dominance and make units more visible.
+3. Improve battle understanding through clearer gameplay presentation.
+4. Make own crew members easier to identify on the map.
+5. Add clear selection indicators for selected crew members.
+6. Differentiate rival units from own crew visually.
+7. Add clear visual feedback for MOVE, ATTACK, CAPTURE, and RETREAT actions.
+8. Improve mobile readability of text, buttons, and important information.
+9. Reduce gameplay screen clutter and prioritize map, crew, rivals, and objectives.
+10. Fix mission screen layout issues and ensure all information is visible.
+
+Milestone 2: Home Territory + RTS Gameplay
+
+1. Improve Dock Arrival area and remove placeholder/empty feeling.
+2. Make arrival areas feel like a proper part of the city environment.
+3. Improve rival crew visibility directly on the map.
+4. Make controlled and contested territories clearly visible.
+5. Stadium / Pub Sorrunding activites
+6. Social Activity
+   [9/17, 10:33 AM] ~Uxayr: Please check the updated list and confirm these tasks for Milestone 1-2
+
+Then I start Implemented these
+[9/17, 5:34 PM] +45 26 13 88 43: Yes, I have checked the updated list.
+
+I confirm Milestone 1 and Milestone 2 as listed above.
+
+Especially, I want to confirm that Stadium / Pub Surrounding Activities and Social Activity are included in Milestone 2, as written in the updated list.
+
+Milestone 3 will then cover the playable Police part, Monetization, Ads and IAP.
+
+Milestone 4 will cover Quality Assurance, final polishing and Store Upload.
+
+This is clear from my side. You can start implementing Milestone 1–2 according to this list.
+[9/19, 12:43 PM] ~Uxayr: Hi,
+I'm designing gameplay in missions - each mission consist of a small micro-management tasks straetagy building, Social activity etc and gang fight is just 1 task in it
+Initially only Home territory opens and away trips locked
+when user complete all task in home then away trip unlocked
+with time and progress each away trips open one by one
+
+confirm me this please
+[9/19, 2:29 PM] +45 26 13 88 43: Yes, this is the direction I want.
+
+I like the idea that each mission is built around different management, strategy, social and other activities, with gang fights being only one part of the overall gameplay.
+
+Home Territory should be the player's main base where they manage and develop their group, and Away Trips should unlock progressively as the player advances.
+
+Just one clarification: I don't want Home Territory to feel like only a list of menus or small tasks. It should feel like a living, interactive area where the player manages the firm, interacts with the environment and prepares for future missions.
+
+Also, please confirm that once an Away Trip is unlocked, the player does not have to repeat all Home Territory tasks again before every Away Trip. The Home Territory should remain the player's permanent base throughout the campaign.
+
+If this is what you mean, then yes, I confirm this gameplay structure.
+[9/19, 3:00 PM] +45 26 13 88 43: One more important idea I would like to add to the Home Territory / mission design.
+
+On matchdays, I want the Home Territory around the stadium to become much more alive and active.
+
+For example:
+
+- Fans arriving around the stadium
+- Pubs becoming busy
+- More people and activity in the streets
+- Rival fans arriving
+- Increased police presence
+- Different events happening before and after the match
+- If things go wrong with the rivals, the situation can escalate and create a strategic gameplay event
+
+The important part is that it should feel like a living matchday environment, not just another menu or static location.
+
+Especially when rivals arrive, I want the player to feel that something is happening in the city and that they need to decide how to react.
+
+This could also become part of the micro-management / social / strategy tasks you described for missions.
+
+Please consider this as part of the Home Territory and Matchday experience.
+[9/20, 7:38 PM] +45 26 13 88 43: I want to be very clear about my concern after watching this update.
+
+I honestly cannot understand what has actually been changed or implemented. The whole build feels very confusing and cluttered.
+
+The biggest problem is that I cannot properly get into the actual game and play it, so I cannot see the RTS gameplay and the new systems we have discussed.
+
+Also, the actual game was supposed to visually match the style and environment shown in the images on the front/start screen. At the moment, I cannot even verify that because I cannot properly enter the game.
+
+When I press things, the interface also seems to jump around, which makes the build feel unstable.
+
+I am not asking for the final polished version yet. But I need a clear, playable update where I can:
+
+1. Enter the game.
+2. Enter Home Territory.
+3. Understand what I am looking at.
+4. See the city and environment.
+5. Manage the crew.
+6. Start and play the RTS gameplay.
+7. Clearly see the changes from Milestone 1–2.
+
+Right now, I cannot do these things, and that is why I am confused about how I am supposed to test or approve this update.
+
+Please don't just add more screens or buttons. The main gameplay flow needs to be clear and playable first.
+[9/20, 7:38 PM] +45 26 13 88 43: Hi, I’m attaching a video of the current build.
+
+Please watch the video carefully and tell me honestly: do you consider this a usable/playable update at this stage?
+
+From my side, there are some serious issues:
+
+- The interface/visuals jump around when I press buttons.
+- The screens and UI do not feel stable.
+- I cannot properly enter and play the actual game.
+- I cannot see a clear playable gameplay flow from the Home Territory into the actual RTS gameplay.
+- It currently feels more like moving between screens than playing the game.
+
+I understand that this is still development and that Milestone 4 is for final QA and polishing. I am not asking for final polish now.
+
+But I do need the Milestone 1–2 build to be genuinely playable and testable. Otherwise, how can I properly test and approve the update?
+
+Please watch the attached video yourself and check these issues before considering this build ready for testing.
+[9/20, 8:18 PM] ~Uxayr: @⁨~O Kilic⁩ I take your approval here
+
+All away trips LOCKED
+
+Clear all home mission first
+
+Go to Enter Home-territory
+
+The Jump is effect on UI i've added if you want any other faded zoom in/out then I will do that OR if u want I'll keep it simple
+[9/20, 8:20 PM] ~Uxayr: I cannot predict what's in your mind so I continue developing, you give your feedback and we change & Improved accordingly
+That's how thing goes
+
+Not asking you that its final build its a update give your feedback so we keep intact according to plan
+[9/20, 9:10 PM] +45 26 13 88 43: I understand the progression you explained, but please watch the video I attached yourself.
+
+The problem is that it is not clear from the actual build that the player is supposed to go through the Home Territory first and complete the Home missions before Away Trips unlock.
+
+As a player, I should immediately understand:
+
+Enter Home Territory → complete Home activities/missions → progress → Away Trips unlock one by one.
+
+Right now, that flow is not clear at all. The screens, buttons and transitions are confusing, and I cannot easily understand what I am supposed to do next.
+
+Also, please remove the jump effect completely. I don't want the UI to jump when I press buttons.
+
+I understand this is an update and not the final build. I am giving you feedback so we can improve it together. But please use the attached video as the reference for what I mean: look at it from the perspective of a player who has never seen the development process. Would they understand what they are supposed to do?
+
+That is the main issue I want fixed.
+[9/20, 10:13 PM] ~Uxayr: I got you and will be fixed that in next build
+mainmenu screens  needs to be simplified
+it's not a big deal I will fix these in few hours
+
+can you please check the gameplay scene ? the real work done in gameplay scene looking forward to your feedback regarding the gameplay I've added 19+ micro-management tasks to do in home area everything linked and well strategized
+
+can you please check home territory gameplay scene and give your feedback
+
+thanks
+[9/21, 3:19 AM] +45 26 13 88 43: First of all, I want to say that I can clearly see that you have put much more work into the actual gameplay now. The Home Territory, micro-management tasks, events, rival territory, squad management and the different situations are a good direction. I appreciate the work you have put into it, and I don't want you to misunderstand my criticism.
+
+I am giving you this feedback because I want to help make the game feel like a real game, not because I want to discourage you.
+
+There are still some important things that I think need to be improved:
+
+1. Fights end far too quickly
+
+When the player goes against police or rivals, the fight seems to end almost immediately and a popup appears straight away.
+
+I think there should be a little more happening before the popup appears. Let the player actually see the confrontation develop for a moment. The fight should feel like an actual gameplay event, not just an instant result followed by a popup.
+
+Also, please don't show a popup every few seconds while characters are fighting. Let the fight play out visually and only show a popup when there is actually an important decision or event.
+
+2. The game still needs more "game feeling"
+
+This is probably my biggest point.
+
+Right now, the player seems to start directly in the middle of everything. I want the player to feel like they are entering and building something.
+
+There should be a clearer beginning and progression: entering the Home Territory, understanding the area, recruiting people, moving around, preparing the crew, encountering events, dealing with rivals/police, completing objectives, and gradually developing the territory.
+
+The systems you have created are there, but they need to feel more connected as an actual game experience.
+
+3. Selecting individual members needs improvement
+
+This is very important for the RTS gameplay.
+
+It is difficult to identify individual members, and sometimes it feels almost impossible to select them again individually.
+
+The player needs to be able to clearly select one member, several members, or the whole squad.
+
+For example, if I want 3 members to stay at Home while I take 4 members with me, I need to be able to select exactly those members easily.
+
+4. The buildings can block the gameplay
+
+The tall buildings often make the game difficult or even unusable because they block the view of the characters and the area.
+
+We need a better solution here — for example, buildings becoming transparent/fading when they block the selected units or camera view, or another RTS-style solution.
+
+The player must always be able to understand where their crew is.
+
+5. Main Menu city vs actual game
+
+The city shown in the Main Menu does not match the actual city/environment in the gameplay.
+
+I understand that the Main Menu image can be different, but currently the difference is quite large.
+
+The player should feel that the Main Menu represents the same world they are about to enter.
+
+Overall, I really like the direction of the new Home Territory system. I can see that there is much more strategy and activity now, and that is exactly what I wanted.
+
+I just want us to focus now on making those systems feel like a real, playable RTS/management game instead of a collection of events and popups.
+
+Please don't take this as negative feedback. I appreciate the work you are doing. I am being detailed because I want us to get the gameplay right.
+[9/21, 10:09 PM] ~Uxayr: Improved version — what we build first
+Home Territory stays. Play feel changes
+
+1) Fight scenes
+Exploration stays isometric. The fight does not.
+When a turf or police fight starts, camera drops to a closer 3D street view.
+Fight lasts about 15–20 seconds. Enough to see punches, injuries, knockouts. Not a long isometric brawl.
+More fight / injured / down animation so bodies actually react.
+Camera holds on the last knockdown, then returns to the city camera.
+Balance so a normal crew vs a gang lands in 15–20s. Not 5s. Not 60s.
+
+2) Fewer popups — cut noise, keep important beats
+Not a short list. Every real decision and every real outcome still gets a window. We only cut spam.
+
+Rule:
+If the player must choose, or the campaign changes (spend, recruit, turf, police, matchday, defeat) → popup stays.
+
+If it’s just status while something is already happening (each punch, each injury, “fighting X”) → HUD / live feed. Not a new window every few seconds.
+
+Noise we cut:
+• one popup per injured/downed member mid-brawl
+• instant CONGRATS in the middle of the fight camera
+• stacked toasts that pause the street every few seconds
+• repeat “you already did this” chatter
+
+Important popups that stay (not limited to these):
+• HAVE IT / MOVE ON
+• BRIBE / STAND AND FIGHT
+• matchday escalation
+• recruit / spend / recover / train / van destination
+• not enough cash, squad full, other blockers
+• one fight result after the scene (not five small windows)
+• defeat / retry after the camera finishes
+• any other real choice
+
+During the fight = HUD only.
+When the scene ends = one result popup.
+Police and matchday still interrupt when a decision is due, not while punches are landing.
+
+3) Squad select / deselect (phones)
+
+Select:
+• tap portrait = add/remove that member
+• tap a unit = select (tap again to drop them)
+• SELECT ALL / CLEAR on the squad rail
+• hold then drag = box select (camera pan stays separate)
+
+Move:
+If anyone is selected, tap the street → that group walks there.
+The rest stay (leave 3 at Home, take 4).
+If nobody is selected, ground tap does nothing.
+
+Split-squad works in the city.
+
+4) Buildings fade when they block the crew
+Building sits in front of the lads → it fades. They walk clear → it goes solid again.
+
+Then (after this pass)
+5) Clearer first session — short briefing, not every system on minute one. Heat earned through play.
+6) Menu / HQ uses a capture of the real gameplay city.
+
+Short Summary
+
+1. 15–20s fight + close 3D camera + fight/injured/down anims
+2. Cut in-fight popup spam, keep all important decisions, one result after
+3. Select/deselect + tap ground to move. Remove Move button
+4. Building fade
+
+Not adding
+Extra HUD. Extra popup types. Move button. Keyboard shortcuts. Minute-long fights. Instant results.
+[9/21, 10:10 PM] ~Uxayr: That's the plan of your 5 requested changes,
+please APPROVED or suggest any changes further, then I'll start implemented
+[9/22, 12:00 AM] +45 26 13 88 43: Please wait before implementing this part. I want to make one thing absolutely clear because I don't want us to go in the wrong direction.
+
+Please do NOT add the close 3D fight camera or make the camera focus on one fight.
+
+The reason is very important: this is supposed to be a strategy/RTS game.
+
+During a real matchday, I want several things to be able to happen at the same time in different parts of the city:
+
+- A fight between our crew and rivals in one area.
+- Police confronting another group somewhere else.
+- Another rival group moving through the streets.
+- Other crew members carrying out objectives.
+- Matchday activity happening around the stadium.
+- The player should be able to see the overall situation and decide where to send or select their people.
+
+If the camera focuses on one fight and switches into a separate close-up 3D fight scene, we lose that strategic overview. The player cannot properly manage several situations happening simultaneously.
+
+The fights should therefore stay in the normal city/gameplay view. They can last longer, have better animations, injuries, knockdowns and more activity, but the camera should NOT lock onto one fight.
+
+And one more very important point:
+
+There should NOT be a popup after every fight.
+
+The fight itself should happen naturally in the gameplay world. The player should be able to see the different fights and situations developing across the city. Only genuine strategic decisions or important campaign events should interrupt the player.
+
+Please don't start implementing the 3D fight-camera idea from the proposed list. That is not the direction we agreed on.
+
+The core idea is: a living matchday + real-time strategy gameplay, with multiple situations happening across the city at the same time.
+
+That strategic feeling is very important to me.
+[9/22, 12:50 AM] ~Uxayr: Okay thanks for the detail explanation,  i got you & i've a more clearity and better understanding now.
+[9/22, 8:49 PM] ~Uxayr: Hi @⁨~O Kilic⁩
+
+I've several questions to ask
+
+When several events happen at once across the city (fight, police, stadium, objectives), how should the player control the camera? This is the main design question.
+
+I don't really understand crew vs rival fight? can you explain more
+crew=our gang members
+rivals=other local peoples
+is that correct?
+[9/22, 8:54 PM] +45 26 13 88 43: Yes, this is exactly why I want to clarify the gameplay direction before you implement anything.
+
+Have you played or watched gameplay of Hooligans: Storm Over Europe and Age of Empires?
+
+The game I am asking you to build is based on that type of real-time strategy gameplay, not a fighting game.
+
+In Hooligans: Storm Over Europe, the player controls a group of characters on the same map and can select and move different members/groups while other things are happening around them. The player has an overall view of the area and makes strategic decisions. The fights are part of the overall map and strategy — they are not separate fight scenes where the camera takes the player away from the rest of the battlefield.
+
+That is what I mean by RTS.
+
+For example, imagine a matchday in our city:
+
+- 5 of our crew are fighting rivals near one street.
+- 4 of our crew are moving toward the stadium.
+- Police are confronting another group somewhere else.
+- Another rival group is approaching from another direction.
+- Some of our members are carrying out an objective.
+- Fans and other people are moving around the city.
+- Something can happen at the pub at the same time.
+
+All of this can happen simultaneously on the same map.
+
+The player controls the camera freely by panning around the city and can zoom in/out. The player decides where to look and which crew members to select and control.
+
+If I select 4 members, I should be able to move those 4 while the other members continue doing whatever they are doing.
+
+If there is a fight somewhere else, I should be able to move the camera there myself and see what is happening — but the game should NOT automatically take control of the camera and focus on that fight.
+
+That is why I don't want the proposed close-up 3D fight camera.
+
+It would turn the game into separate fight scenes instead of one continuous strategic city environment.
+
+Regarding your question:
+
+Crew = our own controlled firm/crew.
+
+Rivals = opposing hooligan firms/crews, not just random local people.
+
+Police are another faction in the world.
+
+So the important concept is:
+
+One living city + multiple groups + multiple events happening at the same time + player-controlled camera + player-controlled units + strategic decisions.
+
+Please look at Hooligans: Storm Over Europe gameplay again with this in mind. I don't want you to copy the old graphics or make a 2002-style game. I want to capture the RTS gameplay concept and feeling and build a modern mobile version around it.
+
+That is the direction I have been trying to explain from the beginning.
+[9/23, 10:23 PM] ~Uxayr: Squad Panel also improved - 2 options to select members RTS Default by clicking on AVATAR or By UI choose which member u want and assign task or send to any location
+also gives live feedback in progess / In fight / down /Injured / free / Selected Etc
+
+double tab on member will relocate the member as well
+
+deselect also works in a same way from 3d Environment OR by using UI Panel
+[9/24, 10:57 AM] ~Uxayr: Hi, @⁨~O Kilic⁩
+Have you checked, What's your feedback? How we further enhnaced OR what features to be added Next?
+[9/24, 11:15 AM] +45 26 13 88 43: I will write and send video to you later brother please wait
+[9/24, 2:38 PM] +45 26 13 88 43: I have tested the new system, and I can see that you have added more tasks and improved some of the squad systems. I appreciate the work you are putting into it.
+
+But I need to be honest about the gameplay feeling, because there are still some important problems.
+
+1. Unit movement needs to work like a real RTS
+
+At the moment, if I select one member and tell him to move somewhere, I then have to select him again every time I want to give him another movement order.
+
+That doesn't feel right for an RTS.
+
+If I select Brick, he should remain selected until I deliberately deselect him or select another member.
+
+For example:
+
+Select Brick → send Brick to location A → Brick arrives → tap another location → Brick continues to location B.
+
+I should not have to select Brick again after every movement order.
+
+The same should work when I select several members. I should be able to keep that group selected and give them multiple orders.
+
+2. Interaction with rivals and police should not stop the whole game
+
+When I approach rivals, police or other important people/events, I think it would be much clearer to use a small bubble/circle interaction indicator above or around them.
+
+For example, when I approach a rival:
+
+[Interaction bubble]
+
+The player can tap it and see the available interaction/decision.
+
+But the important part is that the whole game should not freeze every time this happens.
+
+The player should still be able to see and manage the city while these small interaction bubbles are available.
+
+The player should also be able to dismiss/close the bubble and continue playing.
+
+This would make the game feel much more like an RTS and much less like a sequence of popup windows.
+
+Only a major strategic decision should require a larger window.
+
+3. Too many popups / unclear information
+
+When I approach rivals or other activities, too many different information windows appear.
+
+Some of the information is difficult to understand, and sometimes I press something but nothing seems to happen.
+
+I want the player to immediately understand:
+
+What is happening?
+What can I do?
+What will happen if I choose this?
+
+Please reduce the confusion without removing the actual strategic choices.
+
+4. The characters need to be larger and easier to see
+
+The actual people are still too small compared with the environment.
+
+For an RTS game, I need to be able to quickly identify my own members, rivals and police.
+
+The player should be able to look at the map and immediately understand where their people are.
+
+5. The map/minimap still has some problems
+
+There are still some issues with the map/minimap that need to be checked.
+
+The map needs to clearly show where our crew, rivals, police and objectives are, and the information needs to correspond correctly with what is actually happening in the city.
+
+The player should be able to use the map as a real strategic tool, especially when several things are happening in different locations.
+
+6. It still doesn't fully feel like a strategy game
+
+This is probably my biggest concern.
+
+I can see the systems you have added, but when I actually play it, it still doesn't give me the feeling of a real RTS yet.
+
+I want the player to constantly make strategic decisions:
+
+- Which members do I send?
+- Who stays behind?
+- Where do I move them?
+- Which objective do I handle first?
+- Where are the rivals?
+- Where is the police?
+- What is happening somewhere else in the city?
+- Should I split my crew?
+
+The game should feel like the player is managing a whole situation across the city, not just clicking through individual events.
+
+7. I still cannot clearly see what has changed since our last discussion
+
+This is important.
+
+We have discussed many specific changes: unit selection, movement, camera, fights, popups, visibility, simultaneous events, RTS controls and the overall strategy feeling.
+
+I can see that you have been working on the build, but as a player I still have difficulty understanding exactly what has changed since our last discussion and how the feedback we agreed on has been implemented.
+
+I'm not saying that you haven't done the work.
+
+I'm saying that when I play the build, I cannot clearly feel or see all the improvements we discussed.
+
+It would help if you could also tell me exactly which of our agreed changes are now implemented in this build.
+
+8. There is also some lag/input delay
+
+Sometimes I tap something and the game does not react immediately.
+
+It feels like the input is delayed, and sometimes I don't know whether my tap was registered or whether I need to tap again.
+
+Please check the performance and input response as well.
+
+
+---
+
+I really want to emphasize that I appreciate the work you are doing. I can see that there is much more gameplay in the Home Territory now, and I can see the direction becoming closer to what we discussed.
+
+I am giving detailed feedback because I want us to get the core RTS gameplay right before adding even more systems.
+
+For me, the foundation should feel like:
+
+select → move → stay selected → give another order → split the crew → manage multiple situations → interact with rivals/police without stopping the whole game → observe the whole city → make strategic decisions.
+
+That is the strategy feeling I want us to achieve.
+[9/24, 3:15 PM] ~Uxayr: 1. I designed it like this initially. However, the issue with this approach was that when I selected Brick and tapped on a specific area, Brick would start moving there. Meanwhile, if I wanted to assign another task to members like Dex or Killic and tapped somewhere else, Brick would also move again because he was still selected.
+
+To solve this, I changed the behavior: after selecting Brick and assigning him a destination, his selection circle turns yellow. This means the task is assigned, and the player needs to reselect him for another action. This frees the selection system so I can select Dex, Killic, or other members and assign them different tasks.
+
+Let me know how you would prefer this functionality to work. Should we keep this selection-confirmation system, or do you have another interaction flow in mind?
+
+2. At the moment, only the police arrival event will freeze because it directly impacts the entire gang system. I will fix this as well; the game will no longer freeze during these events.
+
+Regarding the bubble interaction, do you mean a 3D environment interaction button, similar to other interactable objects, or a 2D UI button displayed on the screen?
+
+Also, what should happen while the player is deciding whether to press the button? For example, if a rival gang fight is waiting for input:
+
+- Should the fight remain paused until the player chooses an option?
+- Should there be a default action if the player does not respond?
+- Should the outcome be selected randomly?
+
+Currently, for gang fights, I designed a popup with two options: MOVE ON / FIGHT OR IGNORE. Since player input is required, I used a larger popup window.
+
+I need your preference on whether we should introduce default actions or random outcomes when the player does not make a choice.
+
+3. If you can provide more details about which actions are the most important and require large window popups, I can redesign the system in a clearer and more consistent way.
+
+4. I will increase the character size. However, should we also adjust the camera height?
+
+The characters are already slightly oversized compared to the environment. If we increase their size further, they may appear taller than the cars, so the camera angle and height may also need adjustment to maintain the correct visual balance.
+
+6. Very important note: You have just started the game, so you are still experiencing the early stage. As you progress, you will experience and understand many more features.
+
+I have designed different events and trips throughout the game so players can experience new situations over time. If everything is revealed at the beginning, the sense of progression and discovery will be reduced.
+
+7. Another important point: visual changes are not always immediately noticeable. A lot of work has been done in the backend, including thousands of system-level modifications and improvements. Not every update will directly change the graphics or visuals, but it improves the overall gameplay experience and functionality.
+
+8. Important: We are currently in Milestone 2. There is still a significant amount of work planned for the upcoming milestones.
+
+Optimization is scheduled for the final stage, so performance improvements and final polishing will be handled later in the development process.
+[9/24, 3:34 PM] +45 26 13 88 43: Thanks for explaining. I understand why you changed the selection system, but I think we can make it work in a more natural RTS way.
+
+1. Unit selection
+
+I don't think Brick should automatically become unselected after receiving a movement order.
+
+I would prefer this flow:
+
+- Tap Brick → Brick is selected.
+- Tap the ground → Brick moves there.
+- Brick stays selected.
+- Tap Dex → now Brick + Dex are both selected.
+- Tap Killic → Brick + Dex + Killic are selected.
+- Tap Brick again → Brick becomes deselected, while Dex + Killic remain selected.
+- Tap Brick again → Brick becomes selected again.
+
+So basically:
+
+Tap once = select
+Tap again = deselect
+
+This should work both when selecting members directly in the 3D environment and through the Squad UI.
+
+This also allows me to select the whole squad and then remove individual members from the selection.
+
+For example, I could select all 6 members, deselect 2 of them, and then send the remaining 4 to one location while the 2 deselected members stay where they are.
+
+The important rule is: the ground tap gives an order to whoever is currently selected. Selecting another member adds them to the selection rather than automatically removing the previous member.
+
+That should solve the problem you described without forcing the player to reselect the same member after every movement.
+
+2. Interaction bubbles
+
+Yes, I mean a small 3D interaction indicator/bubble above or around the person or location in the world, rather than a large 2D popup covering the screen.
+
+For example, if I approach a rival, police situation, pub activity or another important interaction, a small indicator appears.
+
+The player can tap the indicator when they want to interact.
+
+The city/gameplay should continue while the indicator is waiting.
+
+This is important because several things can happen at the same time in an RTS.
+
+3. What happens during a rival encounter
+
+I don't want the whole game to freeze while waiting for the player.
+
+The fight/event should continue naturally in the world.
+
+The interaction indicator can show that a decision is available. When the player chooses to interact, then the relevant options can appear.
+
+I also don't want random outcomes simply because the player hasn't pressed something yet.
+
+The player should be in control.
+
+For example:
+
+Rival encounter → small interaction indicator → player taps it → MOVE ON / CONFRONT / other relevant decision.
+
+But the normal city simulation should not completely stop just because this interaction exists.
+
+4. Large popups
+
+I agree that some important decisions need larger windows.
+
+I would reserve large popups for things such as:
+
+- Major strategic decisions
+- Matchday escalation
+- Important police situations
+- Recruitment
+- Spending/recovery/training decisions
+- Major mission consequences
+- Defeat/retry
+- Other decisions that genuinely require the player's attention
+
+Normal movement, fighting, injuries and small interactions should mainly be shown through the world, HUD, live feed or small indicators.
+
+5. Character size / camera
+
+Yes, please increase the characters enough that they are easier to identify.
+
+If the camera height also needs to be adjusted to make the proportions look right, that's fine.
+
+The priority is that when I look at the city I can immediately distinguish:
+
+my crew / rivals / police / other important characters.
+
+I don't want the characters to become unrealistically huge, but right now they are difficult to identify during gameplay.
+
+6–8
+
+I understand your explanation about progression, backend work and the fact that this is still Milestone 2.
+
+I'm not expecting the final polished game at this stage.
+
+My main concern right now is that the basic RTS controls and gameplay feel need to be correct, because everything else will build on that foundation.
+
+And please keep checking the input response/lag while developing. I understand final optimization is Milestone 4, but the controls need to respond reliably enough for us to test the RTS gameplay properly now.
+
+Most importantly, please keep the core concept in mind:
+
+One living city + multiple groups + multiple events happening at the same time + free camera + direct unit control + strategic decisions.
+
+I think the current system can get there. I just want to make sure we solve the interaction and selection flow in a way that really feels like an RTS before we build further on top of it.
+[9/24, 3:52 PM] ~Uxayr: I think all points are clear now except point 1. The select/deselect system itself is already working as you described:
+
+- Tap once = select
+- Tap again = deselect
+
+The actual issue is not about selection. The issue is about assigning different tasks to multiple selected members.
+
+For example:
+
+- I select Brick.
+- I select Dex.
+- I select Killic.
+
+Now all three members are selected.
+
+The problem happens when I tap on the ground to give an order. The current RTS logic means the command is given to all selected units. So Brick, Dex, and Killic will all receive the same movement/task command.
+
+However, in our game, I need the ability to select multiple members and assign them different tasks individually.
+
+Example:
+
+- Select Brick → send him to one location.
+- Select Dex → send him to another location.
+- Select Killic → assign him another action.
+
+The challenge is that after selecting multiple members, the game needs to understand whether the player is:
+
+1. Giving the same command to the whole selected group, or
+2. Assigning separate commands to individual members.
+
+This is the part we need to decide how to handle.
+
+Possible solutions could be either use existing system like deselect member once 1 assigned task completed OR
+
+- Keep normal RTS behavior: selected members always receive the same command.
+- Add a separate mode where the player can assign individual tasks after selecting members.
+- Use the character selection UI to assign specific commands to specific members.
+
+The main issue I wanted to explain is: multi-selection works, but multi-selection + different tasks for each selected member is the difficult part.
+[9/24, 4:01 PM] +45 26 13 88 43: Thanks for explaining everything. I think we are getting closer, but I want to clarify the points before you implement further, because I don't want us to misunderstand each other again.
+
+1. Selection and movement — this is the most important point
+
+I think we are still misunderstanding each other here.
+
+My problem is NOT about creating a separate individual-task system.
+
+The problem is that after I select Brick and give him a movement order, I currently have to select Brick again before I can give him another movement order.
+
+I don't want that.
+
+The behaviour I want is:
+
+Tap Brick → Brick is selected → tap location A → Brick moves to A → Brick remains selected → tap location B → Brick moves to B → tap location C → Brick moves to C.
+
+I should never have to select Brick again between those movement orders.
+
+Only when I deliberately tap Brick again should he become deselected.
+
+For multiple selection:
+
+Tap Brick → Brick selected
+Tap Dex → Brick + Dex selected
+Tap Killic → Brick + Dex + Killic selected
+
+If I tap Brick again:
+
+Dex + Killic remain selected, Brick is deselected.
+
+Then I can give the selected members a group command.
+
+This gives us both normal RTS group movement and individual control without creating a complicated new system.
+
+Selected members receive the command. Deselected members do not.
+
+Please test this exact behaviour before implementing anything else.
+
+
+---
+
+2. Interaction bubbles / events
+
+Yes, I mean a small 3D interaction indicator/bubble above or around the person or event in the world.
+
+I don't want a large 2D popup appearing every time something happens.
+
+The city should continue running while the small interaction indicator is available.
+
+The player can tap it when they want to interact.
+
+For example:
+
+Rival approaches → small interaction bubble appears → player taps it → options appear.
+
+The normal RTS world should not completely stop just because an interaction is available.
+
+I also don't want random outcomes simply because the player doesn't immediately press something. The player should remain in control.
+
+
+---
+
+3. Important popups
+
+I agree that major decisions can use larger windows.
+
+Large popups should mainly be for genuine decisions such as:
+
+- Major strategic decisions
+- Matchday escalation
+- Important police situations
+- Recruitment
+- Spending
+- Training/recovery
+- Major mission consequences
+- Defeat/retry
+- Other decisions that genuinely require the player's attention
+
+Normal movement, fighting, injuries and small events should not constantly interrupt the gameplay with large windows.
+
+
+---
+
+4. Character size
+
+Yes, please make the characters somewhat larger and easier to identify.
+
+If the camera height needs to be adjusted to keep the proportions looking correct, that's fine.
+
+The priority is that I can immediately distinguish:
+
+our crew / rivals / police.
+
+They are currently too difficult to identify during actual gameplay.
+
+
+---
+
+5. Map / minimap
+
+There are still map/minimap issues that need to be checked.
+
+The minimap should reliably show where our crew, rivals, police and objectives are, and it needs to correspond correctly with what is happening in the actual city.
+
+This is important because the minimap is part of the RTS overview.
+
+
+---
+
+6. RTS feeling
+
+I understand your explanation that the game starts with an early progression and that more systems will appear later.
+
+I am not asking you to reveal the entire game immediately.
+
+My point is different: the basic gameplay already needs to feel like an RTS.
+
+The player should already be able to:
+
+- Select and control individual members
+- Select multiple members
+- Split the crew
+- Give movement orders
+- Look around the city freely
+- See rivals and police
+- Manage different situations
+- Have multiple things happening at the same time
+
+That is the foundation I am talking about.
+
+
+---
+
+7. What has changed since our last discussion
+
+This is also important.
+
+I understand that a lot of backend work may not be visible.
+
+But when I ask what has changed, I mean specifically:
+
+Which of the changes we discussed together are now implemented and working in this build?
+
+For example:
+
+- Selection/movement
+- Multiple selection
+- Deselecting individual members
+- Camera
+- Fight behaviour
+- Popups
+- Interaction system
+- Character visibility
+- Simultaneous events
+- RTS controls
+- Map/minimap
+
+I would appreciate it if you could clearly tell me which of these are already implemented and testable, which are partially implemented, and which are still planned.
+
+That will help me understand the progress much better.
+
+
+---
+
+8. Lag / input response
+
+I understand that final optimization is Milestone 4.
+
+But the controls still need to respond reliably enough for us to test the game now.
+
+Sometimes I tap something and there is a noticeable delay before the game responds. Please keep checking this during development.
+
+
+---
+
+I appreciate the work you are doing and I can see that the Home Territory is becoming much more developed.
+
+I am not trying to stop your progress or ask for the final polished game in Milestone 2.
+
+I just want to make sure we get the core RTS foundation correct before building more systems on top of it.
+
+The most important principle remains:
+
+One living city + free camera + direct unit control + multiple groups + multiple events happening simultaneously + strategic decisions.
+
+If we get that foundation right, I think the rest of the game can build very well on top of it.
+[9/25, 2:03 AM] +45 26 13 88 43: Thanks for the update. I can clearly see improvements in this build, especially the minimap, 3D interaction bubbles, camera visibility, and larger/more clearly differentiated characters.
+
+The direction is much closer to what I want.
+
+Before moving further, I want to make sure the core RTS controls are working exactly as discussed:
+
+- Select Brick → give a MOVE order → Brick remains selected.
+- Tap another location → Brick moves there again without needing to select him again.
+- Tap Brick again → Brick is deselected.
+- Select Brick + Dex → both remain selected and can move together.
+- Tap Brick again → only Brick is deselected, while Dex remains selected.
+- This should allow both group movement and individual control without switching into a separate “individual task mode”.
+
+I also want to make sure the next stage continues toward the main RTS concept: one living city, free camera, multiple groups, rivals and police moving independently, and multiple events happening simultaneously without the camera switching into a separate close-up fight view.
+
+The latest build is definitely moving in the right direction. Please keep these core gameplay controls as a priority while continuing with the remaining improvements.
+[9/25, 12:42 PM] ~Uxayr: Yes everything alligned with this approach and implemented
+
+Now I'm testing will give u  the updated build tonight
+[9/25, 12:43 PM] ~Uxayr: Please see the video
+I've implemented as you discribed
+[9/25, 12:49 PM] +45 26 13 88 43: One more important point regarding the individual RTS commands.
+
+We need clear commands such as:
+
+- MOVE – move to a selected location.
+- ATTACK – attack a selected rival/group.
+- GUARD – stay in an area and protect it.
+- PATROL – patrol between/around an assigned area.
+
+For PATROL, I expect the crew to automatically react if rival gangs enter and attack them or enter the area they are protecting. They should defend themselves automatically while patrolling, rather than simply ignoring an attacking rival until I manually give another order. The player should still be able to take manual control when needed.
+
+The same logic should work for police where appropriate.
+
+Also, MATCHDAY around the stadium is extremely important.
+
+On matchdays, the stadium area should feel like a real football match, not an empty normal city area. There should be:
+
+- Rival gangs arriving in groups around the stadium.
+- Our supporters/crew in groups.
+- Different rival groups positioned in different areas around the stadium.
+- Police presence and police patrols around the stadium.
+- Movement and activity around the stadium before and during the match.
+- Potential conflicts happening in different places at the same time.
+- The player should be able to manage these situations from the normal RTS/free camera view.
+
+I want the stadium surroundings to feel like a living matchday, with several groups and events happening simultaneously, rather than one isolated fight.
+
+This is important for the overall identity of the game, so please keep it in the planned gameplay and not just as background decoration.
+[9/25, 8:14 PM] ~Uxayr: Ok Noted...
+
+But these advanced mechaism will came in milestone 3 when we designed game economy USER must have to use cash/watch rewarded ad/IAP to upgrade these features in crew members and increase HP / Staimins / Patrolling /Guarding Abilities etc all were paid and part of Monetizations Either user watch ads to unlock these Or we'll Add these in In-App-Purchasd
+[9/25, 10:42 PM] ~Uxayr: A match-day - lot of simultaneously event happening automatically as u described
+fights b/w Home supporter and rival fans - and a lot of things
+
+Now system is there in further milestone definitely visuals and animations will be improved
+[9/26, 3:28 PM] ~Uxayr: ✅ Milestone 01 & 02 Completed
+
+We have now completed Milestones 01 and 02 with several major gameplay and visual improvements.
+
+The overall city experience has been enhanced to provide much better clarity about what is happening around the player. The visuals have been improved, and the characters have been redesigned so they are more clearly visible and each gang now has a stronger, more distinct identity.
+
+A new Live Feed System has also been added. Instead of showing too many large and distracting pop-ups, the Live Feed continuously displays important events, alerts, warnings, and activity logs in a cleaner and less intrusive way.
+
+The minimap, gameplay UI, HUD, and overall gameplay presentation have also been improved to create a much smoother and more engaging experience.
+
+The police system has been significantly expanded as well. We added an Arrest System and an Intel System. Police can now arrest one gang member, gather information from them, and use that lead to locate and arrest the next crew member. This can continue until the player pays a bribe or takes action. Otherwise, multiple gang members can be arrested, weakening the entire gang or potentially wiping it out. This makes police pressure feel much more serious and creates real tension during gameplay.
+
+We have also added multiple simultaneous activities and events that can happen during match days, making the city feel more alive and unpredictable. Rival gangs can fight each other, take control of areas, and react dynamically to what is happening around them. Our gang members can also support fights and help take control of contested areas.
+
+Rival gangs now grow automatically over time and become increasingly dangerous. This means the player must plan ahead and deal with rival gangs before they become a major threat.
+
+The missions and levels have also been further enhanced with more varied objectives, including destroying vehicles, eliminating specific targets, taking control of territories, and completing other mission-based activities.
+
+All Home and Away missions have now been properly designed and structured to provide a more complete and polished gameplay experience.
+
+A new double-tap feature has also been added to the Squad system. If the player is having trouble finding a specific gang member on the map, they can simply double-tap that member in the Squad UI to instantly locate and focus on them.
+
+Finally, the Defeat UI and Victory UI have also been redesigned and enhanced to provide a stronger and more polished ending to each match.
+[9/28, 6:01 PM] +45 26 13 88 43: I think there is a misunderstanding.
+
+The app starts, but then it goes to the “Wasted” screen. This started happening with the latest update.
+
+I have already:
+
+- Cleared the cache.
+- Completely deleted/uninstalled the app.
+- Reinstalled it several times.
+- Restarted the phone.
+
+The important point is that all the previous updates worked without any problem on my device. I have tested your previous builds many times, and this issue only started with the latest update.
+
+So please don't keep asking me to clear cache or reinstall the app. I have already done that several times.
+
+Please check the latest build/update itself and investigate what changed that could be causing the game to start and immediately go into Wasted.
+
+I can also provide the video showing exactly what happens on my device.
+[9/30, 2:07 AM] +45 26 13 88 43: I have now watched the build carefully, and I need to be very clear about the current state before we move forward.
+
+There are improvements, but I still do not feel the game has reached the RTS/strategy experience we agreed on.
+
+Here are the main issues I see:
+
+1. Police / Bribe
+   When police arrive after a fight and I pay the bribe, the police suddenly disappear. This looks like a game mechanic rather than a living city. They should finish the interaction and then physically leave/drive away from the area.
+
+2. Buildings block the gameplay
+   Many buildings are too tall. When my crew is close to a building, I cannot see my characters properly. Buildings need to fade, become transparent, or otherwise stop blocking the player's view when they are in front of controlled units.
+
+3. The game still feels too much like “send a group to fight”
+   At the moment, I can select a group, send them somewhere, and they run over and fight rivals. I still don't feel enough strategic management.
+
+The RTS commands need to have real purpose:
+MOVE, ATTACK, PATROL, GUARD, RETREAT, CAPTURE, etc.
+
+I should be able to have different groups doing different things at the same time, not just one group running around and fighting.
+
+4. Stadium / hooligan atmosphere is still missing
+   This is extremely important for the identity of the game. The city still does not give me the feeling of a real football/hooligan environment.
+
+On matchday I expect:
+
+- groups of our supporters
+- multiple rival groups around the stadium
+- police presence
+- groups moving around
+- different incidents happening simultaneously
+- territory/control situations
+- the stadium and surrounding area clearly feeling like matchday
+
+It should feel like a living football matchday, not just a normal city with a stadium building.
+
+5. Individual units are difficult to track
+   When I select one member and send him somewhere, I quickly lose sight of where he is. I need a clear way to understand where each member is and what he is currently doing.
+
+6. Movement animation
+   The way the characters run after receiving a MOVE order looks very unnatural and mechanical. The running, acceleration, turning and stopping need more natural animation. At the moment it makes the game feel like a prototype rather than a polished mobile game.
+
+7. Minimap
+   The minimap still does not feel professional or completely reliable. It needs to clearly and accurately show:
+   our crew, rival crews, police, objectives, territories and important events, and what is shown on the minimap must correspond correctly to the actual city.
+
+Most importantly, I am not asking for everything to be graphically perfect immediately. I understand that visual polish and animations can continue in later milestones.
+
+My concern is the core gameplay direction.
+
+The final experience needs to be:
+
+Management + RTS strategy + living city + hooligan/football atmosphere
+
+and not simply:
+
+3D city + groups running around and fighting.
+
+Please take these points seriously before moving too far into Milestone 3 and monetization. The foundation of the gameplay needs to feel right first.
+[9/30, 2:21 PM] ~Uxayr: I think we should stop further development at this stage. First, we need a solid gameplay plan and a complete script to follow; otherwise, we will continue wasting time making changes without a clear direction.
+
+The current concept does not feel like an RTS or strategy game. Simply saying “send a group” or “fight” is too generic. If this does not match the intended gameplay, I need a complete gameplay script explaining exactly what happens from the player’s perspective.
+
+For example:
+
+When the player presses Play, what happens first?
+
+Is there a cutscene? What does it show?
+
+How does the player enter the home territory?
+
+What messages, tutorials, or pop-ups appear?
+
+What is the first mission/objective?
+
+What exact actions does the player perform to complete it?
+
+I need a detailed mission flow, not just general ideas.
+
+For example:
+
+Mission 1: Home Territory
+
+Story introduction:
+
+Objective:
+
+Player instructions:
+
+Available actions:
+
+Micro-management tasks:
+
+How units move:
+
+How combat works:
+
+How capturing works:
+
+What happens after completion:
+
+Rewards/unlocks:
+
+If the objective is to capture an area, explain:
+
+Does the player need to hold the location for a specific time?
+
+Defeat enemy units?
+
+Build a base?
+
+Protect resources?
+
+Complete multiple tasks?
+
+Then continue the same level of detail for:
+
+Mission 2, Mission 3, Mission 4, and all remaining home territory objectives.
+
+After that, create a similar script for:
+
+Away Trips / Enemy Territory
+
+Explain:
+
+Why the player travels there
+
+What preparation is required
+
+What risks exist
+
+What objectives need to be completed
+
+How success and failure work
+
+I also need a clear explanation of matchday gameplay.
+
+What exactly makes it a “matchday”?
+
+For example:
+
+What happens before matchday?
+
+What management decisions are made?
+
+What happens during matchday?
+
+Is it a battle simulation, tactical RTS, or football-style match management?
+
+How does the player influence the outcome?
+
+The main requirement is to create a real RTS feeling.
+
+I need a complete RTS strategy plan, including:
+
+Unit control
+
+Territory control
+
+Resource management
+
+Tactical decisions
+
+Defensive planning
+
+Attacking strategies
+
+Upgrades
+
+Long-term progression
+
+A statement like “make it more RTS” is not enough. I need the actual gameplay direction and implementation idea.
+
+Also, please provide a complete management gameplay script.
+
+For example:
+
+What exactly does the player manage?
+
+Not just “manage the team” or “manage the organization”, but:
+
+What screens exist?
+
+What decisions can the player make?
+
+What resources are controlled?
+
+How does each decision affect gameplay?
+
+What problems/events appear?
+
+How does the player solve them?
+
+I also need detailed examples for actions like:
+
+Move / Attack / Patrol / Guard
+
+Since the game currently uses tap-to-move, explain how we introduce more strategic functionality.
+
+For example:
+
+When the player taps a location:
+
+Does the unit simply move there?
+
+Does a command menu appear?
+
+Can the player choose Move, Attack, Defend, Scout, Patrol, or Capture?
+
+How does each command work?
+
+What animations and feedback are shown?
+
+Please provide real examples of how these systems should work in-game.
+
+The previous RTS work can be discarded completely if needed. I want a new direction based on a proper written gameplay script that can directly guide development.
+
+Once the complete gameplay flow, missions, objectives, management systems, and RTS mechanics are clearly defined, we can start development in the exact intended direction.
+
+Looking forward to receiving the full gameplay script and design direction.
+[9/30, 2:35 PM] +45 26 13 88 43: I understand what you are asking for, and I agree that we need a clear gameplay direction before continuing development.
+
+However, there is one very important point that I need to clarify.
+
+From the very beginning of this project, the agreement and main reference has been the old PC game Hooligans: Storm Over Europe. The intention has always been to make a mobile game that matches that game as closely as possible in terms of its overall gameplay concept, RTS structure, management, missions, city environment, hooligan atmosphere, police, rival gangs, territory control, and strategic gameplay — while improving it and adapting it properly for modern mobile devices.
+
+H

@@ -1,0 +1,31 @@
+PASS Empty preset / defeated save starts with living crew and starter cash
+PASS Fresh identities are selected for deployment
+PASS Previous campaign progress and session cleared
+PASS Personal preferences preserved
+PASS New crew and cash survive save/reload
+PASS Valid higher club starting resources preserved; repeated new game does not duplicate roster
+PASS 1280x720, notch=False: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS 1280x720, notch=True: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS 1920x1080, notch=False: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS 1920x1080, notch=True: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS 2400x1080, notch=False: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS 2400x1080, notch=True: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS 2532x1170, notch=False: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS 2532x1170, notch=True: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS 2960x1440, notch=False: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS 2960x1440, notch=True: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS 1024x768, notch=False: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS 1024x768, notch=True: complete authored layout fits safe area without stretching
+PASS Unchanged display retains layout
+PASS Landscape player configuration

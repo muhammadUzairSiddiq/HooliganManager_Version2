@@ -58,6 +58,7 @@ public class GamePopup : MonoBehaviour
             return;
         }
         if(!root) Build();
+        CityUiSheets.Open(this,Hide);
         if(autoHide!=null){StopCoroutine(autoHide);autoHide=null;}
         hideCallback=onCancel;
         Color tone=ToneFor(heading);

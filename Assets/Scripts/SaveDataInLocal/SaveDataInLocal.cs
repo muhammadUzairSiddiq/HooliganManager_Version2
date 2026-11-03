@@ -14,6 +14,7 @@ public static class SaveDataInLocal
     public static void DataSave(PlayerData player)
     {
         if (player == null) return;
+        if(PoliceCityMode.Active){PoliceCampaignStore.Save(player);return;}
         string json = JsonUtility.ToJson(new Envelope { player = player });
 #if UNITY_EDITOR
         if (!string.IsNullOrEmpty(EditorSaveOverride))

@@ -52,9 +52,9 @@ public sealed class LandscapeButtonPolish : MonoBehaviour, IPointerEnterHandler,
     {
         bool active = selectable == null || selectable.IsInteractable();
         if (!held) punch = Mathf.MoveTowards(punch, 0f, Time.unscaledDeltaTime * 2.4f);
-        float target = !active ? 1f : held ? 0.9f : punch > 0f ? Mathf.Lerp(1.08f, 1f, 1f - punch) : 1f;
-        shown = Mathf.Lerp(shown, target, 1f - Mathf.Exp(-16f * Time.unscaledDeltaTime));
-        if (rect) rect.localScale = baseScale * shown;
+        // Keep hit areas and layout stable. Feedback uses color rather than the
+        // jumping/shrinking animation explicitly rejected by the client.
+        if (rect) rect.localScale = baseScale;
         if (image)
         {
             Color tint = active ? Color.Lerp(baseColor, Color.white, held ? 0.18f : 0f) : new Color(.58f, .62f, .65f, .65f);

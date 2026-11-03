@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71b5f46d05f84d1aa34578022ffb27d4, type: 3}
+  m_Name: PurchasesConfiguration
+  m_EditorClassIdentifier:
+  mode: 1
+  products:
+  - key: firm_cash
+    title: OPTIONAL FIRM SUPPORT
+    description: Adds 1000 firm currency. Businesses and missions earn money without purchases.
+    androidId:
+    iosId:
+    benefit: 0
+    cash: 1000
+  - key: no_interruptions
+    title: NO FORCED AD INTERRUPTIONS
+    description: Permanently disables forced transition ads. Rewarded ads stay optional. Forced ads are already disabled in this review configuration.
+    androidId:
+    iosId:
+    benefit: 1
+    cash: 0

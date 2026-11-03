@@ -26,7 +26,28 @@ public static class LandscapeEditorBridge
                     .Where(c=>c && c.gameObject.scene.IsValid()).Select(c=>c.GetType().Name+" @ "+PathOf(c.transform));
                 File.WriteAllLines(OutputPath,lines); return;
             }
-            if (command=="enhancement-configure") EnhancementChecks.Configure();
+            if (command=="recovery-checks") RecoveryChecks.Run();
+            else if(command=="ads-checks") AdsChecks.Run();
+            else if(command=="redesign-playtest") RedesignPlaytest.Begin();
+            else if(command=="police-career-playtest") PoliceCityPlaytest.Begin();
+            else if(command=="police-vehicle-playtest") PoliceVehiclePlaytest.Begin();
+            else if(command=="commerce-playtest") CommercePlaytest.Begin();
+            else if(command=="purchase-checks") PurchasesChecks.Run();
+            else if(command=="production-strategy-playtest") ProductionStrategyPlaytest.Begin();
+            else if(command=="recovery-build-android") RecoveryBuild.Android();
+            else if(command=="editor-state")
+            {
+                var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                File.WriteAllText(OutputPath,$"Playing={EditorApplication.isPlaying}; Scene={scene.name}; Dirty={scene.isDirty}");return;
+            }
+            else if(command=="quit-editor")
+            {
+                if(EditorApplication.isPlaying||UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty)throw new InvalidOperationException("Quit refused: playing or unsaved scene.");
+                EditorApplication.Exit(0);
+            }
+            else if (command=="enhancement-configure") EnhancementChecks.Configure();
+            else if (command=="milestone-one-checks") MilestoneOneChecks.Run();
+            else if (command=="milestone-one-play") MilestoneOnePlaytest.Begin();
             else if (command=="enhancement-play") EnhancementPlaytest.Begin();
             else if (command=="enhancement-checks") EnhancementChecks.Run();
             else if (command=="enhancement-build") EnhancementChecks.Build();
@@ -152,14 +173,14 @@ public static class LandscapeEditorBridge
                 CityGameplay.HomeMode=true;
                 UnityEngine.SceneManagement.SceneManager.LoadScene("Gameplay");
             }
-            else if(command=="android-review-build")
+            else if(command=="android-review-build" || command=="milestone-one-build")
             {
                 if(EditorApplication.isPlaying)throw new InvalidOperationException("Stop play mode before building.");
                 Directory.CreateDirectory("Artifacts/Builds");
                 File.WriteAllText("Artifacts/Builds/android-build.txt","BUILDING "+DateTime.Now.ToString("s"));
                 var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions {
                     scenes=EditorBuildSettings.scenes.Where(s=>s.enabled).Select(s=>s.path).ToArray(),
-                    locationPathName="Artifacts/Builds/Hooligan-Milestone-3-Campaign-Review.apk",target=BuildTarget.Android,options=BuildOptions.None
+                    locationPathName=command=="milestone-one-build" ? "Artifacts/Builds/Hooligan-Milestone-01-Review.apk" : "Artifacts/Builds/Hooligan-Milestone-3-Campaign-Review.apk",target=BuildTarget.Android,options=BuildOptions.None
                 });
                 File.WriteAllText("Artifacts/Builds/android-build.txt",report.summary.result+"\nErrors: "+report.summary.totalErrors+"\nWarnings: "+report.summary.totalWarnings+"\nSize: "+report.summary.totalSize+"\nDuration: "+report.summary.totalTime);
                 if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)throw new InvalidOperationException("Android build did not succeed.");

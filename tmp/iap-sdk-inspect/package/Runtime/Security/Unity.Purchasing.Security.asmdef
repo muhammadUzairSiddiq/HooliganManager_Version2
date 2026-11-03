@@ -1,0 +1,30 @@
+{
+    "name": "Unity.Purchasing.Security",
+    "references": [
+        "Unity.Purchasing.SecurityCore",
+        "Unity.Purchasing.Utilities"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [
+        "Editor",
+        "GameCoreScarlett",
+        "GameCoreXboxOne",
+        "LinuxStandalone64",
+        "CloudRendering",
+        "PS4",
+        "PS5",
+        "Switch",
+        "WSA",
+        "WebGL",
+        "WindowsStandalone32",
+        "WindowsStandalone64",
+        "XboxOne"
+    ],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -19,7 +19,11 @@ public static class ZoneVolumeFactory
         root.transform.SetParent(parent, false);
         root.transform.localPosition = Vector3.up * 0.05f;
         float outer = Mathf.Max(2.2f, footprint);
-        BuildFlatCircle(root.transform, "Outer", outer, 0.12f, new Color(tint.r, tint.g, tint.b, .72f),true,48);
+        var outline=BuildFlatCircle(root.transform,"Site outline",outer,.10f,new Color(tint.r,tint.g,tint.b,.65f),true,4);
+        outline.transform.localRotation=Quaternion.identity;
+        outline.alignment=LineAlignment.View;
+        outline.SetPositions(new[]{new Vector3(-outer,0,-outer),new Vector3(-outer,0,outer),new Vector3(outer,0,outer),new Vector3(outer,0,-outer)});
+        root.AddComponent<SiteOutlineVisibility>();
         return root;
     }
 
@@ -80,4 +84,13 @@ public static class ZoneVolumeFactory
                 Object.Destroy(child.gameObject);
         }
     }
+}
+
+/// <summary>Location footprints are an optional map detail, not permanent circles.</summary>
+public sealed class SiteOutlineVisibility:MonoBehaviour
+{
+    public bool Emphasized;
+    LineRenderer[] lines;
+    void Awake(){lines=GetComponentsInChildren<LineRenderer>();}
+    void LateUpdate(){bool show=Emphasized||ModernCityHud.Instance&&ModernCityHud.InspectWorld;foreach(var line in lines)if(line)line.enabled=show;}
 }

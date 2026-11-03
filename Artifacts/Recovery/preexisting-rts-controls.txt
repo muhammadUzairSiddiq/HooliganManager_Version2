@@ -1,0 +1,95 @@
+PASS Resources and heat start visible with a close control
+PASS Top controls can collapse behind PANEL
+PASS Full-screen HEATMAP has priority over all gameplay canvases
+PASS Squad SELECT ALL selects the entire live crew
+PASS DRAG enables rectangle selection
+PASS DESELECT ALL clears crew and returns drag to camera mode
+PASS Promotion charges once and increases persistent support
+PASS Support capacity prevents payment for no reward
+PASS All three supplied role models are registered
+PASS Crew uses a valid Mixamo humanoid avatar
+PASS Corpse size agrees with independent skeleton dimensions (3.44m / 3.54m)
+PASS Corpse rests on the ground instead of floating
+PASS Brick stays selected immediately after MOVE
+PASS Brick arrives and completes MOVE at navigation stopping distance
+PASS Next ground order redirects Brick without selecting again
+PASS Brick + Dex keep their group selection after MOVE
+PASS Dex receives the group movement order
+PASS Tapping Brick removes only Brick
+PASS An order for Dex does not redirect deselected Brick
+PASS Selection reuses the same squad portraits
+PASS GUARD is assigned without losing selection
+PASS A subsequent ground MOVE overrides GUARD
+PASS PATROL starts without a separate task mode
+PASS PATROL reverses at its endpoint automatically
+PASS Patrol automatically engages a nearby rival intrusion and retains route
+PASS Patrol resumes when the threat leaves the protected route
+PASS Guard immediately defends against the actual attacker
+PASS Guard stops pursuit and returns to its area
+PASS Guard leaves neutral police alone
+PASS Guard reacts automatically to nearby hostile police
+PASS ATTACK waits for an explicit target
+PASS ATTACK button explains target selection instead of claiming the order already happened
+PASS Targeted ATTACK replaces guard and retains selection
+PASS Manual MOVE immediately replaces ATTACK
+PASS PAY charges the quoted settlement once
+PASS PAY stops every member of the rival firm
+PASS Repeated PAY cannot charge twice
+PASS Settled rivals do not resume chasing
+PASS Taking another hit does not cancel a manual withdrawal MOVE
+PASS Unreachable MOVE preserves the last valid order
+PASS Another gang's defeat preserves an unrelated guard order
+PASS Gang defeat does not open a routine result popup
+PASS Activity-locked crew reject MOVE instead of reporting success
+PASS Move removed from bottom command strip
+PASS Attack removed from bottom command strip
+PASS Guard removed from bottom command strip
+PASS Patrol removed from bottom command strip
+PASS World gesture owner exists
+PASS Box selection prevents camera drag
+PASS Guard area owns drag exclusively
+PASS Guard rectangle reaches the agent duty system
+PASS Explicit A/B patrol validates connected route
+PASS Invalid patrol endpoint rejected
+PASS Crowds use nine supporter gestures and the requested Dwarf Walk
+PASS City building visibility active
+PASS Matchday choices open locally without pausing or a modal
+PASS Closing the matchday choice leaves world commands available
+PASS Police intermediary dot is hidden
+PASS Police choices open immediately and leave simulation running
+PASS Independent home, rival and police matchday groups exist
+PASS Stationary hold opens the direct command menu and survives release
+PASS A camera drag cannot become a long-press command
+PASS Real city buildings are registered for camera occlusion
+PASS Legacy elevated railway decks and columns are disabled
+PASS Flat ground railway replaces the removed viaduct
+PASS Building hiding exposes units along the camera ray
+PASS Occluder restores when it no longer hides units
+PASS Home services and recruitment persist through the save serializer
+PASS Supporter population is halved to a 500-person cap
+PASS Supporters form groups of 3–15 and most groups move
+PASS Instanced spectators render four distinct faction shirt colours
+PASS Heatmap displays live supporter gains on the faction bubble
+PASS Heatmap displays live red supporter losses
+PASS Multiple independent supporter flashpoints can run together
+PASS Recruitment packages offer four times the previous quantities
+PASS Expanded minimap exposes six checkmarked visibility layers
+PASS Real death preserves body proportions and lies down (3.89m, skeleton chain 3.54m)
+PASS Real fallen body remains grounded
+PASS NPC-inflicted death cannot increase player police heat
+PASS Real death preserves body proportions and lies down (3.86m, skeleton chain 3.54m)
+PASS Real fallen body remains grounded
+PASS NPC-inflicted death cannot increase player police heat
+PASS Real death preserves body proportions and lies down (3.79m, skeleton chain 3.52m)
+PASS Real fallen body remains grounded
+PASS NPC-inflicted death cannot increase player police heat
+PASS Real death transitions exercised all three role models
+PASS Camera preloading respects the actor cap on district visit 0
+PASS Camera preloading respects the actor cap on district visit 1
+PASS Camera preloading respects the actor cap on district visit 2
+PASS Camera preloading respects the actor cap on district visit 3
+PASS Camera preloading respects the actor cap on district visit 4
+PASS Camera preloading respects the actor cap on district visit 5
+PASS Returning districts reuse a bounded role-specific actor pool
+RESULT 93 passed, 0 failed
+UTC 2026-10-18T11:02:32.6171147Z

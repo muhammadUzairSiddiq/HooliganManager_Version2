@@ -83,9 +83,7 @@ public sealed class ModalPresentation : MonoBehaviour
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 31000;
         var scaler = canvasGo.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1600, 900);
-        scaler.matchWidthOrHeight = 1f;
+        LandscapeUI.ConfigureLandscapeScaler(scaler);
         var plate = new GameObject("Plate", typeof(RectTransform), typeof(Image));
         plate.transform.SetParent(canvasGo.transform, false);
         var plateRt = plate.GetComponent<RectTransform>();

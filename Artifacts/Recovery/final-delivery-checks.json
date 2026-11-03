@@ -1,0 +1,13 @@
+{
+  "utc": "2026-11-02T21:09:44.1625784Z",
+  "pdf": "D:\\Holligan Manager Version 2\\HooliganManager_Version2\\output\\pdf\\Hooligan_Manager_Compiled_RTS_Recovery_Plan.pdf",
+  "pages": 134,
+  "bytes": 12077400,
+  "sha256": "BBF886F3F32424A4D8137347A59D267660D283E27B4F9EE8DC88FB557F8D410F",
+  "automated_pdf_checks": "76 passed, 0 failed",
+  "visual_review": "Final 134 pages rendered; contact sheets 1-9 reviewed, corrected chapter transition checked full-size; no visible clipping/overlap/missing glyphs. Original source formatting retained.",
+  "render_folder": "tmp/pdfs/v4-release-20261103-020353",
+  "apk_package_checks": "11 passed, 0 failed",
+  "physical_device_validation": "not performed",
+  "existing_editor": "Original GUI remains stalled in earlier dependency resolver; restart required. Batch build exited successfully."
+}

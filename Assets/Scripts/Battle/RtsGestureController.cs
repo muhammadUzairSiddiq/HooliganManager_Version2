@@ -36,6 +36,7 @@ public sealed class RtsGestureController : MonoBehaviour
     public void Cancel()
     {
         Mode = InputMode.Camera;
+        if (selection) selection.CancelTargeting();
         if (anchor) anchor.GetComponent<WorldChoiceBar>()?.Hide();
         if (preview) Destroy(preview.gameObject);
         preview = null;
@@ -81,7 +82,7 @@ public sealed class RtsGestureController : MonoBehaviour
         dragged |= Vector2.Distance(start, p) > Tolerance;
         if (Mode == InputMode.GuardArea && dragged && Ground(start, out var a) && Ground(p, out var b))
             DrawPreview(GuardBounds(a, b));
-        if (Mode == InputMode.Camera && !held && !dragged && Time.unscaledTime - began >= HoldSeconds && selection.SelectedAgents.Count > 0 && Ground(p, out var point))
+        if (Mode == InputMode.Camera && !held && !dragged && Time.unscaledTime - began >= HoldSeconds && selection.SelectedAgents.Count > 0 && !(PolicePatrolVehicle.Instance&&PolicePatrolVehicle.Instance.Selected) && Ground(p, out var point))
         { held = true; OpenMenu(point); }
     }
     void End(Vector2 p, bool canceled)
@@ -176,6 +177,7 @@ public sealed class RtsGestureController : MonoBehaviour
             if (member && member.CommandGuard(area,post)) members.Add(member);
         }
         if (members.Count == 0) { Hint("Guard area unreachable or crew busy"); return; }
+        if (RecoveryProgression.RecordOrder(GameManager.Data,"GUARD")) GameManager.Save();
         RtsDutyBoundary.Create(area, members); Cancel(); Hint("GUARD · " + members.Count + " assigned");
     }
     public void StartPatrol()
@@ -184,6 +186,7 @@ public sealed class RtsGestureController : MonoBehaviour
         var accepted=new List<AgentController>();
         foreach (var member in selection.SelectedAgents) if (member && member.CommandPatrol(routeA, routeB)) {count++;accepted.Add(member);}
         if (count == 0) { Mode = InputMode.PatrolB; Hint("Route unreachable · choose another point B"); return; }
+        if (RecoveryProgression.RecordOrder(GameManager.Data,"PATROL")) GameManager.Save();
         RtsOrderVisual.Patrol(routeA,routeB,accepted);Cancel(); Hint("PATROL · " + count + " assigned");
     }
     void DrawPreview(Bounds bounds)

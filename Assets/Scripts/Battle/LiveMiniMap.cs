@@ -205,16 +205,20 @@ public class LiveMiniMap : MonoBehaviour
         var safeGo = new GameObject("SafeArea", typeof(RectTransform));
         safeGo.transform.SetParent(canvasGo.transform, false);
         Stretch(safeGo.GetComponent<RectTransform>());
-        safeGo.AddComponent<MiniMapSafeArea>();
-        Transform uiRoot = safeGo.transform;
+        // Match the gameplay HUD's safe-area scale, including notched 16:9 screens.
+        var uiFrame = LandscapeUI.Rect("Landscape", safeGo.transform, 0, 0, 1600, 900);
+        var viewport = safeGo.AddComponent<LandscapeViewport>();
+        viewport.frame = uiFrame;
+        viewport.Fit();
+        Transform uiRoot = uiFrame;
         BuildLayers(uiRoot);
 
         // Gameplay: leave bottom-right margin; stack CAMERA / RECENTRE under the map.
         if (gameObject.scene.name == "Gameplay")
         {
-            _compactSize = new Vector2(268f, 268f);
+            _compactSize = new Vector2(220f, 220f);
             // Aligns with camera buttons stacked under the map (bottom margin ~22).
-            _compactPos = new Vector2(24f, -512f);
+            _compactPos = new Vector2(24f, -600f);
         }
         else
         {
@@ -832,7 +836,7 @@ public class LiveMiniMap : MonoBehaviour
 
         foreach (var a in BattleManager.instance.PlayerAgents)
         {
-            if (a == null || !a.IsAlive || !a.gameObject.activeInHierarchy) continue;
+            if (a == null || !a.IsAlive || !a.gameObject.activeInHierarchy||PolicePatrolVehicle.IsMounted(a)) continue;
             _marks.Add(new Mark
             {
                 world = a.transform.position,
@@ -947,7 +951,35 @@ public class LiveMiniMap : MonoBehaviour
             });
         }
 
-        if (CityOperationsSystem.Instance != null&&Layer("AREAS"))
+        if(PoliceCityMode.Instance&&PoliceCityMode.Instance.Ready&&Layer("AREAS"))
+        {
+            var mode=PoliceCityMode.Instance;
+            if(PolicePatrolVehicle.Instance)_marks.Add(new Mark{world=PolicePatrolVehicle.Instance.transform.position,sprite=_policeSprite,color=new Color(.3f,.9f,1f),size=_expanded?30:18,label=_expanded?"PATROL VAN":null});
+            _marks.Add(new Mark{world=mode.Station,sprite=_policeSprite,color=Color.cyan,size=_expanded?32:20,label=_expanded?"POLICE STATION":null});
+            for(int i=0;i<mode.PatrolPoints.Count;i++)_marks.Add(new Mark{world=mode.PatrolPoints[i],sprite=_objectiveSprite,color=Color.cyan,size=_expanded?22:12,label=_expanded?"PATROL "+(i+1):null});
+            foreach(var call in mode.Calls)if(call.state<4)_marks.Add(new Mark{world=mode.CallActionPoint(call),sprite=_objectiveSprite,color=new Color(1f,.75f,.1f,blink),size=_expanded?26:15,label=_expanded?call.title:null});
+        }
+        else if(CityGameplay.Instance&&CityGameplay.HomeMode&&Layer("AREAS"))
+            _marks.Add(new Mark{world=CityGameplay.Instance.Home,sprite=_objectiveSprite,color=new Color(.1f,1f,.6f),size=_expanded?32:20,label=_expanded?"HOME TERRITORY":null});
+        if(CityBusinessSystem.Instance&&CityBusinessSystem.Instance.enabled&&Layer("AREAS"))
+        {
+            foreach(var site in CityBusinessSystem.Instance.Sites)
+            {
+                if(!site)continue;
+                var business=CityBusinessLedger.Find(GameManager.Data,site.Definition.id);
+                _marks.Add(new Mark{world=site.transform.position,sprite=_objectiveSprite,
+                    color=business.rivalPressureSeconds>0?new Color(1f,.22f,.15f,blink):business.controlled?new Color(.2f,1f,.55f):new Color(1f,.78f,.2f),
+                    size=_expanded?20f:11f,label=_expanded?site.Definition.name:null});
+            }
+        }
+        var responses=MatchdayStrategySystem.Instance;
+        if(responses&&StadiumMatchdayActivity.Instance&&StadiumMatchdayActivity.Instance.HasStarted&&Layer("AREAS"))
+            for(int i=0;i<responses.ResponsePoints.Count;i++)
+                _marks.Add(new Mark{world=responses.ResponsePoints[i],sprite=_objectiveSprite,
+                    color=responses.ResponseComplete(i)?new Color(.2f,1f,.55f):new Color(1f,.8f,.15f,blink),
+                    size=_expanded?24f:14f,label=_expanded?(i==0?"STADIUM RESPONSE":"PUB RESPONSE"):null});
+
+        if (CityOperationsSystem.Instance != null&&CityOperationsSystem.Instance.enabled&&Layer("AREAS"))
         {
             foreach (var node in CityOperationsSystem.Instance.Nodes)
             {
@@ -964,7 +996,7 @@ public class LiveMiniMap : MonoBehaviour
             }
         }
 
-        if (CityGameplay.Instance != null && CityGameplay.Instance.Locations != null&&Layer("AREAS"))
+        if (!PoliceCityMode.Active&&CityGameplay.Instance != null && CityGameplay.Instance.Locations != null&&Layer("AREAS"))
         {
             var names = CityGameplay.Instance.LocationNames;
             var spots = CityGameplay.Instance.Locations;

@@ -1,0 +1,32 @@
+PASS A venue cannot trade remotely without selected on-site crew
+PASS An uncontrolled venue cannot sell supplies
+PASS Selected crew accepts actual travel and control work at the business
+PASS Physical arrival and on-site control establish the trading venue
+PASS On-site purchase exchanges exactly £120 for one supply
+PASS Selling returns £70; buy-sell roundtrips cannot create money
+PASS A disrupted venue refuses trade without charging
+PASS A controlled venue accepts a funded crew investment assignment
+PASS Manual orders cancel investment without taking cash or supplies
+PASS Cancelled venue investment can be deliberately restarted
+PASS First expansion takes £350 and two supplies once after real crew work
+PASS Investment is represented by a visible expanded venue and supply crates
+PASS The completed expansion increases future income, not an instant payout
+PASS Native save retains invested venue level
+PASS Contested venue cannot upgrade or spend cash
+PASS Losing control disables trade while retaining the physical investment
+PASS The local trade card owns input without ordering through the panel
+PASS Actual Away travel creates three independently scoped Riverside venues
+PASS Entering Away does not copy Home shop ownership into the new district
+PASS Selected Away travellers can take a local shop-control assignment
+PASS Away venue control requires actual arrival and timed local work
+PASS Away resource budget can fund a local venue improvement
+PASS Away crew work completes a saved local improvement
+PASS Away crew can deliberately raid the district shop
+PASS Physical Away loot pays once with its own cooldown and trade disruption
+PASS Away looting leaves Home cooldown and Home investment untouched
+PASS Actual Home return retains both districts' independent venue progression and raid state
+PASS Native save after returning Home preserves Away venue ownership, improvement and cooldown
+PASS A real Riverside revisit restores its existing control, investment and raid cooldown
+PASS Revisited Away venue rebuilds its visible saved expansion
+RESULT 30 passed, 0 failed
+Isolated native commerce fixture: durable fast crew, accelerated simulation and ambient pressure suppressed. No device or live store purchases.

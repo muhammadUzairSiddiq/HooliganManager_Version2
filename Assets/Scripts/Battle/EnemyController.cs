@@ -124,13 +124,16 @@ public class EnemyController : MonoBehaviour
     /// <summary>Response officers stand and wait. They do not pick a fight until the player chooses.</summary>
     public bool holdFire;
     bool escortRun;
+    bool escortActive;
+    NavMeshPath escortPath;
+    public string LastEscortFailure{get;private set;}="";
     /// <summary>When set, a police officer only chases these crew members.</summary>
     public readonly List<AgentController> assignedCrew = new List<AgentController>();
 
     public void HoldFire(bool hold)
     {
         holdFire = hold;
-        if (!hold) { escortRun = false; return; }
+        if (!hold) { escortRun = false;escortActive=false; return; }
         isHostile = false;
         assignedCrew.Clear();
         ClearTarget();
@@ -138,20 +141,35 @@ public class EnemyController : MonoBehaviour
 
     /// <summary>Held approach / bribe exit — officers path while holdFire keeps combat off.</summary>
     public void BeginEscort(Vector3 point, bool run)
+    {TryBeginEscort(point,run);}
+    public bool TryBeginEscort(Vector3 point,bool run)
     {
-        HoldFire(true);
-        escortRun = run;
-        arriving = false;
-        if (!_nav || !_nav.enabled || !_nav.isOnNavMesh || !IsAlive) return;
-        if (!NavMesh.SamplePosition(point, out var hit, 8f, NavMesh.AllAreas)) return;
+        LastEscortFailure="";
+        if (!_nav || !_nav.enabled || !_nav.isOnNavMesh || !IsAlive){LastEscortFailure="Escort is not on an active walkable street.";return false;}
+        var filter=new NavMeshQueryFilter{agentTypeID=_nav.agentTypeID,areaMask=_nav.areaMask};
+        if(escortPath==null)escortPath=new NavMeshPath();
+        bool connected=NavMesh.SamplePosition(point,out var hit,3f,filter)&&_nav.CalculatePath(hit.position,escortPath)&&escortPath.status==NavMeshPathStatus.PathComplete;
+        for(int ring=1;!connected&&ring<=3;ring++)
+        for(int direction=0;!connected&&direction<12;direction++)
+        {
+            float angle=direction*Mathf.PI/6;
+            var candidate=point+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*ring*1.8f;
+            if(!NavMesh.SamplePosition(candidate,out var nearby,1.2f,filter)||(nearby.position-point).sqrMagnitude>36)continue;
+            if(!_nav.CalculatePath(nearby.position,escortPath)||escortPath.status!=NavMeshPathStatus.PathComplete)continue;
+            hit=nearby;connected=true;
+        }
+        if(!connected){LastEscortFailure="No complete escort street route; prior route retained.";return false;}
+        if(!_nav.SetPath(escortPath)){LastEscortFailure="Navigation rejected the escort route.";return false;}
+        HoldFire(true);escortRun=run;escortActive=true;arriving=false;
         _nav.speed = run ? Mathf.Max(_chaseSpeed > 0.1f ? _chaseSpeed : Speed, 4.5f) : Mathf.Min(Mathf.Max(Speed, 1.2f), 1.9f);
         _nav.isStopped = false;
-        _nav.SetDestination(hit.position);
+        return true;
     }
 
     public void EndEscort()
     {
         escortRun = false;
+        escortActive=false;
         if (_nav != null && _nav.enabled && _nav.isOnNavMesh)
         {
             _nav.isStopped = true;
@@ -166,6 +184,7 @@ public class EnemyController : MonoBehaviour
             foreach (var member in crew)
                 if (member) assignedCrew.Add(member);
         holdFire = false;
+        escortActive=false;escortRun=false;
         isHostile = assignedCrew.Count > 0;
     }
     public Transform defenceObjective;
@@ -192,6 +211,7 @@ public class EnemyController : MonoBehaviour
         arriving=false;
         _hitsTaken=0;
         _cinematicIdle=false;
+        escortActive=false;escortRun=false;LastEscortFailure="";
         defenceObjective=null;
         GetComponent<MatchdayMarch>()?.SetConflictActive(false);
         // Passive until AttackGang / police fight / damage response flips this on.
@@ -240,6 +260,7 @@ public class EnemyController : MonoBehaviour
     public void SetCinematicIdle(bool locked)
     {
         _cinematicIdle = locked;
+        if(locked)escortActive=false;
         if (locked&&_nav&&_nav.enabled&&_nav.isOnNavMesh)
             _nav.ResetPath();
     }
@@ -321,7 +342,7 @@ public class EnemyController : MonoBehaviour
     // ── Update ────────────────────────────────────────────────────────────
     void Update()
     {
-        bool visible=!CityActivityStreaming.Instance||CityActivityStreaming.Interested(transform.position,true)||_hasAggro;
+        bool visible=escortActive||!CityActivityStreaming.Instance||CityActivityStreaming.Interested(transform.position,true)||_hasAggro;
         if(visible!=streamVisible)
         {
             streamVisible=visible;

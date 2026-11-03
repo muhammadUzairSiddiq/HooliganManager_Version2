@@ -29,6 +29,20 @@ public class PoliceCarChaser : MonoBehaviour
     private NavMeshPath _responsePath;
     private int _responseCorner;
     private float _nextRepath;
+    private bool _joiningPatrol;
+    private Vector3 _patrolJoinPoint;
+
+    /// <summary>Leave a response physically; do not teleport onto a distant spline.</summary>
+    public void ResumePatrolFromCurrentPosition()
+    {
+        _target=null;_chasing=false;_parked=false;
+        _spline=PoliceRoadSpline.Instance??PoliceRoadSpline.EnsureExists();
+        _patrolling=_spline&&_spline.IsReady;
+        if(!_patrolling){_parked=true;return;}
+        _splineDist=_spline.FindNearestDistance(transform.position);
+        _patrolJoinPoint=_spline.GetPointAtDistance(_splineDist);
+        _joiningPatrol=true;
+    }
 
     public bool IsPatrolCar => _patrolling;
     public bool IsActiveCar => _patrolling || _chasing || _parked;
@@ -80,6 +94,7 @@ public class PoliceCarChaser : MonoBehaviour
 
     public void SetTarget(Transform target)
     {
+        _joiningPatrol=false;
         _target = target;
         _chasing = target != null;
         _patrolling = false;
@@ -88,6 +103,7 @@ public class PoliceCarChaser : MonoBehaviour
 
     public void StopAndIdle()
     {
+        _joiningPatrol=false;
         _chasing = false;
         _patrolling = false;
         _parked = true;
@@ -117,6 +133,12 @@ public class PoliceCarChaser : MonoBehaviour
 
         float dt = Time.deltaTime;
         if (dt <= 0f) return;
+        if(_joiningPatrol)
+        {
+            Vector3 to=_patrolJoinPoint-transform.position;to.y=0;
+            if(to.magnitude<=.4f)_joiningPatrol=false;
+            else {DriveFree(to.normalized,Mathf.Min(to.magnitude,patrolSpeed*dt));return;}
+        }
 
         if (_chasing && _target != null)
         {

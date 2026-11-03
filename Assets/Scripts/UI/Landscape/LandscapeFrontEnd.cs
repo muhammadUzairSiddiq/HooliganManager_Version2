@@ -44,6 +44,8 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
         {
             PlayerPrefs.DeleteKey("OpenRankingsOnLoad"); Navigate("rankings");
         }
+        if(PlayerPrefs.GetInt("OpenAwayPlannerOnLoad",0)==1)
+        {PlayerPrefs.DeleteKey("OpenAwayPlannerOnLoad");Navigate("trips");}
         if (PlayerPrefs.GetInt("OpenRecruitmentOnLoad", 0) == 1)
         {
             PlayerPrefs.DeleteKey("OpenRecruitmentOnLoad");

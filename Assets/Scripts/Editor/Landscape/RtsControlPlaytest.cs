@@ -38,7 +38,10 @@ public static class RtsControlPlaytest
         // The local first-install bootstrap otherwise deletes all prefs on entering play.
         PlayerPrefs.SetInt(GameCacheBootstrap.InstallMarkerKey, 1);
         SaveDataInLocal.EditorSaveOverride = Path.GetFullPath(Save);
-        var data = new PlayerData { Money = 10000, Fans = 4, PlayerName = "RTS QA", AcceptedPrivacyPolicy = true };
+        // This suite exercises an already-running matchday. The recovery suite
+        // separately verifies that a fresh campaign does not auto-start one.
+        var data = new PlayerData { Money = 10000, Fans = 4, PlayerName = "RTS QA", AcceptedPrivacyPolicy = true,
+            MatchdayStartedDay=1,MatchdayPhase="Arrival" };
         data.RecruitedAgents.Add(new AgentData("Brick", hp: 200, speed: 8));
         data.RecruitedAgents.Add(new AgentData("Dex", 1, hp: 200, speed: 8));
         SaveDataInLocal.DataSave(data);
@@ -52,6 +55,7 @@ public static class RtsControlPlaytest
         if (!SessionState.GetBool(Key, false)) return;
         if (state == PlayModeStateChange.EnteredPlayMode)
         {
+            Time.timeScale = 1;
             rows.Clear(); running = false;
             deadline = EditorApplication.timeSinceStartup + 120;
             CityGameplay.HomeMode = true;
@@ -72,11 +76,17 @@ public static class RtsControlPlaytest
 
     static void Tick()
     {
-        if (!SessionState.GetBool(Key, false) || !EditorApplication.isPlaying || EditorApplication.isCompiling || running) return;
+        if (!SessionState.GetBool(Key, false) || !EditorApplication.isPlaying || EditorApplication.isCompiling) return;
+        if (running)
+        {
+            if (EditorApplication.timeSinceStartup > deadline) Finish("RTS playtest exceeded its 420-second execution deadline.");
+            return;
+        }
         var battle = BattleManager.instance;
         if (battle && battle.BattleActive && CityGameplay.Instance && battle.PlayerAgents.Count >= 2 && AgentSelectionManager.instance)
         {
             running = true;
+            deadline = EditorApplication.timeSinceStartup + 420;
             battle.StartCoroutine(Observe(Run()));
         }
         else if (EditorApplication.timeSinceStartup > deadline) Finish("City did not become ready within 120 seconds.");
@@ -95,7 +105,11 @@ public static class RtsControlPlaytest
         }
     }
 
-    static void Check(bool value, string title) => rows.Add((value ? "PASS " : "FAIL ") + title);
+    static void Check(bool value, string title)
+    {
+        rows.Add((value ? "PASS " : "FAIL ") + title);
+        File.WriteAllLines(Report, rows);
+    }
     static void Finish(string error)
     {
         if (error != null) rows.Add("FAIL " + error);
@@ -139,14 +153,17 @@ public static class RtsControlPlaytest
         var dex = battle.PlayerAgents[1];
         var models=RoleCharacterModels.Current;
         yield return null;
-        var top=UnityEngine.Object.FindObjectsByType<GameplayHudSideToggle>(FindObjectsSortMode.None).FirstOrDefault(t=>t.hideInitially);
-        Check(top&&top.label.text=="PANEL","Top controls start collapsed behind PANEL");
-        if(top){top.Toggle();Check(top.label.text=="X","PANEL opens with a close cross");top.Toggle();}
+        var frame=UnityEngine.Object.FindFirstObjectByType<LandscapeBattleHUD>().frame;
+        Check(ModernCityHud.Instance&&!frame.Find("StatusStrip").gameObject.activeInHierarchy&&frame.Find("CityTop/Resources").gameObject.activeInHierarchy,
+            "Extended statistics start hidden while compact police heat remains visible");
+        var squad=UnityEngine.Object.FindObjectsByType<GameplayHudSideToggle>(FindObjectsInactive.Include,FindObjectsSortMode.None).First(t=>t.name=="LeftHudToggle");
+        Check(!frame.Find("BattleHUD/SquadRail").gameObject.activeInHierarchy,"Squad drawer starts closed");
+        squad.Toggle();
         var overview=UnityEngine.Object.FindFirstObjectByType<CityStrategyOverview>();
         Check(overview&&overview.OverlayOrder==32767,"Full-screen HEATMAP has priority over all gameplay canvases");
-        var selectButton=UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).First(b=>b.name=="BoxSelect");
-        var deselectButton=UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).First(b=>b.name=="Deselect");
-        var dragButton=UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).First(b=>b.name=="DragSelect");
+        var selectButton=UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsInactive.Include,FindObjectsSortMode.None).First(b=>b.name=="BoxSelect");
+        var deselectButton=UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsInactive.Include,FindObjectsSortMode.None).First(b=>b.name=="Deselect");
+        var dragButton=UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsInactive.Include,FindObjectsSortMode.None).First(b=>b.name=="DragSelect");
         selectButton.onClick.Invoke();Check(selection.SelectedAgents.Count==battle.PlayerAgents.Count(a=>a&&a.IsAlive),"Squad SELECT ALL selects the entire live crew");
         dragButton.onClick.Invoke();
         Check(RtsGestureController.Instance.Mode==RtsGestureController.InputMode.BoxSelect,"DRAG enables rectangle selection");
@@ -158,7 +175,7 @@ public static class RtsControlPlaytest
         data.StrategySupporters=CitySupportNetwork.Capacity(data);int fullCash=data.Money;
         Check(!CitySupportNetwork.Promote()&&data.Money==fullCash,"Support capacity prevents payment for no reward");
         data.StrategySupporters=priorSupport;data.Money=priorMoney;data.SupportCampaigns=priorCampaigns;
-        if(overview){overview.Toggle();yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot("Artifacts/CityQA/rts-strategy-bubbles.png");yield return null;overview.Toggle();}
+        if(overview){overview.Toggle();yield return null;ScreenCapture.CaptureScreenshot("Artifacts/CityQA/rts-strategy-bubbles.png");yield return null;overview.Toggle();}
         Check(models&&models.civilians&&models.gangs&&models.police,"All three supplied role models are registered");
         Check(brick.GetComponentInChildren<Animator>().avatar.isHuman,"Crew uses a valid Mixamo humanoid avatar");
         StreetCombatPresentation.LeaveBody(brick.transform);
@@ -262,7 +279,7 @@ public static class RtsControlPlaytest
         var hud = UnityEngine.Object.FindFirstObjectByType<LandscapeBattleHUD>();
         yield return new WaitForSeconds(.6f);
         foreach (string name in new[] { "Move", "Attack", "Guard", "Patrol" })
-            Check(!hud.frame.Find("BattleHUD/" + name).gameObject.activeInHierarchy, name + " removed from bottom command strip");
+            Check(!hud.frame.Find("BattleHUD/" + name).gameObject.activeInHierarchy, name + " is accessed through explained Orders rather than a permanent row");
         var gestures=RtsGestureController.Instance;
         Check(gestures, "World gesture owner exists");
         gestures.BeginBoxSelection();
@@ -283,16 +300,56 @@ public static class RtsControlPlaytest
         var stadium = UnityEngine.Object.FindFirstObjectByType<StadiumMatchdayActivity>();
         if (GamePopup.AnyOpen) GamePopup.Instance.Hide();
         stadium.OpenBriefing();
-        Check(!GamePopup.AnyOpen && stadium.GetComponent<WorldChoiceBar>()?.IsOpen == true && Time.timeScale > 0, "Matchday choices open locally without pausing or a modal");
-        stadium.GetComponent<WorldChoiceBar>()?.Hide();
+        Check(!GamePopup.AnyOpen && MatchdayStrategySystem.Instance.IsOpen && Time.timeScale > 0, "Matchday board opens locally without pausing the city");
+        MatchdayStrategySystem.Instance.CloseBoard();
         Check(!AgentSelectionManager.BlocksWorldTap(), "Closing the matchday choice leaves world commands available");
         var police = LivePoliceSystem.Instance;
         typeof(LivePoliceSystem).GetMethod("ShowPopup", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(police, null);
         var policeAnchor = (GameObject)typeof(LivePoliceSystem).GetField("localPoliceChoice", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(police);
         var policeBubble = policeAnchor.GetComponentInChildren<WorldInteractBubble>(true);
-        Check(policeBubble && policeBubble.IsLive && !policeBubble.gameObject.activeSelf && !GamePopup.AnyOpen, "Police intermediary dot is hidden");
+        Check(policeBubble && policeBubble.IsLive && !GamePopup.AnyOpen, "Police interaction is available without a global popup");
+        policeBubble?.Activate();
         Check(policeAnchor.GetComponent<WorldChoiceBar>().IsOpen && !GamePopup.AnyOpen && Time.timeScale > 0, "Police choices open immediately and leave simulation running");
         policeAnchor.GetComponent<WorldChoiceBar>().Hide();
+        // Isolated response fixture: real officers walk to a parked real patrol
+        // van, then its normal driving controller must depart physically.
+        police.StopAllCoroutines();bool policeWasEnabled=police.enabled;police.enabled=false;
+        var van=UnityEngine.Object.FindObjectsByType<PoliceCarChaser>(FindObjectsSortMode.None).FirstOrDefault();
+        Check(van,"A real police patrol van exists for the bribe departure test");
+        if(van)
+        {
+            var policeFlags=BindingFlags.NonPublic|BindingFlags.Instance;
+            var boardingPoint=CityGameplay.ReachableApproach(CityGameplay.Instance.Home,CityGameplay.Instance.Home+Vector3.right*16);
+            van.ParkAt(boardingPoint,Vector3.forward);
+            typeof(LivePoliceSystem).GetField("_responseCar",policeFlags).SetValue(police,van.gameObject);
+            typeof(LivePoliceSystem).GetField("_heat",policeFlags).SetValue(police,2);data.PoliceHeat=2;
+            typeof(LivePoliceSystem).GetMethod("SpawnOfficersAround",policeFlags).Invoke(police,new object[]{boardingPoint+Vector3.forward*10,Vector3.forward});
+            var officers=((List<EnemyController>)typeof(LivePoliceSystem).GetField("_waveOfficers",policeFlags).GetValue(police)).Where(o=>o&&o.IsAlive).ToArray();
+            foreach(var officer in officers)officer.isHostile=false;
+            Check(officers.Length>0&&officers.All(o=>o.GetComponent<NavMeshAgent>().isOnNavMesh),"Response officers spawn on real walkable streets");
+            int bribeCash=data.Money;
+            typeof(LivePoliceSystem).GetMethod("OnBribe",policeFlags).Invoke(police,null);int paidCash=data.Money;
+            typeof(LivePoliceSystem).GetMethod("OnBribe",policeFlags).Invoke(police,null);
+            Check(paidCash<bribeCash&&data.Money==paidCash,"Repeated bribe callback charges only once while officers depart");
+            var lastDistance=officers.Select(o=>CityBusinessSystem.HorizontalDistance(o.transform.position,van.transform.position)).ToArray();
+            bool distantPop=false;until=Time.time+48;
+            while(police.IsBribedOff&&Time.time<until)
+            {
+                for(int i=0;i<officers.Length;i++)
+                {
+                    if(officers[i]&&officers[i].gameObject.activeInHierarchy)lastDistance[i]=CityBusinessSystem.HorizontalDistance(officers[i].transform.position,van.transform.position);
+                    else if(lastDistance[i]>5f)distantPop=true;
+                }
+                yield return null;
+            }
+            Check(!distantPop,"Officers never disappear while distant from the boarding point");
+            Check(officers.All(o=>!o||!o.gameObject.activeInHierarchy),"All reachable response officers finish walking to the van and board");
+            Check(van&&!police.IsBribedOff,"Bribe cleanup preserves the van and releases the response state");
+            var departure=van.transform.position;yield return new WaitForSeconds(4);
+            Check(van&&Vector3.Distance(van.transform.position,departure)>2f,"The same van visibly drives away on its patrol route");
+            Check(data.PoliceHeat<=2,"A low-heat bribe never raises saved police heat");
+        }
+        police.enabled=policeWasEnabled;
         Check(stadium.SimulatedGroupCount >= 7, "Independent home, rival and police matchday groups exist");
         CameraPanTouchOnly.Instance?.FocusOn(dex.transform.position);
         yield return new WaitForSeconds(1);
@@ -318,13 +375,15 @@ public static class RtsControlPlaytest
         occluder.transform.position=Vector3.Lerp(Camera.main.transform.position,dex.transform.position+Vector3.up*2,.65f);occluder.transform.localScale=Vector3.one*8;
         var renderer=occluder.GetComponent<Renderer>();
         var buildings=(List<Renderer>)typeof(RtsBuildingVisibility).GetField("buildings",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(RtsBuildingVisibility.Instance);buildings.Add(renderer);
-        Check(buildings.Count>1,"Real city buildings are registered for camera occlusion");
+        Check(buildings.Count>1,"Only real city buildings are registered for explicit touch reveal");
         var rails=UnityEngine.Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None).Where(r=>r.name.ToLowerInvariant().StartsWith("railway_")).ToArray();
-        Check(rails.Length>0&&rails.All(r=>!r.enabled),"Legacy elevated railway decks and columns are disabled");
-        Check(UnityEngine.Object.FindFirstObjectByType<GroundRailTrack>(),"Flat ground railway replaces the removed viaduct");
-        yield return new WaitForSeconds(.2f);Check(renderer.forceRenderingOff,"Building hiding exposes units along the camera ray");
-        occluder.transform.position+=Vector3.right*1000;yield return new WaitForSeconds(.2f);
-        Check(!renderer.forceRenderingOff,"Occluder restores when it no longer hides units");UnityEngine.Object.Destroy(occluder);
+        Check(rails.Length>0&&rails.All(r=>r.enabled&&!r.forceRenderingOff),"Railway decks and columns remain visible under the latest owner rule");
+        Check(!buildings.Any(r=>r&&r!=renderer&&!RtsBuildingVisibility.IsBuildingName(r.name)),"Roads, parking, platforms and ground are excluded from building reveal");
+        yield return new WaitForSeconds(.2f);Check(!renderer.forceRenderingOff,"An obstructing building stays visible until explicitly touched");
+        var buildingPoint=Camera.main.WorldToScreenPoint(occluder.transform.position);
+        Check(RtsBuildingVisibility.Instance.TryRevealAt(buildingPoint)&&renderer.forceRenderingOff,"Touch hides only the requested building");
+        RtsBuildingVisibility.Instance.RestoreAll();
+        Check(!renderer.forceRenderingOff,"Restore returns the building without changing any road collider");UnityEngine.Object.Destroy(occluder);
         CityServiceChecks.Run();Check(!File.ReadAllText("Artifacts/CityQA/service-checks.txt").Contains("FAIL"),"Home services and recruitment persist through the save serializer");
         foreach(var enemy in battle.EnemyAgents)if(enemy)enemy.SetCinematicIdle(true);
         brick.SetCinematicIdle(false);dex.SetCinematicIdle(false);brick.SetActivityLocked(false,brick.transform.position);dex.SetActivityLocked(false,dex.transform.position);
@@ -376,6 +435,10 @@ public static class RtsControlPlaytest
             CameraPanTouchOnly.Instance.FocusOn(victim.transform.position);
             yield return new WaitForSeconds(.3f);
             var animation=victim.GetComponentInChildren<Animator>();
+            // Death may destroy the actor before the resting-body assertions run.
+            var deathPosition=victim.transform.position;
+            var avatarName=animation.avatar.name;
+            float deathSeconds=victim.GetComponentInChildren<CharacterVisualProfile>().deathSeconds;
             float height=SkeletonLength(animation);
             var oldBodies=new HashSet<BakedBodyLifetime>(UnityEngine.Object.FindObjectsByType<BakedBodyLifetime>(FindObjectsSortMode.None));
             typeof(LivePoliceSystem).GetField("_heat",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(LivePoliceSystem.Instance,0);
@@ -383,18 +446,18 @@ public static class RtsControlPlaytest
             int heatBefore=GameManager.Data.PoliceHeat;
             var npcAttacker=battle.EnemyAgents.First(e=>e&&e!=victim&&e.IsAlive);
             victim.TakeDamage(99999,npcAttacker);
-            yield return new WaitForSeconds(victim.GetComponentInChildren<CharacterVisualProfile>().deathSeconds+.15f);
+            yield return new WaitForSeconds(deathSeconds+.15f);
             var fallen=UnityEngine.Object.FindObjectsByType<BakedBodyLifetime>(FindObjectsSortMode.None).FirstOrDefault(c=>!oldBodies.Contains(c));
             if(fallen)
             {
                 var bounds=fallen.GetComponentInChildren<MeshRenderer>().bounds;
                 float span=Mathf.Max(bounds.size.x,bounds.size.y,bounds.size.z);
                 Check(span<height*1.15f&&bounds.size.y<height*.7f,$"Real death preserves body proportions and lies down ({span:F2}m, skeleton chain {height:F2}m)");
-                Check(Mathf.Abs(bounds.min.y-victim.transform.position.y)<.2f,"Real fallen body remains grounded");
+                Check(Mathf.Abs(bounds.min.y-deathPosition.y)<.2f,"Real fallen body remains grounded");
             }
             else Check(false,"Real death creates a visible resting body");
             Check(GameManager.Data.PoliceHeat<=heatBefore,"NPC-inflicted death cannot increase player police heat");
-            ScreenCapture.CaptureScreenshot("Artifacts/CityQA/rts-death-"+animation.avatar.name+".png");yield return null;
+            ScreenCapture.CaptureScreenshot("Artifacts/CityQA/rts-death-"+avatarName+".png");yield return null;
         }
         Check(victims.Length==3,"Real death transitions exercised all three role models");
         stadium.enabled=true;

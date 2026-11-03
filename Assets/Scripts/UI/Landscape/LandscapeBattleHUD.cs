@@ -110,7 +110,7 @@ public sealed class LandscapeBattleHUD : MonoBehaviour
         PositionCommand("Guard",645,dx,dy);
         PositionCommand("Patrol",785,dx,dy);
         PositionCommand("Talk",645,dx,dy);
-        PositionCommand("Capture",785,dx,dy);
+        PositionCommand("Capture",925,dx,dy);
         PositionCommand("Actions",925,dx,dy);
         PositionCommand("Retreat",1065,dx,dy);
     }
@@ -132,7 +132,7 @@ public sealed class LandscapeBattleHUD : MonoBehaviour
         {
             case "Pause": case "EnemyCount": case "ObjectiveSlot": case "HeatSlot":
             case "CenterCamera": case "CameraSetup": case "RecenterCamera": return 1f;
-            case "Cash": case "Reputation": return .58f;
+            case "Cash": case "Reputation": case "CompactHeat": return .58f;
             case "Timer": case "Round": return .78f;
             case "SelectionStatus": case "Talk": case "Capture": case "Actions": case "Retreat": case "Controls": return .5f;
             default: return 0f;

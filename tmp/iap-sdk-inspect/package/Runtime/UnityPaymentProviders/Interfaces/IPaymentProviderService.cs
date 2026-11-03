@@ -1,0 +1,26 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using UnityEngine.Purchasing.PaymentProviders;
+using UnityEngine.Purchasing.PaymentProviderService.Models;
+
+namespace UnityEngine.Purchasing.PaymentProviderService
+{
+    /// <summary> Interface for PaymentProviderService </summary>
+    internal interface IPaymentProviderService
+    {
+        public Task<OrderData> GetUrl(string catalogListingId, string displayName, string locale, string currencyCode,
+            string country, PlayerIdentity playerIdentity, string paymentProviderOverride, string customReferenceId,
+            IReadOnlyDictionary<string, string> customMetadata, DeviceInfo deviceInfo, IReadOnlyList<PaymentProviderToken> paymentProviderTokens = null);
+        public Task<List<OrderData>> GetEntitledOrders();
+        public Task<OrderData> GetOrder(string orderId);
+        public Task<OrderData> UpdateOrder(string orderId, UpdateOrderStatus status);
+        // Returns a (providers, paymentOptionPopupEnabled) tuple instead of the public
+        // EligiblePaymentProviders type because this assembly is a dependency of Unity.Purchasing
+        // where that type lives. The bool is the resolved value with the wire-default already applied.
+        public Task<(List<string> Providers, bool PaymentOptionPopupEnabled)> GetEligiblePaymentProviders();
+        // Returns the backend-minted link-out session id, or null when the backend returns nothing
+        // or an empty GUID.
+        public Task<string> RegisterLinkOutSession(PlayerIdentity playerIdentity, DeviceInfo deviceInfo = null);
+    }
+
+}

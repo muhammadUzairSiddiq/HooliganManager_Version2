@@ -71,6 +71,7 @@ public class PlanAwayTripController : MonoBehaviour
     public ButtonUI backBtn;
 
     private int _selectedIndex = 0;
+    bool launching;
 
     void Start()
     {
@@ -89,7 +90,7 @@ public class PlanAwayTripController : MonoBehaviour
         EnsureDeploymentSelection();
         BuildDeploymentList();
         RefreshDestinationCardImages();
-        SelectDestination(0);
+        SelectDestination(Mathf.Max(0,destinations.FindIndex(x=>CampaignMissions.MissionForDestination(x.name)==GameManager.Data?.CurrentLevel)));
     }
 
     void OnEnable()
@@ -162,14 +163,14 @@ public class PlanAwayTripController : MonoBehaviour
         if (detailDescriptionText)
         {
             var mission=CampaignMissions.Get(missionNumber);
-            detailDescriptionText.text=mission.briefing+"\n\n"+(unlocked?"ACTIVE MISSION":lockReason.ToUpperInvariant());
+            detailDescriptionText.text=mission.briefing+"\n\n"+(unlocked?$"MINIMUM CREW {CampaignMissions.MinimumAwayCrew(missionNumber)} · Travel £{dest.travelCost:N0} · Injuries persist. Leave Home defenders when possible.":lockReason.ToUpperInvariant());
         }
         if (detailLocationImage)
         {
             detailLocationImage.sprite = dest.locationImage != null ? dest.locationImage : CreateDestinationSprite(dest.name);
             detailLocationImage.color = detailLocationImage.sprite != null ? Color.white : detailLocationImage.color;
         }
-        if (detailRewardText) detailRewardText.text = $"£{dynamicReward:N0}";
+        if (detailRewardText) detailRewardText.text = $"£{CampaignMissions.Get(missionNumber).reward:N0}";
         if (detailRivalStrengthText) detailRivalStrengthText.text = strengthLabel;
         if (detailTravelCostText) detailTravelCostText.text = $"£{dest.travelCost:N0}";
         SetRiskColor(detailRivalStrengthText, strengthLabel);
@@ -185,7 +186,7 @@ public class PlanAwayTripController : MonoBehaviour
         int selectedAgents = CountSelectedAliveAgents(d);
 
         if (startTripBtn != null)
-            startTripBtn.interactable = unlocked && d != null && d.Money >= dest.travelCost && aliveAgents > 0 && selectedAgents > 0 && d.Fans > 0;
+            startTripBtn.interactable = unlocked && d != null && d.Money >= dest.travelCost && aliveAgents > 0 && selectedAgents >= CampaignMissions.MinimumAwayCrew(missionNumber) && !launching;
 
         if (d != null)
         {
@@ -211,7 +212,7 @@ public class PlanAwayTripController : MonoBehaviour
     void OnStartTrip()
     {
         var d = GameData.instance?.PlayerData;
-        if (d == null) return;
+        if (d == null || launching) return;
 
         var dest = destinations[_selectedIndex];
         if(!CampaignMissions.CanEnterDestination(d,dest.name,out string lockReason))
@@ -224,7 +225,11 @@ public class PlanAwayTripController : MonoBehaviour
         EnsureDeploymentSelection();
         int aliveAgents = CountAliveAgents(d);
         int selectedAgents = CountSelectedAliveAgents(d);
-        if (aliveAgents <= 0 || selectedAgents <= 0 || d.Fans <= 0) return;
+        int required=CampaignMissions.MinimumAwayCrew(CampaignMissions.MissionForDestination(dest.name));
+        if (selectedAgents < required)
+        {GamePopup.Instance.Show("TRAVELLING CREW",$"Select at least {required} living members. Reserves stay at Home.",new GamePopup.Option("BACK",LandscapeUI.PanelColor,null));return;}
+        if(!GameManager.instance)return;
+        launching=true;
 
         BotData bot = null;
         if (d.RivalBots != null)
@@ -469,7 +474,8 @@ public class PlanAwayTripController : MonoBehaviour
         if (deploymentSummaryText == null || d == null) return;
         int selected = CountSelectedAliveAgents(d);
         int alive = CountAliveAgents(d);
-        deploymentSummaryText.text = $"{selected} / {alive} selected for this away trip.";
+        int needed=CampaignMissions.MinimumAwayCrew(CampaignMissions.MissionForDestination(destinations[_selectedIndex].name));
+        deploymentSummaryText.text = $"{selected} travelling | {alive-selected} Home reserves\nMinimum {needed}. Unstaffed businesses face pressure at heat 3+.";
     }
 
     Sprite CreateDestinationSprite(string destination)

@@ -85,6 +85,7 @@ public sealed class ZoneLabelBillboard : MonoBehaviour
 
     void LateUpdate()
     {
+        if(ModernCityHud.Instance&&!ModernCityHud.InspectWorld&&!CommandPriority){if(cachedRenderer)cachedRenderer.enabled=false;return;}
         var cam = Camera.main;
         if (cam) transform.rotation = cam.transform.rotation;
         if(cachedRenderer&&cam)

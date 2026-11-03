@@ -24,6 +24,8 @@ public sealed class CityMissionHUD : MonoBehaviour
     static Sprite[] statusIcons;
     TextMeshProUGUI advisor, situation, feedAlert;
     Image heatFill, feedAlertPlate;
+    TextMeshProUGUI currentGoal, compactHeat;
+    GameObject managementDrawer;
 
     public void Build(RectTransform root)
     {
@@ -195,6 +197,7 @@ public sealed class CityMissionHUD : MonoBehaviour
         missionPanel.SetActive(false);
         BuildTopPanelToggle(hud);
         BuildRightPanelToggle(hud);
+        BuildRecoveryPresentation(hud,command);
         Style(frame);
         BattleUIController.instance?.SyncPauseButtonIcon(BattleManager.instance?.IsPaused ?? false);
         FindFirstObjectByType<LandscapeBattleHUD>()?.RefreshAuthoredLayout();
@@ -270,7 +273,7 @@ public sealed class CityMissionHUD : MonoBehaviour
         if(leftover)leftover.gameObject.SetActive(false);
         var mission=LandscapeUI.Button("TopMission",frame,"MISSION",634,18,122,50,"dark");
         missionButton=mission;
-        mission.onClick.AddListener(()=>{missionPanel.SetActive(true);RefreshMissions();});
+        mission.onClick.AddListener(()=>{OpenJournal();});
         var intel=LandscapeUI.Button("TopIntel",frame,"INTEL",762,18,108,50,"dark");
         intel.onClick.AddListener(()=>CityGameplay.Instance?.ShowIntelReport());
         var vehicles=LandscapeUI.Button("TopVehicles",frame,"VEHICLES",876,18,128,50,"dark");
@@ -405,6 +408,8 @@ public sealed class CityMissionHUD : MonoBehaviour
         nextRefresh = Time.unscaledTime + .25f;
         var d = GameManager.Data;
         if (d == null) return;
+        if(currentGoal)currentGoal.text=RecoveryProgression.NextGoal(d);
+        if(compactHeat)compactHeat.text=$"POLICE HEAT {d.PoliceHeat}/10";
 
         UpdateCommandButtons();
 
@@ -430,7 +435,7 @@ public sealed class CityMissionHUD : MonoBehaviour
         }
         if(heatFill)heatFill.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, Mathf.Clamp01(d.PoliceHeat/10f)*120f);
 
-        var visible = CampaignMissions.Steps(d).Where(s=>!s.Complete).Take(2);
+        var visible = CampaignMissions.Steps(d).Where(s=>!s.Complete).Take(1);
         objectives.text = string.Join("\n\n", visible.Select(s =>
             $"<color=#E8BA5A>{s.title}</color>  <color=#E8F0F4>{Mathf.Min(s.progress,s.target)}/{s.target}</color>"));
         if (string.IsNullOrEmpty(objectives.text))
@@ -449,6 +454,18 @@ public sealed class CityMissionHUD : MonoBehaviour
         var state = string.Join("|", CampaignMissions.Steps(d).Select(s=>$"{s.id}:{s.progress}"));
         if (missionPanel.activeSelf && state != lastState) RefreshMissions();
         lastState = state;
+    }
+
+    public void CloseSheets(){if(managementDrawer)managementDrawer.SetActive(false);if(missionPanel)missionPanel.SetActive(false);}
+    void OpenJournal(){CityUiSheets.Open(this,CloseSheets);missionPanel.SetActive(true);RefreshMissions();}
+    void ToggleManagement(){bool open=!managementDrawer.activeSelf;CityUiSheets.Open(this,CloseSheets);CloseSheets();managementDrawer.SetActive(open);}
+    void OpenAwayPlanner()
+    {
+        if(!CityGameplay.HomeMode){AwayExtractionSystem.Instance?.RequestExtraction();return;}
+        if(!CampaignMissions.HomeCleared(GameManager.Data)){CityGameplay.Instance?.PostEvent("AWAY TRIPS LOCKED - finish the Home chapter first.");OpenJournal();return;}
+        BattleManager.instance?.PersistBattleProgress();GameManager.Data.LastSessionMode="AwayPlan";GameManager.Save();
+        UnityEngine.PlayerPrefs.SetInt("OpenAwayPlannerOnLoad",1);
+        GameManager.LoadScene(GameManager.SCENE_DASHBOARD,"AWAY TRIPS","Choose travellers and Home reserves.");
     }
 
     void GuideNext()
@@ -506,9 +523,14 @@ public sealed class CityMissionHUD : MonoBehaviour
     void Guide(CampaignMissions.Step step)
     {
         CityGameplay.Instance?.PostEvent(step.title+" - "+step.body);
-        if(step.id=="crew")CityGameplay.Instance?.OpenLocation(2);
+        if(step.id=="orientation")BattleUIController.instance?.ShowAlert(RecoveryProgression.OrientationHint(GameManager.Data),4f);
+        else if(step.id=="business"||step.id=="income")CityBusinessSystem.Instance?.FocusFirst();
+        else if(step.id=="duties")BattleUIController.instance?.ShowAlert("Select a group and choose GUARD. Select another group and choose PATROL.",4f);
+        else if(step.id=="matchday")StadiumMatchdayActivity.Instance?.OpenBriefing();
+        else if(step.id=="crew")CityGameplay.Instance?.OpenLocation(0);
         else if(step.id=="training")CityGameplay.Instance?.OpenLocation(3);
         else if(step.id=="morale")CityGameplay.Instance?.OpenLocation(1);
+        else if(step.id=="extraction")AwayExtractionSystem.Instance?.RequestExtraction();
         else if(step.id=="defence")CityGameplay.Instance?.OpenLocation(0);
         else if(step.id=="territory")CityGameplay.Instance?.CaptureNearest();
         else if(step.id=="extort"||step.id=="tax"||step.id=="sabotage")CityActionSystem.Instance?.OpenActions();
@@ -518,14 +540,20 @@ public sealed class CityMissionHUD : MonoBehaviour
 
     void UpdateCommandButtons()
     {
+        if(ModernCityHud.Instance)
+        {
+            foreach(var item in new[]{moveGo,attackGo,authoredRetreat})if(item)item.SetActive(false);
+            foreach(var button in new[]{guardButton,patrolButton,talkButton,captureButton,actionsButton,retreatButton})SetCommandVisible(button,false);
+            return;
+        }
         bool selected = AgentSelectionManager.instance && AgentSelectionManager.instance.SelectedAgents.Any(a => a && a.IsAlive);
-        if(moveGo)moveGo.SetActive(false);
-        if(attackGo)attackGo.SetActive(false);
-        if(authoredRetreat)authoredRetreat.SetActive(false);
-        SetCommandVisible(guardButton, false);
-        SetCommandVisible(patrolButton, false);
+        if(moveGo)moveGo.SetActive(selected);
+        if(attackGo)attackGo.SetActive(selected);
+        if(authoredRetreat)authoredRetreat.SetActive(selected);
+        SetCommandVisible(guardButton, selected);
+        SetCommandVisible(patrolButton, selected);
         SetCommandVisible(talkButton, false);
-        SetCommandVisible(captureButton, false);
+        SetCommandVisible(captureButton, selected && HasNearbyCapturePoint(AgentSelectionManager.instance.SelectedAgents,CaptureRadius));
         SetCommandVisible(actionsButton, false);
         SetCommandVisible(retreatButton, false);
     }
@@ -537,6 +565,9 @@ public sealed class CityMissionHUD : MonoBehaviour
             button.gameObject.SetActive(visible);
         button.interactable = visible;
     }
+    public void OpenJourney(){OpenJournal();}
+    public void GuideCurrentStep(){GuideNext();}
+    public void OpenTripPlanner(){OpenAwayPlanner();}
 
     static bool HasNearbyCapturePoint(System.Collections.Generic.IEnumerable<AgentController> selected, float radius)
     {
@@ -575,17 +606,85 @@ public sealed class CityMissionHUD : MonoBehaviour
         }
         if (extraTargets != null) targets.AddRange(extraTargets.Where(t => t != null));
         sideToggle.targets = targets.ToArray();
-        sideToggle.controlsMinimap = true;
+        sideToggle.controlsMinimap = false;
+        sideToggle.hideInitially = true;
         sideToggle.targetNames = new[] { "CameraSetup", "RecenterCamera", "BoxSelect", "Deselect", "DragSelect", "SquadFocusHint" };
         button.onClick.AddListener(sideToggle.Toggle);
     }
 
+    void BuildRecoveryPresentation(Transform hud,RectTransform oldCommand)
+    {
+        // Keep the established theme and working systems. Change what is exposed
+        // by default: essentials and one objective, with details deliberately opened.
+        foreach(var name in new[]{"CityDistrict","CityOperations","TopMission","TopIntel","TopVehicles","TopDestinations","TopHudToggle","HeatmapToggle","RightHudToggle"})
+            if(frame.Find(name))frame.Find(name).gameObject.SetActive(false);
+        statusStrip.gameObject.SetActive(false);
+        oldCommand.gameObject.SetActive(false);
+        if(hud)
+        {
+            Place(hud,"TopBar",8,6,1584,80);
+            Place(hud,"Heading",20,16,350,42);
+            if(hud.Find("Reputation"))hud.Find("Reputation").gameObject.SetActive(false);
+        }
+        var left=frame.Find("LeftHudToggle") as RectTransform;
+        if(left)
+        {
+            LandscapeUI.Place(left,16,104,158,52);
+            sideToggle.shownGlyph="CLOSE SQUAD";sideToggle.hiddenGlyph="SQUAD";
+            if(sideToggle.label)
+            {
+                sideToggle.label.text="CLOSE SQUAD";sideToggle.label.fontSize=17;
+                var textRect=sideToggle.label.rectTransform;
+                textRect.anchorMin=Vector2.zero;textRect.anchorMax=Vector2.one;
+                textRect.offsetMin=new Vector2(8,4);textRect.offsetMax=new Vector2(-8,-4);
+                sideToggle.label.enableAutoSizing=true;sideToggle.label.fontSizeMin=12;sideToggle.label.fontSizeMax=17;
+            }
+        }
+        compactHeat=LandscapeUI.Text("CompactHeat",hud?hud:frame,"",1210,54,196,24,16,LandscapeUI.Gold,true);
+        var goal=LandscapeUI.Panel("CurrentObjective",frame,320,104,930,82,true).rectTransform;
+        currentGoal=LandscapeUI.Text("Goal",goal,"",16,10,724,62,19,LandscapeUI.White);
+        currentGoal.alignment=TextAlignmentOptions.MidlineLeft;
+        LandscapeUI.Button("Guide",goal,"GUIDE",762,16,150,50).onClick.AddListener(GuideNext);
+        LandscapeUI.Button("Manage",frame,"MANAGE",400,18,184,50).onClick.AddListener(()=>ToggleManagement());
+        captureButton.onClick.AddListener(()=>CityGameplay.Instance?.CaptureNearest());
+
+        var drawer=LandscapeUI.Panel("ManagementDrawer",frame,0,0,510,718,true).rectTransform;
+        drawer.anchorMin=drawer.anchorMax=drawer.pivot=new Vector2(1,1);
+        drawer.anchoredPosition=new Vector2(-16,-104);
+        managementDrawer=drawer.gameObject;
+        LandscapeUI.Text("Title",drawer,"MANAGE YOUR FIRM",20,18,330,36,24,LandscapeUI.White,true);
+        LandscapeUI.Button("Close",drawer,"CLOSE",370,16,120,44).onClick.AddListener(()=>managementDrawer.SetActive(false));
+        string[] names={"HEADQUARTERS","MISSION JOURNAL","BUSINESSES & INCOME","CITY OPERATIONS","MATCHDAY","DEVELOP NETWORK","DISTRICT LOCATIONS","INTELLIGENCE","TACTICAL CAMERA","STRATEGIC MAP",CityGameplay.HomeMode?"AWAY TRIPS":"EXTRACT / RETURN HOME"};
+        System.Action[] actions={
+            ()=>CityGameplay.Instance?.OpenLocation(0),
+            ()=>{OpenJournal();},
+            ()=>CityBusinessSystem.Instance?.OpenLedger(),
+            ()=>CityOperationsSystem.Instance?.OpenBoard(),
+            ()=>StadiumMatchdayActivity.Instance?.OpenBriefing(),
+            ()=>CityDevelopmentSystem.Instance?.OpenBoard(),
+            ()=>CityGameplay.Instance?.ToggleDestinations(),
+            ()=>CityGameplay.Instance?.ShowIntelReport(),
+            ()=>CityGameplay.Instance?.ToggleCameraSettings(),
+            ()=>frame.GetComponent<CityStrategyOverview>()?.Toggle(),
+            OpenAwayPlanner
+        };
+        for(int i=0;i<names.Length;i++)
+        {
+            int index=i;
+            LandscapeUI.Button("Manage"+i,drawer,names[i],20,76+i*52,470,46).onClick.AddListener(()=>{managementDrawer.SetActive(false);actions[index]();});
+        }
+        LandscapeUI.Text("Hint",drawer,"Details open here. The city and your other groups keep running.",20,656,470,42,16,LandscapeUI.Muted);
+        managementDrawer.SetActive(false);
+    }
+
     void BuildTopPanelToggle(Transform hud)
     {
-        var button=LandscapeUI.Button("TopHudToggle",frame,"PANEL",990,140,130,42,"dark");
+        var button=LandscapeUI.Button("TopHudToggle",frame,"X",990,140,130,42,"dark");
         var toggle=button.gameObject.AddComponent<GameplayHudSideToggle>();toggle.label=button.GetComponentInChildren<TextMeshProUGUI>();
         toggle.shownGlyph="X";toggle.hiddenGlyph="PANEL";toggle.root=frame;
-        toggle.hideInitially=true;toggle.redClose=true;
+        // Resources and heat are milestone HUD essentials; keep them visible on
+        // entry while retaining the existing collapse control for more map space.
+        toggle.hideInitially=false;toggle.redClose=true;
         toggle.targetNames=new[]{"TopBar","Heading","Cash","Reputation","StatusStrip","CityDistrict","CityOperations","TopMission","TopIntel","TopVehicles","TopDestinations"};
         if(toggle.label){toggle.label.fontSize=21;toggle.label.color=Color.white;}
         button.onClick.AddListener(toggle.Toggle);

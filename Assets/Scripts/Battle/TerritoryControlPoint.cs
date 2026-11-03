@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Capturable pub/turf point. Does NOT silently start fights — that is owned by
@@ -31,10 +32,22 @@ public class TerritoryControlPoint : MonoBehaviour
     LineRenderer zoneRing, progressRing, zoneGlow;
     int lastPercent = -1;
     float rivalOccupation;
+    AgentController[] captureCrew;
+    int[] captureRevisions;
+    public bool CaptureRequested=>captureCrew!=null;
+    string SaveKey=>$"M{(CityGameplay.HomeMode?1:GameManager.Data?.CurrentLevel??1)}:{zoneName}";
+    public bool BeginCapture(IEnumerable<AgentController> selected)
+    {
+        if(_isCaptured||GameManager.Data==null||GameManager.Data.Money<occupationTax)return false;
+        var accepted=selected.Where(a=>a&&a.IsAlive&&!a.IsActivityLocked&&a.TryCommandMoveTo(transform.position,Mathf.Max(2,detectionRadius-2))).ToArray();
+        if(accepted.Length==0)return false;
+        captureCrew=accepted;captureRevisions=accepted.Select(a=>a.OrderRevision).ToArray();_captureProgress=0;
+        CityGameplay.Instance?.PostEvent($"CAPTURE {zoneName.ToUpperInvariant()} · hold with assigned crew. Cost £{occupationTax} and heat +{heatGained} on completion.");return true;
+    }
     void Start()
     {
         captureDuration = GameplayTuning.Current.captureSeconds;
-        _isCaptured = GameManager.Data?.CityCapturedZones?.Contains(zoneName) == true;
+        _isCaptured = GameManager.Data?.CityCapturedZones?.Contains(SaveKey)==true||CityGameplay.HomeMode&&GameManager.Data?.CityCapturedZones?.Contains(zoneName)==true;
         statusLabel = ZoneLabelUtil.Create(transform, zoneName, 4.4f, 7.6f);
         MiniMapIconFactory.Register(transform, MiniMapIconFactory.Kind.Turf, zoneName);
         zoneGlow=BuildRing("TerritoryGlow",detectionRadius+.18f,.78f);
@@ -81,6 +94,10 @@ public class TerritoryControlPoint : MonoBehaviour
                 progressRing.SetPosition(i, new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, 0f));
             }
         }
+        bool details=ModernCityHud.Instance&&ModernCityHud.InspectWorld;
+        if(zoneGlow)zoneGlow.enabled=false;
+        if(zoneRing)zoneRing.enabled=details;
+        if(progressRing)progressRing.enabled=_captureProgress>0&&_playerUnits.Count>0&&!_isCaptured;
     }
 
     LineRenderer BuildRing(string name, float radius, float width)
@@ -125,12 +142,15 @@ public class TerritoryControlPoint : MonoBehaviour
             {
                 _isCaptured=false;_captureProgress=0;rivalOccupation=0;
                 owningFaction=_enemyUnits[0].firmName;
-                GameManager.Data?.CityCapturedZones?.Remove(zoneName);
+                GameManager.Data?.CityCapturedZones?.Remove(SaveKey);
+                if(CityGameplay.HomeMode)GameManager.Data?.CityCapturedZones?.Remove(zoneName);
                 GameManager.Save();CityGameplay.Instance?.PostEvent(zoneName.ToUpperInvariant()+" RECAPTURED BY "+owningFaction);UpdateLabel();
             }
             return;
         }
-        if (_playerUnits.Count > 0 && _enemyUnits.Count == 0)
+        if(captureCrew!=null&&captureCrew.Where((a,i)=>!a||!a.IsAlive||a.IsActivityLocked||a.OrderRevision!=captureRevisions[i]).Any())
+        {captureCrew=null;_captureProgress=0;CityGameplay.Instance?.PostEvent("Territory capture cancelled by a new order or unavailable crew. No occupation tax charged.");}
+        if (captureCrew!=null&&captureCrew.Any(a=>a&&a.IsAlive&&Vector3.Distance(a.transform.position,transform.position)<=detectionRadius)&&_enemyUnits.Count==0)
         {
             _captureProgress += Time.deltaTime / captureDuration;
             _captureProgress = Mathf.Clamp01(_captureProgress);
@@ -159,14 +179,15 @@ public class TerritoryControlPoint : MonoBehaviour
     private void CaptureZone()
     {
         _isCaptured = true;
+        captureCrew=null;
         owningFaction = GameManager.Data?.FirmName ?? "YOUR FIRM";
         UpdateLabel(); GameAudio.Play("capture");
         if(gameObject.scene.name=="Gameplay" && GameManager.Data!=null)
         {
             var data=GameManager.Data;
             if(data.CityCapturedZones==null)data.CityCapturedZones=new List<string>();
-            if(data.CityCapturedZones.Contains(zoneName))return;
-            data.CityCapturedZones.Add(zoneName);
+            if(data.CityCapturedZones.Contains(SaveKey))return;
+            data.CityCapturedZones.Add(SaveKey);
             data.Money=Mathf.Max(0,data.Money-occupationTax);data.Reputation+=reputationReward;
             data.PoliceHeat=Mathf.Clamp(data.PoliceHeat+heatGained,0,10);
             CampaignMissions.RecordTerritory(data,zoneName);
@@ -192,7 +213,7 @@ public class TerritoryControlPoint : MonoBehaviour
         }
 
         bool missionComplete=CityGameplay.Instance?.CheckCampaignCompletion()??false;
-        if(!missionComplete)
+        if(!missionComplete&&gameObject.scene.name!="Gameplay")
         {
             int secured=CampaignMissions.TerritoryCount(GameManager.Data,GameManager.Data?.CurrentLevel??1);
             string benefit=BenefitName(secured);
@@ -233,7 +254,8 @@ public class TerritoryControlPoint : MonoBehaviour
         {
             var d=GameManager.Data;if(!_isCaptured||d==null)return false;
             string token=zoneName+":DAY"+d.MatchDay;
-            return d.CampaignActionKeys==null||!d.CampaignActionKeys.Contains($"M{d.CurrentLevel}:tax:{token}");
+            int mission=CityGameplay.HomeMode?1:d.CurrentLevel;
+            return d.CampaignActionKeys==null||!d.CampaignActionKeys.Contains($"M{mission}:tax:{token}");
         }
     }
 
@@ -246,7 +268,7 @@ public class TerritoryControlPoint : MonoBehaviour
         GameManager.Save();
         AgentSelectionManager.CreateCommandMarker(transform.position,LandscapeUI.Green,"+£"+moneyReward.ToString("N0"));
         CityGameplay.Instance?.PostEvent($"{zoneName.ToUpperInvariant()} PROTECTION INCOME +£{moneyReward:N0}");
-        GamePopup.Instance.Show("INCOME COLLECTED",$"{zoneName.ToUpperInvariant()} generated £{moneyReward:N0}.\n\nThis is earned income from controlled turf—not a capture reward. Another payment becomes available on a future matchday.",new GamePopup.Option("DONE",LandscapeUI.Green,null));
+        BattleUIController.instance?.ShowAlert($"{zoneName.ToUpperInvariant()} income collected · £{moneyReward:N0}",2f);
         CityGameplay.Instance?.CheckCampaignCompletion();
         UpdateLabel();
         return true;

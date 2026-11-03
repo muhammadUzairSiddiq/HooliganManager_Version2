@@ -10,10 +10,20 @@ using UnityEngine;
 /// </summary>
 public sealed class StadiumMatchdayActivity : MonoBehaviour
 {
+    public static StadiumMatchdayActivity Instance {get;private set;}
+    public bool HasStarted => GameManager.Data!=null && GameManager.Data.MatchdayStartedDay==matchday;
+    public static bool IsMatchdayActive => Instance && Instance.HasStarted && Instance.phase!=MatchdayPhase.Aftermath;
+    float saveClock, lastStreamAt, attritionClock;
+    public bool IsAftermath=>HasStarted&&phase==MatchdayPhase.Aftermath;
+    public float ElapsedSeconds=>GameManager.Data?.MatchdayElapsedSeconds??0f;
+    public float PhaseSeconds=>phaseClock;
+
+    void Awake(){Instance=this;}
+    void OnDestroy(){if(Instance==this)Instance=null;}
     const int SupporterCount = 10;
     readonly List<GameObject> supporters = new List<GameObject>();
     Vector3 stadiumCenter;
-    enum MatchdayPhase { Arrival, BuildUp, RivalPressure, Kickoff, Aftermath }
+    enum MatchdayPhase { Arrival, BuildUp, RivalPressure, Kickoff, Dispersal, Aftermath }
     MatchdayPhase phase=MatchdayPhase.Arrival;
     float phaseClock;
     bool rivalFansSpawned;
@@ -39,7 +49,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
     }
 
     public bool AtmosphereReady { get; private set; }
-    public string CurrentPhase => phase.ToString().ToUpperInvariant();
+    public string CurrentPhase => HasStarted?phase.ToString().ToUpperInvariant():"PREPARATION";
     public int RivalFanCount
     {
         get
@@ -141,11 +151,39 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
         CityActivityStreaming.Ensure();
         BuildAtmosphere();
         if(!GetComponent<StadiumCrowdAudio>())gameObject.AddComponent<StadiumCrowdAudio>();
+        MatchdayStrategySystem.Ensure(this,stadiumCenter);
+        var d=GameManager.Data;
+        if(HasStarted)
+        {
+            if(!System.Enum.TryParse(d.MatchdayPhase,out phase))phase=MatchdayPhase.Arrival;
+            phaseClock=Mathf.Clamp(d.MatchdayPhaseSeconds,0,PhaseDuration);
+            atmosphereEventResolved=d.MatchdayIncidentResolved;
+            StartCoroutine(LivingMatchday());
+        }
+        else SetPhaseText("PREPARATION",LandscapeUI.Gold);
+        escalationBubble=WorldInteractBubble.Create(transform);
+        escalationBubble.Show(HasStarted?"MATCHDAY STATUS":"PREPARE MATCHDAY",OpenBriefing);
+        yield break;
+    }
+
+    public bool BeginMatchday()
+    {
+        if(HasStarted){OpenBriefing();return false;}
+        var d=GameManager.Data;
+        if(!MatchdayStrategySystem.CanStart(d,out string reason) || !MatchdayStrategySystem.RoutesReachable(out reason))
+        {CityGameplay.Instance?.PostEvent(reason);BattleUIController.instance?.ShowAlert(reason,3f);return false;}
+        if(!MatchdayTactics.Commit(d))return false;
+        d.MatchdayStartedDay=matchday;d.MatchdayPhase=MatchdayPhase.Arrival.ToString();d.MatchdayPhaseSeconds=0;
+        d.MatchdayIncidentResolved=false;d.MatchdayCompletedResponses=new List<string>();
+        d.MatchdayStadiumResponseSeconds=0;d.MatchdayPubResponseSeconds=0;
+        d.MatchdayElapsedSeconds=0;d.MatchdayFailedResponses=new List<string>();d.MatchdayPenalizedResponses=new List<string>();
+        d.MatchdayGroups=new List<MatchdayGroupSave>();d.MatchdayGroupsDay=matchday;
+        phase=MatchdayPhase.Arrival;phaseClock=0;atmosphereEventResolved=false;
         StartCoroutine(LivingMatchday());
-        CityGameplay.Instance?.PostEvent($"MATCHDAY {matchday:00} · ARRIVAL WINDOW · FANS ARE MOVING TOWARD THE STADIUM");
-        yield return new WaitForSeconds(Random.Range(10f, 20f));
-        pendingEscalation = true;
-        ShowEscalationChoice();
+        MatchdayStrategySystem.Instance?.ActivateResponses();
+        GameManager.Save();
+        CityGameplay.Instance?.PostEvent("MATCHDAY STARTED - cover the stadium approach and pub with separate crew. The city stays under your control.");
+        return true;
     }
 
     int matchday => GameManager.Data?.MatchDay ?? 1;
@@ -155,28 +193,26 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
 
     void Update()
     {
+        if(!HasStarted)return;
         // Matchday decisions are available on HOME; never interrupt camera control
         // with an unsolicited modal while the user is managing another task.
         StreamGroups();
         UpdateGroupTasks();
         ScanClashes();
-        if(livingStarted&&Time.time>=nextStreetConflict)
+        if(livingStarted&&(int)phase<(int)MatchdayPhase.Dispersal&&Time.time>=nextStreetConflict)
         {
             nextStreetConflict=Time.time+Random.Range(14f,24f);
             BeginConcurrentFlashpoints(Mathf.Max(0,3-ActiveConflictCount));
         }
-        if(livingStarted&&Time.time>=nextReplacement)
-        {
-            nextReplacement=Time.time+Random.Range(120f,240f);
-            foreach(var group in groups.Where(g=>!g.InConflict))
-                foreach(var slot in group.Slots.Where(s=>s.Hp<=0).Take(Random.Range(5,11)))
-                {slot.Hp=group.Role==MatchdayUnitRole.Police?85f:65f;slot.Position=group.HomePocket;slot.WasSpawned=false;}
-        }
-        if (pendingEscalation && !atmosphereEventResolved) ShowEscalationChoice();
+        atmosphereEventResolved=GameManager.Data?.MatchdayIncidentResolved==true;
         if(!AtmosphereReady)return;
-        phaseClock+=Time.deltaTime;
+        saveClock+=Time.deltaTime;
+        if(saveClock>=15f){saveClock=0;GameManager.Save();}
         if(phase==MatchdayPhase.Aftermath)return;
-        if(phaseClock<PhaseDuration)return;
+        GameManager.Data.MatchdayElapsedSeconds+=Time.deltaTime;
+        phaseClock+=Time.deltaTime;
+        if(GameManager.Data!=null)GameManager.Data.MatchdayPhaseSeconds=phaseClock;
+        if(phaseClock<(phase==MatchdayPhase.Dispersal?60f:PhaseDuration))return;
         phaseClock=0f;
         phase=(MatchdayPhase)Mathf.Min((int)MatchdayPhase.Aftermath,(int)phase+1);
         ApplyPhase(phase);
@@ -184,6 +220,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
 
     void ApplyPhase(MatchdayPhase next)
     {
+        if(GameManager.Data!=null){GameManager.Data.MatchdayPhase=next.ToString();GameManager.Data.MatchdayPhaseSeconds=0;GameManager.Save();}
         switch(next)
         {
             case MatchdayPhase.BuildUp:
@@ -204,6 +241,12 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
                 CityGameplay.Instance?.PostEvent("KICKOFF · STADIUM APPROACH IS ACTIVE · KEEP THE ROUTES CLEAR");
                 AssignPhaseTasks("TURNSTILE MOVEMENT");
                 break;
+            case MatchdayPhase.Dispersal:
+                SetPhaseText("DISPERSAL",new Color(.45f,.78f,1f));
+                foreach(var group in groups.Where(g=>g.InConflict).ToArray())EndConflict(group);
+                CityGameplay.Instance?.PostEvent("DISPERSAL - keep the pub exit clear. New matchday flashpoints have stopped.");
+                AssignPhaseTasks("RETURN TO STATION");
+                break;
             case MatchdayPhase.Aftermath:
                 SetPhaseText("POST-MATCH",new Color(.45f,.78f,1f));
                 CityGameplay.Instance?.PostEvent("POST-MATCH WINDOW · FANS DISPERSE · POLICE ARE WATCHING THE EXITS");
@@ -222,50 +265,18 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
 
     void OpenEscalationChoice()
     {
-        if (atmosphereEventResolved) return;
-        WorldChoiceBar.Present(transform, "MATCHDAY - CHOOSE A RESPONSE",
-            ("STEWARDS\nMORALE +6 / HEAT +1", new Color(.12f,.70f,.55f), () => ResolveEscalation("STEWARDS")),
-            ("ESCORT £200\nMORALE +4 / HEAT -1", new Color(.12f,.55f,.85f), () => ResolveEscalation("ESCORT")),
-            ("CONFRONT\nMORALE -3 / HEAT +3", LandscapeUI.Red, () => ResolveEscalation("CONFRONT")));
+        MatchdayStrategySystem.Instance?.OpenBoard();
     }
 
     void ResolveEscalation(string choice)
     {
-        if(atmosphereEventResolved)return;
-        var d=GameManager.Data;
-        if(choice=="ESCORT"&&(d==null||d.Money<200))
-        {
-            CityGameplay.Instance?.PostEvent("ESCORT NEEDS £200 · CHOOSE STEWARDS OR SAVE MORE FUNDS");
-            return;
-        }
-        atmosphereEventResolved=true;
-        escalationBubble?.Hide();
-        if(d!=null)
-        {
-            switch(choice)
-            {
-                case "STEWARDS": d.FanMorale=Mathf.Min(100,d.FanMorale+6);d.SocialMomentum+=1;d.PoliceHeat=Mathf.Clamp(d.PoliceHeat+1,0,10);break;
-                case "ESCORT": d.Money=Mathf.Max(0,d.Money-200);d.FanMorale=Mathf.Min(100,d.FanMorale+4);d.PoliceHeat=Mathf.Max(0,d.PoliceHeat-1);break;
-                default: d.FanMorale=Mathf.Max(0,d.FanMorale-3);d.PoliceHeat=Mathf.Clamp(d.PoliceHeat+3,0,10);break;
-            }
-            CampaignMissions.RecordAction(d,"matchday","rival-arrival");
-            GameManager.Save();
-        }
-        CityGameplay.Instance?.PostEvent("MATCHDAY DECISION · "+choice+" · THE HOME DISTRICT REMEMBERS");
-        if (choice == "STEWARDS") DeescalateOneFlashpoint();
-        else if (choice == "ESCORT") AssignPhaseTasks("ESCORTED TO TURNSTILES");
-        else BeginConcurrentFlashpoints(2);
-        CityGameplay.Instance?.CheckCampaignCompletion();
-        if(eventLabel)eventLabel.text="EVENT RESOLVED · "+choice;
+        // A response assigns real crew. Only on-site work records completion.
+        MatchdayStrategySystem.Instance?.Assign(choice=="STEWARDS"?0:1);
     }
 
     public void OpenBriefing()
     {
-        if(!atmosphereEventResolved){OpenEscalationChoice();return;}
-        var d=GameManager.Data;
-        GamePopup.Instance.Show("HOME MATCHDAY · "+matchday.ToString("00"),
-            $"PHASE: {CurrentPhase}\n\nSupporters at stadium: {ActiveFanCount}\nActive groups: {ActiveGroupCount}\nLive flashpoints: {ActiveConflictCount}\nRival arrivals: {RivalFanCount}\nPolice presence: {PolicePresenceCount}\nPolice heat: {d?.PoliceHeat??0}/10\n\n{(atmosphereEventResolved?"Rival-arrival event resolved. Keep the routes clear through the post-match window.":"Rival-arrival escalation is pending. Choose a response when the rival fans reach the stadium.")}",
-            new GamePopup.Option("CLOSE",LandscapeUI.PanelColor,null));
+        MatchdayStrategySystem.Instance?.OpenBoard();
     }
 
     void BuildAtmosphere()
@@ -378,6 +389,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
         var bm = BattleManager.instance;
         if (!bm || livingStarted) yield break;
         livingStarted = true;
+        if(RestoreGroups())yield break;
 
         // Every active campaign gang gets its own named, colour-matched away group.
         // This keeps the stadium representative of the current RTS map instead of
@@ -448,6 +460,61 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
         CityGameplay.Instance?.PostEvent("MATCHDAY · RIVAL GROUPS, HOME SUPPORT AND POLICE ARE MOVING AROUND THE STADIUM");
     }
 
+    public void CaptureState()
+    {
+        var d=GameManager.Data;
+        if(d==null||!HasStarted||!livingStarted)return;
+        d.MatchdayGroupsDay=matchday;
+        d.MatchdayGroups=new List<MatchdayGroupSave>();
+        foreach(var group in groups)
+        {
+            var saved=new MatchdayGroupSave{name=group.Name,color="#"+ColorUtility.ToHtmlStringRGBA(group.Color),role=(int)group.Role,
+                home=group.HomePocket,destination=group.Destination,task=group.Task,taskIndex=group.TaskIndex,inConflict=group.InConflict,
+                opponent=group.Opponent==null?-1:groups.IndexOf(group.Opponent),nextTaskSeconds=Mathf.Max(0,group.NextTaskAt-Time.time),conflictSeconds=Mathf.Max(0,group.ConflictUntil-Time.time)};
+            foreach(var member in group.Slots)saved.members.Add(new MatchdayMemberSave{hp=member.Body?member.Body.CurrentHp:member.Hp,
+                position=member.Body?member.Body.transform.position:member.Position,wasSpawned=member.WasSpawned});
+            d.MatchdayGroups.Add(saved);
+        }
+    }
+
+    bool RestoreGroups()
+    {
+        var d=GameManager.Data;
+        if(d?.MatchdayGroupsDay!=matchday||d.MatchdayGroups==null||d.MatchdayGroups.Count==0)return false;
+        foreach(var saved in d.MatchdayGroups)
+        {
+            ColorUtility.TryParseHtmlString(saved.color,out var color);
+            var group=CreateSupporterGroup(BattleManager.instance,saved.name,color,(MatchdayUnitRole)saved.role,saved.home,0);
+            group.HomePocket=saved.home;group.Destination=saved.destination;group.Task=saved.task;group.TaskIndex=saved.taskIndex;
+            group.InConflict=saved.inConflict;group.NextTaskAt=Time.time+saved.nextTaskSeconds;group.ConflictUntil=Time.time+saved.conflictSeconds;
+            foreach(var member in saved.members??new List<MatchdayMemberSave>())group.Slots.Add(new MemberState{Hp=member.hp,Position=member.position,WasSpawned=true});
+            group.Marker.SetTask(group.Task);
+        }
+        for(int i=0;i<groups.Count;i++)
+        {int opponent=d.MatchdayGroups[i].opponent;if(opponent>=0&&opponent<groups.Count)groups[i].Opponent=groups[opponent];}
+        return true;
+    }
+
+    public void RetryMissedResponses()
+    {
+        var d=GameManager.Data;
+        if(!IsAftermath||d==null||d.MatchdayIncidentResolved)return;
+        d.MatchdayFailedResponses=new List<string>();
+        d.MatchdayElapsedSeconds=180;phase=MatchdayPhase.RivalPressure;phaseClock=0;
+        ApplyPhase(phase);GameManager.Save();
+        CityGameplay.Instance?.PostEvent("RESPONSE RETRY - cover the missed locations before dispersal. Covered locations keep their outcome.");
+    }
+
+    public void CloseMatchday()
+    {
+        var d=GameManager.Data;
+        if(!IsAftermath||d==null||!d.MatchdayIncidentResolved||d.MatchdayLastClosedDay>=matchday)return;
+        d.MatchdayLastClosedDay=matchday;
+        BattleManager.instance?.PersistBattleProgress();
+        GameData.instance.EndMatchDay();
+        GameManager.instance.EnterHomeTerritory();
+    }
+
     MatchdayGroupState CreateSupporterGroup(BattleManager bm, string groupName, Color color,
                                              MatchdayUnitRole role, Vector3 pocket, int count)
     {
@@ -497,6 +564,7 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
     void StreamGroups()
     {
         if(Time.time<nextStreamTick||!BattleManager.instance)return;
+        float streamDt=Mathf.Clamp(Time.time-lastStreamAt,.001f,.25f);lastStreamAt=Time.time;
         nextStreamTick=Time.time+.035f;
         var focus=CityActivityStreaming.GroundFocus(Camera.main);
         int available=CityActivityStreaming.BodyBudget-8;
@@ -517,11 +585,11 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
                         BattleManager.instance.DespawnMatchdayFighter(slot.Body);slot.Body=null;
                     }
                 }
-                else if(slot.WasSpawned&&slot.Hp>0)
+                else if(slot.Hp>0)
                 {
                     // Keep the record moving toward its task while the pooled
                     // presentation is absent. Returning never resets its health.
-                    slot.Position=Vector3.MoveTowards(slot.Position,group.Destination,.08f);
+                    slot.Position=Sample(Vector3.MoveTowards(slot.Position,group.Destination,2.2f*streamDt));
                 }
                 if(!near||slot.Body||slot.Hp<=0)continue;
                 int memberIndex=group.Slots.IndexOf(slot);
@@ -537,6 +605,19 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
             foreach(var slot in group.Slots)if(slot.Body&&slot.Body.IsAlive)group.Members.Add(slot.Body);
             group.Marker.Bind(group.Members);
             if(group.Members.Count==0)group.Marker.transform.position=group.Destination;
+        }
+        attritionClock+=streamDt;
+        if(attritionClock>=1f)
+        {
+            attritionClock=0;
+            // Offscreen-only encounters advance records, never pooled colliders.
+            // Onscreen combat remains controlled by the normal character AI.
+            foreach(var group in groups.Where(g=>g.InConflict&&g.Opponent!=null&&g.Members.Count==0&&g.Opponent.Members.Count==0))
+            {
+                if(Vector3.Distance(group.Destination,group.Opponent.Destination)>12f)continue;
+                var member=group.Slots.FirstOrDefault(m=>m.Hp>0);
+                if(member!=null){member.Hp=Mathf.Max(0,member.Hp-3f);if(member.Hp<=0&&group.Role!=MatchdayUnitRole.Police)CitySupportNetwork.Lost(group.Name,group.Role==MatchdayUnitRole.HomeSupporter);}
+            }
         }
         homeBodies.Clear();rivalBodies.Clear();
         foreach(var g in groups)
@@ -586,6 +667,12 @@ public sealed class StadiumMatchdayActivity : MonoBehaviour
             group.NextTaskAt = Time.time + Random.Range(7f, 12f);
             group.TaskIndex++;
 
+            if((int)phase>=(int)MatchdayPhase.Dispersal)
+            {
+                var city=CityGameplay.Instance;
+                SetGroupTask(group,group.Role==MatchdayUnitRole.Police?"WATCH EXITS":"LEAVING VIA STATION",city&&city.Locations.Length>7?city.Locations[7]:group.HomePocket,2.2f);
+                continue;
+            }
             string[] tasks;
             float radius;
             switch (group.Role)

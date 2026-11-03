@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// Maps the authored 1600 x 900 coordinate system onto the complete device safe area.
@@ -10,17 +11,32 @@ using UnityEngine;
 public sealed class LandscapeViewport : MonoBehaviour
 {
     public RectTransform frame;
-    void OnEnable() => Fit();
+    Rect lastSafe;
+    Vector2 lastScreen, lastAvailable;
+    RectTransform lastFrame;
+    bool fitted;
+    void OnEnable()
+    {
+        fitted = false;
+        LandscapeUI.ConfigureLandscapeScaler(GetComponentInParent<CanvasScaler>());
+        Fit();
+    }
     void LateUpdate() => Fit();
     public void Fit()
+        => Fit(Screen.safeArea, new Vector2(Screen.width, Screen.height));
+
+    // Explicit display metrics also allow repeatable notch/rotation regression checks.
+    public void Fit(Rect safe, Vector2 screen)
     {
         var rt = transform as RectTransform;
         if (rt == null || frame == null || rt.parent == null) return;
-        var safe = Screen.safeArea;
-        if (Screen.width > 0 && Screen.height > 0)
+        if (screen.x <= 0 || screen.y <= 0) return;
+        if (safe.width <= 0 || safe.height <= 0) safe = new Rect(0, 0, screen.x, screen.y);
+        if (fitted && lastFrame == frame && lastSafe == safe && lastScreen == screen && lastAvailable == rt.rect.size) return;
+        if (screen.x > 0 && screen.y > 0)
         {
-            rt.anchorMin = new Vector2(safe.xMin / Screen.width, safe.yMin / Screen.height);
-            rt.anchorMax = new Vector2(safe.xMax / Screen.width, safe.yMax / Screen.height);
+            rt.anchorMin = new Vector2(safe.xMin / screen.x, safe.yMin / screen.y);
+            rt.anchorMax = new Vector2(safe.xMax / screen.x, safe.yMax / screen.y);
             rt.offsetMin = rt.offsetMax = Vector2.zero;
         }
         frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(.5f, .5f);
@@ -29,5 +45,10 @@ public sealed class LandscapeViewport : MonoBehaviour
         scale = Mathf.Max(.01f, scale);
         frame.sizeDelta = new Vector2(rt.rect.width / scale, rt.rect.height / scale);
         frame.localScale = Vector3.one * scale;
+        lastSafe = safe;
+        lastScreen = screen;
+        lastAvailable = rt.rect.size;
+        lastFrame = frame;
+        fitted = true;
     }
 }

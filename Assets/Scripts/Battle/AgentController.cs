@@ -26,12 +26,18 @@ public class AgentController : MonoBehaviour
     public State CurrentState { get; private set; } = State.Idle;
     public enum StandingOrder { None, Guard, Patrol }
     public StandingOrder CurrentOrder { get; private set; }
+    public int OrderRevision { get; private set; }
     Vector3 _orderStart, _orderEnd;
     bool _patrolReturning;
     const float DefenceRadius = 12f;
     NavMeshPath _commandPath;
     public Bounds GuardRegion { get; private set; }
     bool rectangularGuard;
+    // Save adapters read the standing duty, not a temporary combat destination.
+    public Vector3 DutyStart=>_orderStart;
+    public Vector3 DutyEnd=>_orderEnd;
+    public bool PatrolReturning=>_patrolReturning;
+    public bool IsRectangularGuard=>CurrentOrder==StandingOrder.Guard&&rectangularGuard;
 
     // ── Data (set by BattleManager on spawn) ──────────────────────────────
     public AgentData Data { get; private set; }
@@ -301,27 +307,53 @@ public class AgentController : MonoBehaviour
 
     public bool TryCommandMoveTo(Vector3 point)
     {
-        if (!TryNavigate(point)) return false;
+        return TryCommandMoveTo(point, float.PositiveInfinity);
+    }
+
+    public bool TryCommandMoveTo(Vector3 point, float maximumTargetOffset)
+    {
+        if (!TryNavigate(point, maximumTargetOffset)) return false;
+        OrderRevision++;
         CurrentOrder = StandingOrder.None;
         if (_jobHold) EndJob();
         return true;
     }
 
-    bool TryNavigate(Vector3 point)
+    bool TryNavigate(Vector3 point, float maximumTargetOffset = float.PositiveInfinity)
     {
-        if (!IsAlive || _cinematicIdle || _activityLocked || !_nav || !_nav.enabled || !_nav.isOnNavMesh) return false;
-        if (!NavMesh.SamplePosition(point, out var destination, 3f, _nav.areaMask)) return false;
+        LastOrderFailure="";
+        if(!IsAlive){LastOrderFailure="member is down";return false;}
+        if(_cinematicIdle||_activityLocked){LastOrderFailure="member is held by a local activity";return false;}
+        if(!_nav||!_nav.enabled||!_nav.isOnNavMesh){LastOrderFailure="member is outside the walkable streets";return false;}
+        var filter=new NavMeshQueryFilter{agentTypeID=_nav.agentTypeID,areaMask=_nav.areaMask};
+        if (!NavMesh.SamplePosition(point, out var destination, 3f, filter)){LastOrderFailure="destination has no crew-accessible street";return false;}
         if (_commandPath == null) _commandPath = new NavMeshPath();
-        if (!_nav.CalculatePath(destination.position, _commandPath) || _commandPath.status != NavMeshPathStatus.PathComplete) return false;
+        float targetLimitSquared=maximumTargetOffset*maximumTargetOffset;
+        bool connected=Vector3.ProjectOnPlane(destination.position-point,Vector3.up).sqrMagnitude<=targetLimitSquared&&_nav.CalculatePath(destination.position,_commandPath)&&_commandPath.status==NavMeshPathStatus.PathComplete;
+        // At crossings the nearest polygon may belong to an isolated/one-way
+        // strip. Look only within the same local interaction radius for a real
+        // connected street; retain the old order if none is available.
+        for(int ring=1;!connected&&ring<=4;ring++)
+        for(int direction=0;!connected&&direction<12;direction++)
+        {
+            float angle=direction*Mathf.PI/6f;
+            var candidate=point+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*ring*1.8f;
+            if(!NavMesh.SamplePosition(candidate,out var nearby,1.2f,filter))continue;
+            if(Vector3.ProjectOnPlane(nearby.position-point,Vector3.up).sqrMagnitude>targetLimitSquared)continue;
+            if(!_nav.CalculatePath(nearby.position,_commandPath)||_commandPath.status!=NavMeshPathStatus.PathComplete)continue;
+            destination=nearby;connected=true;
+        }
+        if(!connected){LastOrderFailure="no complete street route from this member";return false;}
         _nav.isStopped = false;
         _nav.stoppingDistance = .15f;
-        if (!_nav.SetPath(_commandPath)) return false;
+        if (!_nav.SetPath(_commandPath)){LastOrderFailure="navigation could not accept the route";return false;}
         _moveTarget = destination.position;
         _target = null;
         BeginAssignment();
         SetState(State.MovingToPoint);
         return true;
     }
+    public string LastOrderFailure {get;private set;}="";
 
     /// <summary>Guard the destination, or patrol from the current position to it and back.</summary>
     public bool CommandArea(Vector3 point, bool patrol)
@@ -329,6 +361,7 @@ public class AgentController : MonoBehaviour
         rectangularGuard = false;
         Vector3 start = transform.position;
         if (!TryNavigate(point)) return false;
+        OrderRevision++;
         if (_jobHold) EndJob();
         CurrentOrder = patrol ? StandingOrder.Patrol : StandingOrder.Guard;
         _orderStart = patrol ? start : _moveTarget;
@@ -338,6 +371,13 @@ public class AgentController : MonoBehaviour
     }
 
     public bool HasPatrolRoute(Vector3 a,Vector3 b) => CurrentOrder==StandingOrder.Patrol && (_orderStart-a).sqrMagnitude<1 && (_orderEnd-b).sqrMagnitude<1;
+    public bool RestorePatrol(Vector3 a,Vector3 b,bool returning)
+    {
+        if(!CommandPatrol(a,b))return false;
+        if(!TryNavigate(returning?_orderStart:_orderEnd))return false;
+        _patrolReturning=returning;
+        return true;
+    }
     public bool CommandGuard(Bounds area)
     { return CommandGuard(area,area.center); }
 
@@ -353,9 +393,11 @@ public class AgentController : MonoBehaviour
     {
         if (!_nav || !_nav.enabled || !_nav.isOnNavMesh) return false;
         if (!NavMesh.SamplePosition(a, out var start, 3f, _nav.areaMask) || !NavMesh.SamplePosition(b, out var end, 3f, _nav.areaMask)) return false;
+        if((start.position-end.position).sqrMagnitude<9f)return false;
         var path = new NavMeshPath();
         if (!NavMesh.CalculatePath(start.position, end.position, _nav.areaMask, path) || path.status != NavMeshPathStatus.PathComplete) return false;
         if (!TryNavigate(start.position)) return false;
+        OrderRevision++;
         if (_jobHold) EndJob();
         rectangularGuard = false;
         CurrentOrder = StandingOrder.Patrol;
@@ -420,6 +462,7 @@ public class AgentController : MonoBehaviour
         if (!IsAlive) return;
         if (_jobHold) EndJob();
         if (_activityLocked) return;
+        OrderRevision++;
         CurrentOrder = StandingOrder.None;
         BeginAssignment();
         SetState(State.AutoAttacking);
@@ -431,6 +474,7 @@ public class AgentController : MonoBehaviour
         if (!IsAlive) return;
         if (_jobHold) EndJob();
         if (_activityLocked) return;
+        OrderRevision++;
         CurrentOrder = StandingOrder.None;
         _target = target;
         BeginAssignment();
@@ -440,16 +484,13 @@ public class AgentController : MonoBehaviour
     /// <summary>Move back to spawn / retreat zone.</summary>
     public void CommandRetreat()
     {
-        if (!IsAlive || _cinematicIdle || !_nav || !_nav.enabled || !_nav.isOnNavMesh) return;
-        if (_jobHold) EndJob();
-        if (_activityLocked) return;
-        CurrentOrder = StandingOrder.None;
-        _target = null;
-        _nav.isStopped = false;
-        _nav.stoppingDistance = .15f;
-        BeginAssignment();
-        SetState(State.Retreating);
-        _nav.SetDestination(_retreatPoint);
+        TryCommandRetreat();
+    }
+    public bool TryCommandRetreat()
+    {
+        Vector3 destination=PoliceCityMode.Active&&PoliceCityMode.Instance?PoliceCityMode.Instance.Station:_retreatPoint;
+        if(!TryCommandMoveTo(destination))return false;
+        SetState(State.Retreating);return true;
     }
 
     // ── Damage ────────────────────────────────────────────────────────────

@@ -1,0 +1,19 @@
+{
+    "name": "Unity.Purchasing.AppleMacos",
+    "rootNamespace": "",
+    "references": [
+        "Unity.Purchasing",
+        "Unity.Purchasing.Utilities"
+    ],
+    "includePlatforms": [
+        "macOSStandalone"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -36,7 +36,7 @@ public sealed class UnitAffiliationMarker : MonoBehaviour
             ring = go.AddComponent<LineRenderer>();
             ring.useWorldSpace = false;
             ring.loop = true;
-            ring.positionCount = 48;
+            ring.positionCount = 4;
             ring.numCornerVertices = 2;
         }
         ZoneVolumeFactory.ApplyDoubleSidedMaterial(ring, baseColor);

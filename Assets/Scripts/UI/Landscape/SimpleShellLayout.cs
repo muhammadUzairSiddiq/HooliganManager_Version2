@@ -38,7 +38,7 @@ public static class SimpleShellLayout
         var away = shell.transform.Find("LoadGame");
         if (away) away.gameObject.SetActive(false);
         var playLabel = shell.transform.Find("NewGame")?.GetComponentInChildren<TMPro.TextMeshProUGUI>(true);
-        if (playLabel) playLabel.text = "PLAY";
+        if (playLabel) playLabel.text = "PLAY · CHOOSE ROLE";
         PrepareContinue(shell.transform);
         AlignMenuColumn(shell.transform);
 
@@ -48,17 +48,19 @@ public static class SimpleShellLayout
         modePanel.SetActive(false);
         var dim = LandscapeUI.Image("Dim", modes, 0, 0, 1600, 900, null, new Color(0.02f, 0.04f, 0.06f, 0.92f));
         dim.raycastTarget = true;
-        LandscapeUI.Text("ModeTitle", modes, "CHOOSE A MODE", 200, 180, 1200, 60, 36, LandscapeUI.White, true, TextAlignmentOptions.Center);
+        LandscapeUI.Text("ModeTitle", modes, "CHOOSE YOUR ROLE", 200, 180, 1200, 60, 36, LandscapeUI.White, true, TextAlignmentOptions.Center);
 
-        var awayBtn = LandscapeUI.Button("AwayTrip", modes, "AWAY TRIP", 500, 300, 600, 88, "red");
-        var homeBtn = LandscapeUI.Button("HomeTerritory", modes, "HOME TERRITORY", 500, 410, 600, 88);
-        var police = LandscapeUI.Button("PlayPolice", modes, "PLAY AS POLICE    COMING SOON", 500, 520, 600, 88);
-        police.interactable = false;
+        var awayBtn = LandscapeUI.Button("AwayTrip", modes, "HOOLIGAN · BUILD YOUR FIRM", 500, 300, 600, 88, "red");
+        var homeBtn = LandscapeUI.Button("HomeTerritory", modes, "CONTINUE HOOLIGAN CAMPAIGN", 500, 410, 600, 88);
+        var police = LandscapeUI.Button("PlayPolice", modes, "POLICE · PATROL & PROTECT", 500, 520, 600, 88);
+        police.interactable = true;
+        police.onClick.AddListener(()=>PoliceCityMode.Launch());
         var back = LandscapeUI.Button("BackToTitle", modes, "BACK", 500, 680, 600, 64, "outline");
 
         back.onClick.AddListener(() => modePanel.SetActive(false));
-        awayBtn.onClick.AddListener(() => GameManager.instance?.TryOpenAwayTrip(shell.clubs));
-        homeBtn.onClick.AddListener(() => GameManager.instance?.EnterHomeTerritoryOrStartNew(shell.clubs));
+        awayBtn.onClick.AddListener(() => Object.FindFirstObjectByType<MainMenuController>()?.ConfirmNewFirm());
+        homeBtn.onClick.AddListener(() => GameManager.instance?.ContinueIntoGameplay());
+        homeBtn.interactable=GameManager.HasSaveData();
     }
 
     static void AlignMenuColumn(Transform root)
@@ -143,7 +145,7 @@ public static class SimpleShellLayout
         }
         if (shell.transform.Find("AwayBack")) return;
         var back = LandscapeUI.Button("AwayBack", shell.transform, "BACK", 28, 20, 150, 54, "outline");
-        back.onClick.AddListener(() => GameManager.instance?.OnReturnToMainMenu());
+        back.onClick.AddListener(() => GameManager.instance?.EnterHomeTerritory());
     }
 
     static void HideNamed(Transform root, string name)

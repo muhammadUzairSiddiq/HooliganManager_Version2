@@ -3,6 +3,40 @@ using System.Collections.Generic;
 [System.Serializable]
 public class PlayerData
 {
+    [System.Runtime.Serialization.OptionalField] public List<string> FulfilledPurchaseTransactions;
+    [System.Runtime.Serialization.OptionalField] public bool RemoveAdsEntitlement;
+    [System.Runtime.Serialization.OptionalField] public string PurchaseWalletId;
+    [System.Runtime.Serialization.OptionalField] public MatchdayTacticsState MatchdayTactics;
+    [System.Runtime.Serialization.OptionalField] public bool FirstSessionCoachHidden;
+    [System.Runtime.Serialization.OptionalField] public int AdSupplyRewardMatchday;
+    [System.Runtime.Serialization.OptionalField] public List<HomeBuildingState> HomeBuildings;
+    // Recovery v1 is additive; old campaigns migrate without losing earned state.
+    [System.Runtime.Serialization.OptionalField] public int RecoveryVersion;
+    [System.Runtime.Serialization.OptionalField] public bool RecoveryGuidedStart;
+    [System.Runtime.Serialization.OptionalField] public bool LearnedSelection;
+    [System.Runtime.Serialization.OptionalField] public int LearnedMoveOrders;
+    [System.Runtime.Serialization.OptionalField] public bool LearnedMultiSelection;
+    [System.Runtime.Serialization.OptionalField] public bool LearnedSplitSelection;
+    [System.Runtime.Serialization.OptionalField] public bool LearnedGuard;
+    [System.Runtime.Serialization.OptionalField] public bool LearnedPatrol;
+    [System.Runtime.Serialization.OptionalField] public List<CityBusinessState> CityBusinesses;
+    [System.Runtime.Serialization.OptionalField] public float BusinessEconomySeconds;
+    [System.Runtime.Serialization.OptionalField] public int BusinessIncomeEarned;
+    [System.Runtime.Serialization.OptionalField] public int MatchdayStartedDay;
+    [System.Runtime.Serialization.OptionalField] public float MatchdayPhaseSeconds;
+    [System.Runtime.Serialization.OptionalField] public List<string> MatchdayCompletedResponses;
+    [System.Runtime.Serialization.OptionalField] public float MatchdayStadiumResponseSeconds;
+    [System.Runtime.Serialization.OptionalField] public float MatchdayPubResponseSeconds;
+    [System.Runtime.Serialization.OptionalField] public List<CityResourceState> CityResourceStates;
+    [System.Runtime.Serialization.OptionalField] public List<string> ActiveAwayAgentIds;
+    [System.Runtime.Serialization.OptionalField] public float AwayExtractionSeconds;
+    [System.Runtime.Serialization.OptionalField] public float HomePressureSeconds;
+    [System.Runtime.Serialization.OptionalField] public float MatchdayElapsedSeconds;
+    [System.Runtime.Serialization.OptionalField] public List<string> MatchdayFailedResponses;
+    [System.Runtime.Serialization.OptionalField] public List<string> MatchdayPenalizedResponses;
+    [System.Runtime.Serialization.OptionalField] public int MatchdayLastClosedDay;
+    [System.Runtime.Serialization.OptionalField] public List<MatchdayGroupSave> MatchdayGroups;
+    [System.Runtime.Serialization.OptionalField] public int MatchdayGroupsDay;
     [System.Runtime.Serialization.OptionalField] public int StrategySupporters;
     [System.Runtime.Serialization.OptionalField] public int SupportCampaigns;
     [System.Runtime.Serialization.OptionalField] public int StrategyVersion;
@@ -41,10 +75,10 @@ public class PlayerData
     public string RivalClubName   = "East Town FC";
 
     // ── Hooligan Manager — Runtime stats ─────────────────────────────────
-    public int  Fans       = 1;
+    public int  Fans       = 3;
     public int  Strength   = 40;
     public int  Reputation = 10;
-    public int  PoliceHeat = 7;
+    public int  PoliceHeat = 1;
     public int  Ranking    = 5;
     public int  Money      = 5000;
     public int  MatchDay   = 1;
@@ -134,10 +168,9 @@ public class PlayerData
     /// <summary>Where CONTINUE should return: Home, Away, AwayPlan, or Police.</summary>
     [System.Runtime.Serialization.OptionalField]
     public string LastSessionMode;
-    /// <summary>Heat restored by Try Again. A retry always resumes at the campaign's
-    /// readable seven-bar starting pressure instead of carrying a terminal 10/10 state.</summary>
+    /// <summary>Heat captured at session start, including a valid zero.</summary>
     [System.Runtime.Serialization.OptionalField]
-    public int BattleStartPoliceHeat = 7;
+    public int BattleStartPoliceHeat = 1;
 
     // ── Hooligan Manager — Recent event log ──────────────────────────────
     public string[] RecentEvents = new string[0];

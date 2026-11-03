@@ -1,0 +1,6 @@
+# Generated verification assemblies and local compiler response files.
+*.dll
+*.pdb
+*.rsp
+*.runtimeconfig.json
+*.log

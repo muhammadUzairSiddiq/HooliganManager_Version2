@@ -108,6 +108,7 @@ public sealed class CityDevelopmentSystem : MonoBehaviour
     {
         if(GamePopup.AnyOpen)GamePopup.Instance.Hide();
         if(!panel)BuildBoard();
+        CityUiSheets.Open(this,CloseBoard);
         if(panel){panel.SetActive(true);Refresh();}
     }
     public void CloseBoard(){if(panel)panel.SetActive(false);}
