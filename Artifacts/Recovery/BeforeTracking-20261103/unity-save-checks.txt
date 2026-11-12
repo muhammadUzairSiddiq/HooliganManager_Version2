@@ -1,0 +1,12 @@
+PASS Fresh reset grants three living crew, starter funds and low heat
+PASS Fresh campaign starts the new guided progression
+PASS Personal audio preference survives New Game
+PASS Learned controls survive the actual Unity save roundtrip
+PASS Business ownership, loot cooldown, disruption and tick survive save/reload
+PASS Matchday phase, clock and response outcome survive save/reload
+PASS Reload/normalization does not pay again or bypass the loot cooldown
+PASS A deliberate empty Away preparation selection survives normalization and native save
+PASS Native save preserves actual travellers, matchday deadlines and penalty-once records
+PASS Native group serialization preserves casualties, injuries and destinations
+PASS Retry preserves a valid zero-heat snapshot
+PASS Legacy migration preserves earned heat, cash and unlocked Home/Away progress

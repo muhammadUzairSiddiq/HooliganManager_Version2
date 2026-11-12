@@ -3,6 +3,18 @@ using System.Collections.Generic;
 [System.Serializable]
 public class PlayerData
 {
+    [System.Runtime.Serialization.OptionalField] public List<RoadIncidentSave> CityRoadIncidents;
+    [System.Runtime.Serialization.OptionalField] public MatchdayStreetState MatchdayStreet;
+    [System.Runtime.Serialization.OptionalField] public float HomeMatchdayWait;
+    [System.Runtime.Serialization.OptionalField] public int MatchdayTravelCredit;
+    [System.Runtime.Serialization.OptionalField] public int LastAwayStockMission;
+    [System.Runtime.Serialization.OptionalField] public StockRescueRun ActiveStockRescue;
+    [System.Runtime.Serialization.OptionalField] public bool MobileTutorialRequired;
+    [System.Runtime.Serialization.OptionalField] public string TutorialAppVersion;
+    [System.Runtime.Serialization.OptionalField] public int MobileTutorialVersion;
+    [System.Runtime.Serialization.OptionalField] public int MobileTutorialStep;
+    [System.Runtime.Serialization.OptionalField] public bool MatchdayTutorialPending;
+    [System.Runtime.Serialization.OptionalField] public bool MobileTutorialRecruitDone;
     [System.Runtime.Serialization.OptionalField] public List<string> FulfilledPurchaseTransactions;
     [System.Runtime.Serialization.OptionalField] public bool RemoveAdsEntitlement;
     [System.Runtime.Serialization.OptionalField] public string PurchaseWalletId;
@@ -174,6 +186,7 @@ public class PlayerData
 
     // ── Hooligan Manager — Recent event log ──────────────────────────────
     public string[] RecentEvents = new string[0];
+    [System.Runtime.Serialization.OptionalField] public List<CityNewsRecord> CityNews = new List<CityNewsRecord>();
 
     // ── Combat — Agent roster ─────────────────────────────────────────────
     /// <summary>All agents ever recruited. Use IsAlive to filter active ones.</summary>

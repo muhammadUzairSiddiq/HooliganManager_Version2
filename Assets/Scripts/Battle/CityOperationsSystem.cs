@@ -289,7 +289,7 @@ public sealed class CityOperationsSystem : MonoBehaviour
     {
         var d=GameManager.Data;int living=BattleManager.instance?.PlayerAgents.Count(a=>a&&a.IsAlive)??0;
         if(!CityOperationsLedger.CanStart(d,node.Type,living,out string reason))
-        {CityGameplay.Instance?.PostEvent(node.Title+" CANCELLED - "+reason.ToUpperInvariant());return;}
+        {CityGameplay.Instance?.PostEvent(node.Title+" CANCELLED - "+reason.ToUpperInvariant());GameFeedback.Emit(GameFeedbackEvent.TaskFailed,node.transform.position);return;}
         int heatBefore=d.PoliceHeat;
         CityOperationsLedger.Apply(d,node.Type,living);
         if(node.Type==CityOperationType.SupporterRally)CitySupportNetwork.Earn(d,12);
@@ -303,6 +303,7 @@ public sealed class CityOperationsSystem : MonoBehaviour
         }
         GameManager.Save();
         AgentSelectionManager.CreateCommandMarker(node.transform.position,LandscapeUI.Green,"COMPLETE");
+        GameFeedback.Emit(GameFeedbackEvent.TaskComplete,node.transform.position);
         CityGameplay.Instance?.PostEvent(node.Title+" COMPLETE - "+RewardText(node.Type));
         if(!automatedPlaytest)CityFeedback.At(node.transform.position,node.Title+" COMPLETE",LandscapeUI.Green);
         CityGameplay.Instance?.CheckCampaignCompletion();
@@ -594,7 +595,7 @@ public sealed class CityOperationNode:MonoBehaviour
     {
         LiveWork=false;IsRunning=false;waitingForArrival=false;awaitingDecision=false;
         foreach(var member in assigned)if(member)member.EndJob();
-        CityGameplay.Instance?.PostEvent(Title+" CANCELLED - "+reason);Release();
+        CityGameplay.Instance?.PostEvent(Title+" CANCELLED - "+reason);GameFeedback.Emit(GameFeedbackEvent.TaskFailed,transform.position);Release();
     }
     void Release(){foreach(var member in assigned)if(member)member.SetActivityLocked(false,transform.position);assigned.Clear();}
     static float HorizontalDistance(Vector3 a,Vector3 b){a.y=0;b.y=0;return Vector3.Distance(a,b);}

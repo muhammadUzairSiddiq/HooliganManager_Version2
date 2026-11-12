@@ -39,6 +39,7 @@ public class EnemyController : MonoBehaviour
     public float AttackRange = 1.0f;
 
     public bool IsAlive => CurrentHp > 0;
+    public int LifeRevision { get; private set; }
     public AgentController LastHitter { get; private set; }
 
     // ── Inspector references ──────────────────────────────────────────────
@@ -59,7 +60,10 @@ public class EnemyController : MonoBehaviour
     private EnemyController _targetEnemy;
 
     private Transform TargetTransform => _targetPlayer != null ? _targetPlayer.transform : (_targetEnemy != null ? _targetEnemy.transform : null);
-    private bool IsTargetAlive => (_targetPlayer != null && _targetPlayer.IsAlive) || (_targetEnemy != null && _targetEnemy.IsAlive);
+    private bool IsTargetAlive =>
+        (_targetPlayer && _targetPlayer.IsAlive && !MatchdayStreetOperations.IsDetained(_targetPlayer)) ||
+        (_targetEnemy && _targetEnemy.IsAlive && _targetEnemy.gameObject.activeInHierarchy &&
+            !MatchdayStreetOperations.IsDetained(_targetEnemy));
 
     private void SetTarget(MonoBehaviour target)
     {
@@ -90,6 +94,7 @@ public class EnemyController : MonoBehaviour
 
     private void DealDamageToTarget(float amount)
     {
+        if(GuidedCityTutorial.CombatSuppressed)return;
         if (_targetPlayer != null) _targetPlayer.TakeDamage(amount, this);
         else if (_targetEnemy != null) _targetEnemy.TakeDamage(amount, this);
     }
@@ -126,6 +131,7 @@ public class EnemyController : MonoBehaviour
     bool escortRun;
     bool escortActive;
     NavMeshPath escortPath;
+    public bool IsEscorting => escortActive;
     public string LastEscortFailure{get;private set;}="";
     /// <summary>When set, a police officer only chases these crew members.</summary>
     public readonly List<AgentController> assignedCrew = new List<AgentController>();
@@ -134,6 +140,7 @@ public class EnemyController : MonoBehaviour
     {
         holdFire = hold;
         if (!hold) { escortRun = false;escortActive=false; return; }
+        _impactPending=false;
         isHostile = false;
         assignedCrew.Clear();
         ClearTarget();
@@ -205,6 +212,7 @@ public class EnemyController : MonoBehaviour
 
     public void Initialise(float maxHp, float strength, float speed, float attackRange = 1.0f, CharacterPortraitRegistry characterPortraitRegistry = null)
     {
+        LifeRevision++;
         StopAllCoroutines();
         ClearTarget();
         LastHitter=null;
@@ -342,6 +350,12 @@ public class EnemyController : MonoBehaviour
     // ── Update ────────────────────────────────────────────────────────────
     void Update()
     {
+        if(GuidedCityTutorial.CombatSuppressed&&!_cinematicIdle&&!holdFire)
+        {
+            _impactPending=false;
+            if(_nav&&_nav.enabled&&_nav.isOnNavMesh&&_nav.hasPath)_nav.ResetPath();
+            _anim?.Tick(0);return;
+        }
         bool visible=escortActive||!CityActivityStreaming.Instance||CityActivityStreaming.Interested(transform.position,true)||_hasAggro;
         if(visible!=streamVisible)
         {
@@ -608,7 +622,7 @@ public class EnemyController : MonoBehaviour
     /// </summary>
     private void UpdateMatchdayTarget()
     {
-        if (_targetPlayer != null && _targetPlayer.IsAlive && MatchdayRole == MatchdayUnitRole.RivalSupporter)
+        if (_targetPlayer != null && _targetPlayer.IsAlive && !MatchdayStreetOperations.IsDetained(_targetPlayer) && MatchdayRole == MatchdayUnitRole.RivalSupporter)
         {
             if (Vector3.Distance(transform.position, _targetPlayer.transform.position) <= detectionRadius * 1.75f)
                 return;
@@ -635,7 +649,8 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
-        if (MatchdayRole == MatchdayUnitRole.RivalSupporter)
+        if (MatchdayRole == MatchdayUnitRole.RivalSupporter &&
+            (!MatchdayStreetOperations.Active || !StadiumMatchdayActivity.Instance.StreetOperations.Automatic))
         {
             var player = BattleManager.instance?.GetNearestAgent(transform.position);
             if (player != null && Vector3.Distance(transform.position, player.transform.position) <= detectionRadius)
@@ -672,6 +687,7 @@ public class EnemyController : MonoBehaviour
     // ── Attack ────────────────────────────────────────────────────────────
     private void TryAttack()
     {
+        if(GuidedCityTutorial.CombatSuppressed)return;
         if (_attackTimer < attackInterval) return;
         _attackTimer = 0;
 
@@ -680,11 +696,13 @@ public class EnemyController : MonoBehaviour
         _anim?.PlayAttack();
 
         _pendingPlayer = _targetPlayer; _pendingEnemy = _targetEnemy;
+        _pendingEnemyLife = _pendingEnemy ? _pendingEnemy.LifeRevision : 0;
         _impactPending = true;
         StartCoroutine(ImpactAfterDelay());
     }
     AgentController _pendingPlayer;
     EnemyController _pendingEnemy;
+    int _pendingEnemyLife;
     bool _impactPending;
     IEnumerator ImpactAfterDelay()
     {
@@ -693,9 +711,11 @@ public class EnemyController : MonoBehaviour
     }
     public void AnimEvent_DealDamage()
     {
+        if(GuidedCityTutorial.CombatSuppressed){_impactPending=false;return;}
         if (!_impactPending) return;
         _impactPending = false;
-        if (!IsAlive || _cinematicIdle) return;
+        if (!IsAlive || _cinematicIdle || holdFire) return;
+        if(_pendingEnemy&&(!_pendingEnemy.gameObject.activeInHierarchy||_pendingEnemy.LifeRevision!=_pendingEnemyLife))return;
         var target = _pendingPlayer ? _pendingPlayer.transform : _pendingEnemy ? _pendingEnemy.transform : null;
         if (!target || Vector3.Distance(transform.position, target.position) > AttackRange + .35f) return;
         float damage = Mathf.Max(1, Strength + Random.Range(-1f, 1f));
@@ -707,7 +727,8 @@ public class EnemyController : MonoBehaviour
     // ── Damage ────────────────────────────────────────────────────────────
     public void TakeDamage(float amount, MonoBehaviour attacker = null)
     {
-        if (!IsAlive) return;
+        if(GuidedCityTutorial.CombatSuppressed||MatchdayStreetOperations.IsDetained(this))return;
+        if (!IsAlive || !gameObject.activeInHierarchy) return;
         if(attacker is AgentController)RivalSettlement.Break(firmName);
         if (amount > 0) StreetCombatPresentation.Hit(transform.position);
         CurrentHp = Mathf.Max(0, CurrentHp - Mathf.Max(0, amount) * Mathf.Clamp(FightPace, 0.2f, 1f));
@@ -826,8 +847,11 @@ public class EnemyController : MonoBehaviour
 
     private void Die()
     {
-        _nav.ResetPath();
-        _nav.enabled = false;
+        if(_nav)
+        {
+            if(_nav.isActiveAndEnabled&&_nav.isOnNavMesh)_nav.ResetPath();
+            _nav.enabled=false;
+        }
 
         _anim?.PlayDie();
         StartCoroutine(DeathSequence());

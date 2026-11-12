@@ -1,0 +1,4 @@
+Editor log diagnostic window after the first completed strategy run (not device or whole-session evidence)
+UTC 2026-11-03T05:34:17.625572+00:00
+Bytes 423149671 to 423784389
+No exception or compiler-error lines in this complete captured window.

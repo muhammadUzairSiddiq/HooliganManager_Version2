@@ -130,6 +130,11 @@ public class OffscreenIndicatorManager : MonoBehaviour
 
             Vector3 worldPos = agent.transform.position;
             Vector3 screenPos = _cam.WorldToScreenPoint(worldPos);
+            if(!float.IsFinite(screenPos.x)||!float.IsFinite(screenPos.y)||Mathf.Abs(screenPos.z)<.001f)
+            {
+                ui.rootGO.SetActive(false);
+                continue;
+            }
 
             bool isOffscreen = screenPos.z < 0 || 
                                screenPos.x < margin || 
@@ -156,7 +161,8 @@ public class OffscreenIndicatorManager : MonoBehaviour
                 dir = -dir;
             }
 
-            dir.Normalize();
+            if(dir.sqrMagnitude<.001f)dir=Vector2.down;
+            else dir.Normalize();
 
             // Find intersection with the screen bounds
             float minX = margin;
@@ -164,8 +170,8 @@ public class OffscreenIndicatorManager : MonoBehaviour
             float minY = margin;
             float maxY = Screen.height - margin;
 
-            float tX = dir.x > 0 ? (maxX - screenCenter.x) / dir.x : (minX - screenCenter.x) / dir.x;
-            float tY = dir.y > 0 ? (maxY - screenCenter.y) / dir.y : (minY - screenCenter.y) / dir.y;
+            float tX = Mathf.Abs(dir.x)<.0001f?float.PositiveInfinity:(dir.x>0?maxX-screenCenter.x:minX-screenCenter.x)/dir.x;
+            float tY = Mathf.Abs(dir.y)<.0001f?float.PositiveInfinity:(dir.y>0?maxY-screenCenter.y:minY-screenCenter.y)/dir.y;
             float t = Mathf.Min(tX, tY);
 
             Vector2 clampedScreenPos = screenCenter + dir * t;

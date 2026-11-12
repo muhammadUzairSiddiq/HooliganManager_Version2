@@ -1,0 +1,1 @@
+The intermediate UI multipass Gaussian shader passed 266 input/state checks but native visual review showed an opaque white exterior. That report does not certify presentation. Separate the offscreen Gaussian shader from the one-pass UI shader, then repeat with actual rendered-colour assertions.

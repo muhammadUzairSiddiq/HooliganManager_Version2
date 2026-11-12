@@ -1,0 +1,39 @@
+PASS Three explicit modes are Home, Away and Police
+PASS Fresh Home/Police are available while Away is genuinely locked
+PASS Away has a visible lock and Home requirement
+PASS Tapping locked Away cannot create a new firm or leave the menu
+PASS Away launch guard also rejects a direct call before Home unlock
+PASS Mode choices fit 1280x720
+PASS Mode choices fit 2400x1080
+PASS Mode choices fit 1024x768
+PASS Home mode receives its actual menu click
+PASS Home entry resumes the saved firm without replacing cash or roster
+PASS Away and Matchday are absent from the gameplay HUD
+PASS MATCHDAY is a real visible 3D sign with a raycastable world collider
+PASS Stadium sign is exposed to actual world input
+PASS World tap opens local stadium actions without a command screen or global pause
+PASS Opening the stadium sign neither moves selected crew nor starts Matchday
+PASS Unprepared stadium action points to real route preparation
+PASS Preparation cannot bypass Matchday readiness or charge a start cost
+FAIL Approach choice works through a local stadium action
+FAIL Choosing an approach does not charge before the event starts
+FAIL Stadium action gives a real order to selected crew
+FAIL Pub action orders a separate team while the stadium team keeps its job
+PASS START MATCHDAY receives a local world-action click
+PASS Matchday actually runs city time and supporter groups in the existing gameplay scene
+FAIL Actual event start commits its selected plan exactly once
+FAIL Reopening live Matchday cannot repay costs or reset its clock
+PASS Native save retains the actual event and committed approach
+PASS Starting Matchday alone does not unlock Away
+PASS Earned Home completion unlocks Away and survives native serialization
+PASS Legacy campaigns keep their previously unlocked Away access
+PASS Unlocked Away mode receives its real menu click
+PASS Away enters destination/traveller preparation without creating a new campaign
+PASS Away has its own mode preparation screen
+PASS Police mode receives its actual menu click
+PASS Police opens its own career and suppresses the firm Matchday sign
+PASS Returning from Police preserves firm cash, Home progress and Away unlock
+PASS No runtime errors during mode/world checks: 
+RESULT 30 passed, 6 failed
+Isolated editor campaign. Readiness and earned Home unlock are seeded only in disposable data. Real world raycasts, UI raycasts, selected-team orders, live event start/time/save and Home/Away/Police mode transitions. No natural chapter completion or device certification.
+UTC 2026-11-05T03:01:42.4871670Z

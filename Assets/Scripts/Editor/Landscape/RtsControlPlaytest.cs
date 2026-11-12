@@ -8,6 +8,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.EventSystems;
 
 /// <summary>Runs real navigation and command regressions with a disposable campaign save.</summary>
 [InitializeOnLoad]
@@ -136,6 +137,38 @@ public static class RtsControlPlaytest
     static void Scan(AgentController agent)
     {
         typeof(AgentController).GetField("_scanTimer", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(agent, 1f);
+    }
+    static bool FindHoldStreet(AgentController member,AgentSelectionManager selection,RtsGestureController gestures,out Vector2 screen,out Vector3 ground)
+    {
+        screen=new Vector2(Screen.width*.5f,Screen.height*.5f);ground=default;
+        var nav=member.GetComponent<NavMeshAgent>();if(!nav||!nav.enabled||!nav.isOnNavMesh)return false;
+        var filter=new NavMeshQueryFilter{agentTypeID=nav.agentTypeID,areaMask=nav.areaMask};var path=new NavMeshPath();
+        // A connected nearby destination is not automatically an exposed input
+        // point: live world buttons, the minimap and HUD still intercept it.
+        foreach(float radius in new[]{5f,10f,18f,28f,40f})for(int i=0;i<24;i++)
+        {
+            float angle=i*Mathf.PI/12;var candidate=member.transform.position+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*radius;
+            if(!NavMesh.SamplePosition(candidate,out var hit,2,filter))continue;
+            var projected=Camera.main.WorldToScreenPoint(hit.position);
+            if(projected.z<=0||projected.x<32||projected.y<32||projected.x>Screen.width-32||projected.y>Screen.height-32)continue;
+            var point=new Vector2(projected.x,projected.y);
+            if(selection.IsPointerOverUI(point)||!gestures.Ground(point,out var actualGround))continue;
+            if(!nav.CalculatePath(actualGround,path)||path.status!=NavMeshPathStatus.PathComplete)continue;
+            screen=point;ground=actualGround;return true;
+        }
+        return false;
+    }
+    static string HoldDiagnostics(RtsGestureController gestures,AgentSelectionManager selection,Vector2 screen)
+    {
+        var type=typeof(RtsGestureController);var flags=BindingFlags.Instance|BindingFlags.NonPublic;
+        var hits=new List<RaycastResult>();if(EventSystem.current)EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current){position=screen},hits);
+        bool ground=gestures.Ground(screen,out var point);
+        return "screen="+screen+"; mode="+gestures.Mode+"; down="+type.GetField("down",flags).GetValue(gestures)+
+            "; suppressed="+type.GetField("suppressed",flags).GetValue(gestures)+"; held="+type.GetField("held",flags).GetValue(gestures)+
+            "; dragged="+type.GetField("dragged",flags).GetValue(gestures)+"; age="+(Time.unscaledTime-(float)type.GetField("began",flags).GetValue(gestures)).ToString("F3")+
+            "; selected="+selection.SelectedAgents.Count+"; vanSelected="+(PolicePatrolVehicle.Instance&&PolicePatrolVehicle.Instance.Selected)+
+            "; globalBlocked="+AgentSelectionManager.BlocksWorldTap()+"; pointerUI="+selection.IsPointerOverUI(screen)+"; ground="+ground+" "+point+
+            "; UIhits="+string.Join(",",hits.Select(h=>h.gameObject.name));
     }
     static float SkeletonLength(Animator rig)
     {
@@ -357,18 +390,30 @@ public static class RtsControlPlaytest
         yield return null;
         foreach(var choice in UnityEngine.Object.FindObjectsByType<WorldChoiceBar>(FindObjectsSortMode.None))choice.Hide();
         selection.DeselectAll();selection.Select(dex);dex.SetCinematicIdle(false);dex.SetActivityLocked(false,dex.transform.position);
+        gestures.Cancel();yield return null;yield return null;Canvas.ForceUpdateCanvases();
         var gestureType=typeof(RtsGestureController);
         var begin=gestureType.GetMethod("Begin",BindingFlags.NonPublic|BindingFlags.Instance);
         var track=gestureType.GetMethod("Track",BindingFlags.NonPublic|BindingFlags.Instance);
         var end=gestureType.GetMethod("End",BindingFlags.NonPublic|BindingFlags.Instance);
-        Vector2 press=Camera.main.WorldToScreenPoint(Reachable(dex,5));
+        bool exposedStreet=FindHoldStreet(dex,selection,gestures,out Vector2 press,out var holdGround);
+        bool holdReady=exposedStreet&&!selection.IsPointerOverUI(press)&&!AgentSelectionManager.BlocksWorldTap()&&selection.SelectedAgents.Count>0&&!(PolicePatrolVehicle.Instance&&PolicePatrolVehicle.Instance.Selected);
+        Check(holdReady,"Hold fixture uses an exposed actual connected street after UI settles; ground="+holdGround+"; "+HoldDiagnostics(gestures,selection,press));
         gestures.Cancel();begin.Invoke(gestures,new object[]{press});
-        gestureType.GetField("began",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(gestures,Time.unscaledTime-1);
+        yield return new WaitForSecondsRealtime(.6f);
         track.Invoke(gestures,new object[]{press});end.Invoke(gestures,new object[]{press,false});
-        Check(gestures.Mode==RtsGestureController.InputMode.Menu,"Stationary hold opens the direct command menu and survives release");
+        Check(holdReady&&gestures.Mode==RtsGestureController.InputMode.Menu,"Stationary hold opens the direct command menu and survives release; "+HoldDiagnostics(gestures,selection,press));
+        ScreenCapture.CaptureScreenshot("Artifacts/CityQA/rts-hold-menu.png");yield return null;
+        gestures.Cancel();yield return null;yield return null;
+        Vector2 uiPress=new Vector2(Screen.width*.5f,Screen.height*.96f);
+        bool coveredUi=selection.IsPointerOverUI(uiPress);
+        if(!coveredUi)for(int row=0;row<4&&!coveredUi;row++)for(int column=1;column<10&&!coveredUi;column++)
+        {var candidate=new Vector2(Screen.width*column*.1f,Screen.height*(.97f-row*.025f));if(selection.IsPointerOverUI(candidate)){uiPress=candidate;coveredUi=true;}}
+        begin.Invoke(gestures,new object[]{uiPress});yield return new WaitForSecondsRealtime(.6f);
+        track.Invoke(gestures,new object[]{uiPress});end.Invoke(gestures,new object[]{uiPress,false});
+        Check(coveredUi&&gestures.Mode==RtsGestureController.InputMode.Camera&&(bool)gestureType.GetField("suppressed",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(gestures),"A real UI-covered stationary hold stays blocked instead of opening crew orders; "+HoldDiagnostics(gestures,selection,uiPress));
         gestures.Cancel();begin.Invoke(gestures,new object[]{press});
         track.Invoke(gestures,new object[]{press+Vector2.right*50});
-        gestureType.GetField("began",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(gestures,Time.unscaledTime-1);
+        yield return new WaitForSecondsRealtime(.6f);
         track.Invoke(gestures,new object[]{press+Vector2.right*50});end.Invoke(gestures,new object[]{press+Vector2.right*50,false});
         Check(gestures.Mode==RtsGestureController.InputMode.Camera,"A camera drag cannot become a long-press command");
         var occluder=GameObject.CreatePrimitive(PrimitiveType.Cube);occluder.name="QA occluding building";

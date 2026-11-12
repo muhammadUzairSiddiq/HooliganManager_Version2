@@ -132,6 +132,8 @@ public class PlanAwayTripController : MonoBehaviour
         var d = GameData.instance?.PlayerData;
 
         int missionNumber=CampaignMissions.MissionForDestination(dest.name);
+        int fare=CampaignMissions.AwayFare(d,dest.travelCost);
+        int discount=dest.travelCost-fare;
         bool unlocked=CampaignMissions.CanEnterDestination(d,dest.name,out string lockReason);
         if (detailLockOverlay) detailLockOverlay.SetActive(!unlocked);
         if (detailLockReasonText) detailLockReasonText.text = unlocked ? "" : lockReason.ToUpperInvariant();
@@ -163,7 +165,8 @@ public class PlanAwayTripController : MonoBehaviour
         if (detailDescriptionText)
         {
             var mission=CampaignMissions.Get(missionNumber);
-            detailDescriptionText.text=mission.briefing+"\n\n"+(unlocked?$"MINIMUM CREW {CampaignMissions.MinimumAwayCrew(missionNumber)} · Travel £{dest.travelCost:N0} · Injuries persist. Leave Home defenders when possible.":lockReason.ToUpperInvariant());
+            detailDescriptionText.text=mission.briefing+"\n\n"+(unlocked?$"MINIMUM CREW {CampaignMissions.MinimumAwayCrew(missionNumber)} · Travel £{fare:N0}"+
+                (discount>0?$" after £{discount:N0} Matchday credit":"")+$" · Successful extraction sends {CampaignMissions.AwayStockDelivery} supplies Home.":lockReason.ToUpperInvariant());
         }
         if (detailLocationImage)
         {
@@ -172,7 +175,7 @@ public class PlanAwayTripController : MonoBehaviour
         }
         if (detailRewardText) detailRewardText.text = $"£{CampaignMissions.Get(missionNumber).reward:N0}";
         if (detailRivalStrengthText) detailRivalStrengthText.text = strengthLabel;
-        if (detailTravelCostText) detailTravelCostText.text = $"£{dest.travelCost:N0}";
+        if (detailTravelCostText) detailTravelCostText.text = $"£{fare:N0}";
         SetRiskColor(detailRivalStrengthText, strengthLabel);
 
         // Cut the noise — hide police / heat / infamy / net chrome.
@@ -186,7 +189,7 @@ public class PlanAwayTripController : MonoBehaviour
         int selectedAgents = CountSelectedAliveAgents(d);
 
         if (startTripBtn != null)
-            startTripBtn.interactable = unlocked && d != null && d.Money >= dest.travelCost && aliveAgents > 0 && selectedAgents >= CampaignMissions.MinimumAwayCrew(missionNumber) && !launching;
+            startTripBtn.interactable = unlocked && d != null && d.Money >= fare && aliveAgents > 0 && selectedAgents >= CampaignMissions.MinimumAwayCrew(missionNumber) && !launching;
 
         if (d != null)
         {
@@ -220,7 +223,8 @@ public class PlanAwayTripController : MonoBehaviour
             GamePopup.Instance?.Show("MISSION LOCKED",lockReason,new GamePopup.Option("BACK",LandscapeUI.PanelColor,null));
             return;
         }
-        if (d.Money < dest.travelCost) return;
+        int fare=CampaignMissions.AwayFare(d,dest.travelCost);
+        if (d.Money < fare) return;
 
         EnsureDeploymentSelection();
         int aliveAgents = CountAliveAgents(d);
@@ -235,7 +239,8 @@ public class PlanAwayTripController : MonoBehaviour
         if (d.RivalBots != null)
             bot = d.RivalBots.Find(b => b.firmName == dest.rivalFirmName);
 
-        d.Money -= dest.travelCost;
+        d.Money -= fare;
+        d.MatchdayTravelCredit=Mathf.Max(0,d.MatchdayTravelCredit-(dest.travelCost-fare));
         d.LastSelectedDestination = dest.name;
         d.LastAwayTripMatchday = d.MatchDay;
         if (d.DestinationVisitCounts == null)

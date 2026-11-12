@@ -1,0 +1,20 @@
+PASS Home opens through the native mode button
+PASS Stadium opens as a camera location without a start or setup button
+PASS Paused Home does not advance the Matchday clock
+PASS First Matchday and rail arrivals start from active Home time
+FAIL Automatic start preserves the camera and Home goal with no setup charge or modal
+FAIL Live Matchday uses one compact View action
+PASS Stadium opens its gate automatically
+PASS Police automatically clear an unattended roadblock
+PASS Ignoring the optional guard dispatches a named rival group into the city
+PASS Unattended Matchday completes once and advances the calendar in the same Home scene
+PASS A second Matchday runs automatically
+PASS Selected crew can arm the real RTS Guard command directly from the HUD
+PASS The Matchday View action opens the current guard opportunity
+PASS Guard Here orders the chosen crew while the Home guard keeps working
+PASS Actual guard presence protects home fans before resolving the optional event
+PASS Save retains the active fixture and resolved guard outcome
+PASS No runtime errors during mode/world checks: 
+RESULT 15 passed, 2 failed
+Isolated Editor campaign. The active clock is accelerated for two automatic fixtures. The guide is positioned near the guard post for a real walking order. No device certification.
+UTC 2026-11-12T18:11:42.6761441Z

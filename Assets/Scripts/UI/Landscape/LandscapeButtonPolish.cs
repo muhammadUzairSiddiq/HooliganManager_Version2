@@ -3,88 +3,95 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public sealed class LandscapeButtonPolish : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
+/// <summary>Rim, sheen and label response. The selectable RectTransform never scales or moves.</summary>
+public sealed class LandscapeButtonPolish : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler, ISubmitHandler
 {
     public RectTransform shine;
     public TextMeshProUGUI label;
     public Graphic selectedGlow;
+    public Graphic responseRim;
     public bool selected;
     public bool primaryShine;
-
-    RectTransform rect;
     Selectable selectable;
     Image image;
-    Vector3 baseScale;
-    float hover;
-    float press;
-    float width;
-    Color baseColor = Color.white;
-    public void SetBaseColor(Color color) {baseColor=color;if(image)image.color=color;}
-
-    bool held;
-    float punch;
-    float shown = 1f;
-
+    bool held, hovered;
+    float response, releaseAge = 1, sheenAge = 1;
+    Vector3 labelScale = Vector3.one;
     void Awake()
     {
-        rect = (RectTransform)transform;
-        selectable = GetComponent<Selectable>();
-        image = GetComponent<Image>();
-        baseScale = rect.localScale;
-        if (image) baseColor = image.color;
-        width = rect.rect.width;
-        primaryShine = false;
-        if (shine) shine.gameObject.SetActive(false);
-        if (selectedGlow) selectedGlow.gameObject.SetActive(false);
+        selectable = GetComponent<Selectable>(); image = GetComponent<Image>();
     }
-
-    void OnEnable()
+    void Start()
     {
-        hover = 0;
-        press = 0;
-        held = false;
-        punch = 0;
-        shown = 1f;
-        if (rect) rect.localScale = baseScale;
+        // Existing authored scenes already contain this component. Upgrade their
+        // decoration at runtime without requiring the scene generator to run.
+        if (!responseRim)
+        {
+            var r = (RectTransform)transform;
+            responseRim = LandscapeUI.Image("ResponseRim", transform, 2, 2, Mathf.Max(1, r.rect.width - 4), 2, null, new Color(.4f, .89f, .83f, 0));
+        }
+        Configure();
     }
-
+    public void Configure()
+    {
+        if (label)
+        {
+            labelScale = label.transform.localScale;
+            var rt = label.rectTransform;
+            var delta = new Vector2(.5f, .5f) - rt.pivot;
+            rt.anchoredPosition += Vector2.Scale(delta, rt.rect.size);
+            rt.pivot = new Vector2(.5f, .5f);
+        }
+        if (shine) { var g = shine.GetComponent<Graphic>(); if (g) g.raycastTarget = false; shine.gameObject.SetActive(false); }
+        if (selectedGlow) selectedGlow.raycastTarget = false;
+        if (responseRim) responseRim.raycastTarget = false;
+        RefreshDecorations(0);
+    }
+    void OnEnable() { held = hovered = false; response = 0; releaseAge = sheenAge = 1; }
+    void OnDisable() { if (label) label.transform.localScale = labelScale; }
     void Update()
     {
-        bool active = selectable == null || selectable.IsInteractable();
-        if (!held) punch = Mathf.MoveTowards(punch, 0f, Time.unscaledDeltaTime * 2.4f);
-        // Keep hit areas and layout stable. Feedback uses color rather than the
-        // jumping/shrinking animation explicitly rejected by the client.
-        if (rect) rect.localScale = baseScale;
-        if (image)
+        float dt = Time.unscaledDeltaTime;
+        bool active = !selectable || selectable.IsInteractable();
+        if (!active) { held = hovered = false; }
+        response = Mathf.MoveTowards(response, active && (held || hovered || selected) ? 1 : 0, dt * 9);
+        releaseAge += dt; sheenAge += dt;
+        float scale = 1;
+        if (active && !GameFeedback.ReducedMotion)
         {
-            Color tint = active ? Color.Lerp(baseColor, Color.white, held ? 0.18f : 0f) : new Color(.58f, .62f, .65f, .65f);
-            image.color = tint;
+            if (held) scale = .975f;
+            else if (releaseAge < .2f) scale = 1 + Mathf.Sin(releaseAge / .2f * Mathf.PI) * .022f;
         }
-        if (label) label.alpha = active ? 1f : .58f;
+        if (label) { label.transform.localScale = labelScale * scale; label.alpha = active ? 1 : .58f; }
+        RefreshDecorations(active ? response : 0);
     }
-
-    public void SetSelected(bool value)
+    void RefreshDecorations(float strength)
     {
-        selected = value;
-        hover = Mathf.Max(hover, value ? .55f : 0);
+        if (responseRim) responseRim.color = new Color(.4f, .89f, .83f, strength * .35f);
+        if (selectedGlow)
+        {
+            selectedGlow.gameObject.SetActive(selected);
+            selectedGlow.color = new Color(.37f, .91f, .73f, selected ? .9f : 0);
+        }
+        if (!shine) return;
+        bool show = !GameFeedback.ReducedMotion && sheenAge < .28f;
+        shine.gameObject.SetActive(show);
+        if (show)
+        {
+            float width = ((RectTransform)transform).rect.width, t = sheenAge / .28f;
+            shine.anchoredPosition = new Vector2(Mathf.Lerp(-width * .3f, width * 1.2f, t), shine.anchoredPosition.y);
+            var g = shine.GetComponent<Graphic>(); if (g) g.color = new Color(1, 1, 1, Mathf.Sin(t * Mathf.PI) * .1f);
+        }
     }
-
-    public void OnPointerEnter(PointerEventData eventData) { if (selectable == null || selectable.IsInteractable()) hover = 1f; }
-    public void OnPointerExit(PointerEventData eventData) { hover = selected ? .55f : 0; }
+    public void SetBaseColor(Color color) { if (image) image.color = color; }
+    public void SetSelected(bool value) { selected = value; }
+    public void OnPointerEnter(PointerEventData eventData) { if (!selectable || selectable.IsInteractable()) { hovered = true; sheenAge = 0; } }
+    public void OnPointerExit(PointerEventData eventData) { hovered = false; }
     public void OnPointerDown(PointerEventData eventData)
     {
-        if (selectable == null || selectable.IsInteractable())
-        {
-            held = true;
-            press = 1f;
-            GameAudio.Play("click");
-        }
+        if (!selectable || selectable.IsInteractable()) { held = true; sheenAge = 0; GameFeedback.Emit(GameFeedbackEvent.UiPress); }
         AgentSelectionManager.ConsumeUiPointer();
     }
-    public void OnPointerUp(PointerEventData eventData)
-    {
-        if (held) punch = 1f;
-        held = false;
-        press = 0;
-    }
+    public void OnPointerUp(PointerEventData eventData) { if (held) releaseAge = 0; held = false; }
+    public void OnSubmit(BaseEventData eventData) { if (!selectable || selectable.IsInteractable()) { releaseAge = 0; sheenAge = 0; GameFeedback.Emit(GameFeedbackEvent.UiPress); } }
 }

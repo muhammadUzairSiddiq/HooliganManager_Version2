@@ -37,6 +37,7 @@ public class GameData : MonoBehaviour
         {
             Debug.Log("local data found");
             PlayerData = Player;
+            GameCacheBootstrap.RefreshFirmTutorial(PlayerData, GameCacheBootstrap.InstalledVersion);
 
             if (MigrateDisabledPoliceCampaign())
                 SaveData();
@@ -242,7 +243,9 @@ public class GameData : MonoBehaviour
     /// Advances matchday: applies all pending effects, runs all strategy systems, saves.
     /// Orchestrates: fans, money, heat, morale, ranking, advisor tips, rival simulation, bot progression.
     /// </summary>
-    public void EndMatchDay()
+    public void EndMatchDay() => EndMatchDay(true);
+
+    public void EndMatchDay(bool healCrew)
     {
         var d = PlayerData;
         var events = new List<string>(d.RecentEvents ?? new string[0]);
@@ -306,7 +309,7 @@ public class GameData : MonoBehaviour
         }
 
         // â”€â”€ 7. Heal agents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        HealAgentsOnMatchDay(0.30f);
+        if(healCrew)HealAgentsOnMatchDay(0.30f);
 
         // â”€â”€ 8. Simulate rival matches for non-fought bots â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         SimulateRivalMatches(d.LastOpponentFought);

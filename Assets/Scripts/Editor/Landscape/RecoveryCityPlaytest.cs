@@ -108,7 +108,8 @@ public static class RecoveryCityPlaytest
         yield return new WaitForSeconds(1f);Isolate();
         var d=GameManager.Data;var city=CityGameplay.Instance;var business=CityBusinessSystem.Instance;
         var select=AgentSelectionManager.instance;var brick=BattleManager.instance.PlayerAgents[0];var dex=BattleManager.instance.PlayerAgents[1];
-        Check(!StadiumMatchdayActivity.Instance.HasStarted&&!MatchdayStrategySystem.Instance.IsOpen&&!GamePopup.AnyOpen,"Fresh city has no automatic matchday or popup");
+        StadiumMatchdayActivity.Instance.AutomaticMatchdaysEnabled=false;
+        Check(!StadiumMatchdayActivity.Instance.HasStarted&&!MatchdayStrategySystem.Instance.IsOpen&&!GamePopup.AnyOpen,"Legacy manual fixture starts with no Matchday or popup");
         Check(!d.LearnedSelection&&!d.LearnedMultiSelection&&select.SelectedAgents.Count==0,"Fresh startup does not complete selection lessons automatically");
         Check(business.Sites.Count==6&&business.Sites.All(s=>s.Storefront)&&business.Sites.Select(s=>s.Storefront).Distinct().Count()==6,"Six business archetypes are associated with distinct existing storefronts");
         var path=new NavMeshPath();
@@ -176,7 +177,9 @@ public static class RecoveryCityPlaytest
         d.LearnedSelection=d.LearnedMultiSelection=d.LearnedSplitSelection=true;d.LearnedMoveOrders=2;
         d.TransportPrepared=d.StadiumAccessPrepared=true;
         var stadium=StadiumMatchdayActivity.Instance;var match=MatchdayStrategySystem.Instance;
-        Check(stadium.BeginMatchday(),"Prepared player explicitly starts matchday");yield return new WaitForSeconds(1);
+        Check(stadium.BeginMatchday(),"Prepared player explicitly starts matchday");
+        d.MatchdayStreet=null; // Exercise an older in-progress coverage save.
+        yield return new WaitForSeconds(1);
         var navProbe=brick.GetComponent<NavMeshAgent>();var probePath=new NavMeshPath();
         var probeFilter=new NavMeshQueryFilter{agentTypeID=navProbe.agentTypeID,areaMask=navProbe.areaMask};
         bool direct=navProbe.CalculatePath(match.ResponsePoints[0],probePath);string nativeStatus=probePath.status.ToString();

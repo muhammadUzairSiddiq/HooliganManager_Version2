@@ -86,7 +86,7 @@ public sealed class CityCommerceSystem:MonoBehaviour
         if(CityBusinessSystem.HostilesNear(venue.transform.position,12)){Message("Trade blocked by hostile pressure. Protect the venue first.");return false;}
         if(!CityCommerceRules.CanTrade(GameManager.Data,venue.Definition.id,buying,out string reason)){Message(reason);return false;}
         if(!CityCommerceRules.Trade(GameManager.Data,venue.Definition.id,buying))return false;
-        GameManager.Save();Message(buying?$"Bought 1 supply for £{CityCommerceRules.BuySupplyPrice}. Saved.":$"Sold 1 supply for £{CityCommerceRules.SellSupplyPrice}. Saved. Keep enough for matchday and development.");Refresh();return true;
+        GameManager.Save();GameFeedback.Emit(GameFeedbackEvent.Reward,venue.transform.position);Message(buying?$"Bought 1 supply for £{CityCommerceRules.BuySupplyPrice}. Saved.":$"Sold 1 supply for £{CityCommerceRules.SellSupplyPrice}. Saved. Keep enough for matchday and development.");Refresh();return true;
     }
     public bool TravelTo(CityBusiness venue)
     {
@@ -121,7 +121,7 @@ public sealed class CityCommerceSystem:MonoBehaviour
         var nav=member.GetComponent<NavMeshAgent>();var path=new NavMeshPath();
         if(!nav||!nav.isOnNavMesh||!nav.CalculatePath(venue.transform.position,path)||path.status!=NavMeshPathStatus.PathComplete)return "Route must be checked from this crew member";
         float distance=0;for(int i=1;i<path.corners.Length;i++)distance+=Vector3.Distance(path.corners[i-1],path.corners[i]);
-        float speed=Mathf.Max(.5f,member.Data.Speed*(CrewMovementPreference.RunOnTap?1:.52f));
+        float speed=Mathf.Max(.5f,member.CurrentTravelSpeed*(CrewMovementPreference.RunOnTap?1:.52f));
         return $"ROUTE {distance:0}m · ABOUT {Mathf.CeilToInt(distance/speed)}s AT CURRENT SPEED";
     }
     void Message(string value){if(receipt)receipt.text=value;CityGameplay.Instance?.PostEvent(value);}
@@ -146,7 +146,15 @@ public sealed class CityCommerceSystem:MonoBehaviour
         loot=Action("Loot","LOOT",562,194,282,()=>{if(owner.TryAssign(active,true))Close();});
         buy=Action("Buy","BUY 1 SUPPLY · £120",22,266,400,()=>TryTrade(active,true));
         sell=Action("Sell","SELL 1 SUPPLY · +£70",438,266,406,()=>TryTrade(active,false));
-        invest=Action("Invest","INVEST IN VENUE",22,338,822,()=>{if(owner.TryInvest(active))Close();});
+        invest=Action("Invest","INVEST IN VENUE",22,338,822,()=>
+        {
+            if(LivingRivalDirector.HasShopRaid(active))
+            {
+                if(LivingRivalDirector.Instance.TryRescueStock(active))Close();
+                else Message("Stock rescue needs one free member within 20m and an unused rescue for this venue today.");
+            }
+            else if(owner.TryInvest(active))Close();
+        });
         LandscapeUI.Text("Tradeoffs",panel.transform,"Supplies fund construction and matchday. Investing adds visible trade space and +35% income per level. Loot pays now but raises heat and stops trade for 3 minutes.",22,412,820,66,18,LandscapeUI.Muted);
         receipt=LandscapeUI.Text("Receipt",panel.transform,"",22,490,820,70,18,LandscapeUI.Gold);
         panel.SetActive(false);
@@ -164,6 +172,8 @@ public sealed class CityCommerceSystem:MonoBehaviour
         buy.interactable=CityCommerceRules.CanTrade(d,active.Definition.id,true,out _);
         sell.interactable=CityCommerceRules.CanTrade(d,active.Definition.id,false,out _);
         invest.GetComponentInChildren<TextMeshProUGUI>().text=state.investmentLevel>=2?"FULLY DEVELOPED":$"IMPROVE TO LEVEL {state.investmentLevel+2} · £{CityCommerceRules.InvestmentCost(state)} + {CityCommerceRules.InvestmentSupplies(state)} SUPPLIES · {CityCommerceRules.InvestmentSeconds(state):0}s";
-        invest.interactable=free&&CityCommerceRules.CanInvest(d,active.Definition.id,out _);
+        bool raid=state.controlled&&LivingRivalDirector.HasShopRaid(active);
+        if(raid)invest.GetComponentInChildren<TextMeshProUGUI>().text="RESCUE STOCK · CARRY SUPPLIES HOME";
+        invest.interactable=raid?d.ActiveStockRescue==null&&state.lastStockRescueDay!=d.MatchDay:free&&CityCommerceRules.CanInvest(d,active.Definition.id,out _);
     }
 }

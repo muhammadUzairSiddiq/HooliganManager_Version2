@@ -1,0 +1,67 @@
+{
+  "capturedAtUtc": "2026-11-05T02:43:18.9780415Z",
+  "runtimeCompileErrors": 0,
+  "editorCompileErrors": 0,
+  "runtimeWarnings": 31,
+  "finalPresentationReport": "Artifacts/Recovery/mobile-tutorial-ui-playtest.txt",
+  "finalPresentationPass": 253,
+  "finalPresentationFail": 0,
+  "priorFullWalkthroughReport": "Artifacts/Recovery/TutorialMobile-20261105/full-walkthrough-195-pass.txt",
+  "priorFullWalkthroughPass": 195,
+  "priorFullWalkthroughFail": 0,
+  "deviceValidation": false,
+  "files": [
+    {
+      "path": "Assets/Scripts/UI/Landscape/TutorialSpotlight.cs",
+      "sha256": "53f9310faac02f044599fa709009942db9c5cc0a24ac5b19b86f66dda4de09f7"
+    },
+    {
+      "path": "Assets/Scripts/UI/Landscape/GuidedCityTutorial.cs",
+      "sha256": "29f88af5e8710a26eddfaff741f7403bf87b7dd7ebaa154bfcc9684352d3b2f4"
+    },
+    {
+      "path": "Assets/Scripts/UI/Landscape/ModernCityHud.cs",
+      "sha256": "cde0f0813051ce64eaff23fd77faee1c20746d21a9e16918fa9e8a0beb45993f"
+    },
+    {
+      "path": "Assets/Scripts/UI/Landscape/FirstSessionGuide.cs",
+      "sha256": "0e9514f52b4e07c34264806bbc14e7b40ac6b394b51e34ca18627b6adc2f7030"
+    },
+    {
+      "path": "Assets/Scripts/UI/Landscape/CityNewsFeed.cs",
+      "sha256": "001182f6432a4e4570495e838f3da842889ac975f915ff890d9ac7d46d5da715"
+    },
+    {
+      "path": "Assets/Scripts/Battle/AgentSelectionManager.cs",
+      "sha256": "f879b800b51f4c9357452506ebceaacf6488402cccbbd9253e0eeb208f6f3a44"
+    },
+    {
+      "path": "Assets/Scripts/Battle/CameraPanTouchOnly.cs",
+      "sha256": "17ea0cfcf6440bb5098976012e3dfce2018ed8bc252953e9c0076bd128ecc64f"
+    },
+    {
+      "path": "Assets/Scripts/Battle/LiveMiniMap.cs",
+      "sha256": "52d50939fbc87e32b5ee2d2fed5e48ce9c0f07348f4b91f491ed4519d72917dd"
+    },
+    {
+      "path": "Assets/Scripts/Battle/GangArea.cs",
+      "sha256": "5f1e1ea9cca95e506b0692787f1c139166f28abfc76de9010d78b5ff93fc7148"
+    },
+    {
+      "path": "Assets/Scripts/Editor/Landscape/GuidedTutorialPlaytest.cs",
+      "sha256": "88d6d76d32d94eff3d52284304838ddf1d7836f24ca2550a991470c91cef02c6"
+    },
+    {
+      "path": "Assets/Scripts/Editor/Landscape/LandscapeEditorBridge.cs",
+      "sha256": "699a9aad951eeb75bcfbf384bb6ecf803d720e1cf0ac516066caad40761bc7b3"
+    },
+    {
+      "path": "Docs/Recovery/Implementation_Status.md",
+      "sha256": "8a5478031418a459804a13e55aa589ffbf178b996aacbfd8ee0a043d36b4197c"
+    },
+    {
+      "path": "Docs/Recovery/Guided_Operations_Pass.md",
+      "sha256": "0e460e45f0af42f5fc3aed4ae1b2279b7187b8a65568ba4ae613e1c3bc461f07"
+    }
+  ]
+}

@@ -22,6 +22,27 @@ public sealed class PoliceCityMode : MonoBehaviour
     public IReadOnlyList<Vector3> PatrolPoints=>patrolPoints;
     public IReadOnlyList<PoliceCallData> Calls=>Career?.calls;
     public string CurrentObjective=>Goal();
+    public int SelectedOfficerCount=>AgentSelectionManager.instance?.SelectedAgents.Count(a=>a&&a.IsAlive&&!PolicePatrolVehicle.IsMounted(a))??0;
+    public bool IsVanSelected=>PolicePatrolVehicle.Instance&&PolicePatrolVehicle.Instance.Selected;
+    public PoliceCrowdOperations CrowdOperations {get;private set;}
+    public PoliceCallData PrimaryArrestCall=>Career?.calls.FirstOrDefault(c=>c.kind==1&&!c.id.Contains(":crowd:"));
+    public int PrimaryArrestCallIndex=>PrimaryArrestCall!=null?Career.calls.IndexOf(PrimaryArrestCall):-1;
+    public CityRoadIncidentSystem.RoadIncident TutorialRoadIncident=>CityRoadIncidentSystem.Instance?CityRoadIncidentSystem.Instance.GetIncident(Career.PoliceTutorialRoadId):null;
+    public int TutorialRoadOfficerCount=>CityRoadIncidentSystem.Instance?CityRoadIncidentSystem.Instance.PresentOfficerCount(Career.PoliceTutorialRoadId):0;
+    public string EnsureTutorialRoadIncident()
+    {
+        var system=CityRoadIncidentSystem.Ensure();var existing=TutorialRoadIncident;
+        if(existing!=null)return existing.Id;
+        existing=system.ActiveIncidents.FirstOrDefault(i=>i.RequiresTow);
+        if(existing==null)for(int i=0;i<6&&existing==null;i++)system.TryCreateIncident(Station+new Vector3(i%2==0?35:-35,0,25+i*12),2,out existing);
+        if(existing!=null){Career.PoliceTutorialRoadId=existing.Id;Save();}
+        return existing?.Id;
+    }
+    public bool DriveVanToStation()
+    {
+        var van=PolicePatrolVehicle.Instance;if(!van)return false;
+        bool accepted=van.DriveTo(Station);Report(accepted?"Patrol van returning to station. Park, then BOOK AT STATION to unload and walk the suspect to booking.":van.Status);return accepted;
+    }
     readonly Vector3[] patrolPoints=new Vector3[3];
     readonly float[] patrolProgress=new float[3];
     readonly List<GameObject> markers=new List<GameObject>();
@@ -30,6 +51,7 @@ public sealed class PoliceCityMode : MonoBehaviour
     readonly Dictionary<string,AgentController[]> responseCrews=new Dictionary<string,AgentController[]>();
     readonly Dictionary<string,int[]> responseRevisions=new Dictionary<string,int[]>();
     readonly Dictionary<string,int> escortRevisions=new Dictionary<string,int>();
+    readonly Dictionary<string,float> escortNext=new Dictionary<string,float>();
     readonly List<TextMeshProUGUI> officerLabels=new List<TextMeshProUGUI>();
     readonly List<Button> officerButtons=new List<Button>();
     RectTransform frame;
@@ -39,7 +61,7 @@ public sealed class PoliceCityMode : MonoBehaviour
     Button primary;
     Button vehicleSelect,vehicleAction,vehicleStop;
     TextMeshProUGUI vehicleStatus;
-    float saveClock,uiClock,incidentClock;
+    float saveClock,uiClock;
     float receiptUntil;
     string lastReceipt;
     int focusedCall;
@@ -104,9 +126,14 @@ public sealed class PoliceCityMode : MonoBehaviour
         foreach(var call in Career.calls)if(call.state==2){call.state=1;call.progress=0;}
         AgentSelectionManager.instance?.DeselectAll();
         PolicePatrolVehicle.Create(this,Career.vehicle);
-        BuildMarkers();BuildHud();
+        BuildMarkers();
+        PolicePatrolVehicle.Instance?.RestoreSuspects(Career.vehicle?.suspectCallIds);
+        foreach(var call in Career.calls)if(call.inVehicle&&!(PolicePatrolVehicle.Instance&&PolicePatrolVehicle.Instance.HasSuspect(call.id)))call.inVehicle=false;
+        PoliceRecoveryVehicle.Restore(Career.recoveryVehicle);
+        CrowdOperations=gameObject.GetComponent<PoliceCrowdOperations>();if(!CrowdOperations)CrowdOperations=gameObject.AddComponent<PoliceCrowdOperations>();CrowdOperations.Initialize(this);
+        BuildHud();
         CameraPanTouchOnly.Instance?.FocusOn(Station);
-        Ready=true;Save();
+        Ready=true;Save();GuidedCityTutorial.Ensure();
     }
     void SuppressFirmPresentation()
     {
@@ -115,10 +142,10 @@ public sealed class PoliceCityMode : MonoBehaviour
         {
             string type=behaviour.GetType().Name;
             if(type=="ModernCityHud"||type=="HomeTerritorySystem"||type=="CityMissionHUD"||type=="CityGameplay"||
-                type=="CityOperationsSystem"||type=="CityBusinessSystem"||type=="CityDevelopmentSystem"||type=="LivingRivalDirector"||
-                type=="LivePoliceSystem"||type=="StadiumMatchdayActivity"||type=="StadiumCrowdRenderer"||type=="StadiumCrowdAudio"||
+                type=="CityOperationsSystem"||type=="CityBusinessSystem"||type=="CityDevelopmentSystem"||
+                type=="LivePoliceSystem"||type=="StadiumMatchdayActivity"||
                 type=="MatchdayStrategySystem"||type=="CityActionSystem"||type=="CityLifeActivity"||type=="CityLocationLabel"||
-                type=="RecruitmentPin"||type=="RecoveryWardPin"||type=="GangArea"||type=="GangScreenChoice"||type=="TerritoryControlPoint"||type=="CrewWorldLabels")behaviour.enabled=false;
+                type=="RecruitmentPin"||type=="RecoveryWardPin"||type=="GangArea"||type=="GangScreenChoice"||type=="TerritoryControlPoint")behaviour.enabled=false;
         }
         foreach(var bubble in FindObjectsByType<WorldInteractBubble>(FindObjectsSortMode.None))bubble.Hide();
         foreach(var bar in FindObjectsByType<WorldChoiceBar>(FindObjectsSortMode.None))bar.Hide();
@@ -147,7 +174,7 @@ public sealed class PoliceCityMode : MonoBehaviour
     }
     void BuildMarkers()
     {
-        responseCrews.Clear();responseRevisions.Clear();escortRevisions.Clear();Array.Clear(patrolProgress,0,patrolProgress.Length);
+        responseCrews.Clear();responseRevisions.Clear();escortRevisions.Clear();escortNext.Clear();Array.Clear(patrolProgress,0,patrolProgress.Length);
         foreach(var old in markers)if(old)Destroy(old);markers.Clear();callMarkers.Clear();suspects.Clear();
         AddMarker("POLICE STATION\nBOOKING & SHIFT BRIEF",Station,new Color(.12f,.5f,1f),8);
         for(int i=0;i<3;i++)AddMarker("PATROL CHECK "+(i+1),patrolPoints[i],new Color(.2f,.75f,1f),4);
@@ -177,6 +204,17 @@ public sealed class PoliceCityMode : MonoBehaviour
         if(suspect){suspect.HoldFire(true);suspect.SetCinematicIdle(true);suspect.isHostile=false;var march=suspect.GetComponent<MatchdayMarch>();if(march)march.enabled=false;suspects[call.id]=suspect;}
         return suspect;
     }
+    public EnemyController GetSuspect(PoliceCallData call)=>SpawnSuspect(call);
+    public void SaveCareerProgress()=>Save();
+    public void Report(string message){receipt=message;CityGameplay.Instance?.PostEvent(message);}
+    public PoliceCallData RegisterCrowdSuspect(string id,EnemyController actor)
+    {
+        var existing=Career.calls.FirstOrDefault(c=>c.id==id);if(existing!=null)return existing;
+        if(!actor||!actor.IsAlive)return null;
+        var call=new PoliceCallData{id=id,title="CLASH SUSPECT",detail="Identified after crowd control. Arrest or accept the offered bribe with integrity consequences.",kind=1,state=1,positioned=true,suspectPosition=actor.transform.position,bribeOffer=240};
+        Career.calls.Add(call);suspects[id]=actor;actor.HoldFire(true);actor.SetCinematicIdle(true);actor.isHostile=false;
+        callMarkers[id]=AddMarker(call.title,call.suspectPosition,LandscapeUI.Gold,4);Save();return call;
+    }
     public void CaptureState()
     {
         if(!Active||Career==null)return;
@@ -185,6 +223,7 @@ public sealed class PoliceCityMode : MonoBehaviour
         if(BattleManager.instance&&Ready)
         {
             if(PolicePatrolVehicle.Instance)Career.vehicle=PolicePatrolVehicle.Instance.Capture();
+            if(PoliceRecoveryVehicle.Instance)Career.recoveryVehicle=PoliceRecoveryVehicle.Instance.Capture();
             Career.positions.Clear();
             foreach(var member in BattleManager.instance.PlayerAgents)if(member)
             {
@@ -201,6 +240,8 @@ public sealed class PoliceCityMode : MonoBehaviour
     {
         if(!Active||!Ready||Career==null||!BattleManager.instance)return;
         float dt=Time.deltaTime;
+        foreach(var actor in BattleManager.instance.PlayerAgents)if(actor&&actor.IsAlive)actor.FightPace=Career.morale<35?.8f:1.05f;
+        Career.officers.FanMorale=Career.morale;
         PatrolTick(dt);CallTick(dt);saveClock+=dt;
         if(saveClock>=10){saveClock=0;Save();}
         if(Time.unscaledTime>=uiClock){uiClock=Time.unscaledTime+.2f;RefreshHud();}
@@ -257,11 +298,18 @@ public sealed class PoliceCityMode : MonoBehaviour
                 if(!escortRevisions.TryGetValue(call.id,out int revision)||officer.OrderRevision!=revision){call.state=1;call.progress=0;receipt="New order cancelled detention.";continue;}
                 call.progress+=dt;if(call.progress<5)continue;
                 call.state=3;Career.arrests++;call.progress=0;
+                GameFeedback.Emit(GameFeedbackEvent.Arrest,suspect.transform.position);
                 suspect.SetCinematicIdle(false);suspect.HoldFire(true);
                 receipt="Suspect detained. Escorting officer must physically return to the station for booking. Choose ESCORT TO STATION.";Save();
             }
             if(call.state==3)
             {
+                if(call.inVehicle)
+                {
+                    call.progress=0;
+                    if(!(PolicePatrolVehicle.Instance&&PolicePatrolVehicle.Instance.HasSuspect(call.id)))call.inVehicle=false;
+                    else continue;
+                }
                 var suspect=SpawnSuspect(call);if(!suspect)continue;
                 var officer=Assigned(call);
                 if(!officer)
@@ -273,12 +321,11 @@ public sealed class PoliceCityMode : MonoBehaviour
                     receipt="Escort officer down. Bring another officer beside the detained suspect, select them, then TAKE OVER ESCORT.";
                     continue;
                 }
-                incidentClock+=dt;
-                if(incidentClock>=.4f){incidentClock=0;suspect.SetCinematicIdle(false);suspect.BeginEscort(officer.transform.position+Vector3.back*2,true);}
-                if(Vector3.Distance(officer.transform.position,Station)>12||Vector3.Distance(suspect.transform.position,Station)>15)continue;
+                if(!escortNext.TryGetValue(call.id,out float followAt)||Time.time>=followAt){escortNext[call.id]=Time.time+.4f;suspect.SetCinematicIdle(false);suspect.BeginEscort(officer.transform.position+Vector3.back*2,true);}
+                if(Vector3.Distance(officer.transform.position,Station)>12||Vector3.Distance(suspect.transform.position,Station)>15){call.progress=0;continue;}
                 call.progress+=dt;
                 if(call.progress<4)continue;
-                Career.booked++;suspect.gameObject.SetActive(false);Resolve(call,"Suspect booked at the station. Booking complete; other patrols continue.");
+                Career.booked++;call.resolution="BOOKED";Career.integrity=Mathf.Min(100,Career.integrity+2);Career.morale=Mathf.Min(100,Career.morale+2);suspect.gameObject.SetActive(false);Resolve(call,"Suspect physically booked at the station. Integrity +2, morale +2; other patrols continue.");
             }
         }
     }
@@ -308,16 +355,49 @@ public sealed class PoliceCityMode : MonoBehaviour
     {
         if(!Ready||index<0||index>=Career.calls.Count)return false;
         var call=Career.calls[index];if(call.kind!=1||call.state!=1)return false;
+        call.bribeDecisionMade=true;
         var suspect=SpawnSuspect(call);if(!suspect)return false;
         var officer=AgentSelectionManager.instance?.SelectedAgents.FirstOrDefault(a=>a&&a.IsAlive&&!a.IsActivityLocked&&Vector3.Distance(a.transform.position,suspect.transform.position)<=6);
         if(!officer){receipt="Select a living officer within 6 metres of the identified suspect. Tap the nearby street to approach.";return false;}
         officer.TryCommandMoveTo(officer.transform.position);call.assignedOfficerId=officer.Data.AgentId;
         escortRevisions[call.id]=officer.OrderRevision;call.state=2;call.progress=0;receipt="Detaining identified suspect - stay nearby for 5 seconds.";Save();return true;
     }
+    public bool TryAcceptBribe(int index)
+    {
+        if(!Ready||index<0||index>=Career.calls.Count)return false;
+        var call=Career.calls[index];var suspect=call.state==1?SpawnSuspect(call):null;
+        bool nearby=suspect&&AgentSelectionManager.instance&&AgentSelectionManager.instance.SelectedAgents.Any(a=>a&&a.IsAlive&&!a.IsActivityLocked&&!PolicePatrolVehicle.IsMounted(a)&&Vector3.Distance(a.transform.position,suspect.transform.position)<=6);
+        if(!nearby){Report("Bring a selected on-foot officer within 6m of the identified suspect before deciding.");return false;}
+        if(!PoliceCampaignStore.AcceptBribe(Career,call))return false;
+        suspect.SetCinematicIdle(false);suspect.HoldFire(true);suspect.TryBeginEscort(CityGameplay.ReachableApproach(suspect.transform.position,suspect.transform.position+Vector3.right*18),true);
+        Report($"Bribe +£{Mathf.Clamp(call.bribeOffer,80,600)} accepted once. Integrity -18, trust -8, morale -6; £150 disciplinary debt due at shift end. Low integrity blocks backup.");
+        GameFeedback.Emit(GameFeedbackEvent.Warning,suspect.transform.position);Save();RefreshHud();return true;
+    }
+    public bool LoadSuspect(int index)
+    {
+        if(!Ready||index<0||index>=Career.calls.Count)return false;
+        var call=Career.calls[index];var van=PolicePatrolVehicle.Instance;
+        if(call.state!=3||call.inVehicle||!van)return false;
+        var officer=Assigned(call);var suspect=SpawnSuspect(call);
+        if(!officer||!suspect){Report("A living escort must take over beside the detained suspect before loading.");return false;}
+        bool accepted=van.RequestSuspectLoading(call.id,suspect,officer);Report(van.Status);Save();return accepted;
+    }
+    public bool BookVanSuspects()
+    {var van=PolicePatrolVehicle.Instance;if(!van)return false;bool accepted=van.UnloadSuspectsAtStation();Report(van.Status);return accepted;}
+    public bool RequestReinforcements()
+    {
+        if(!Ready||!PoliceCampaignStore.ReinforcementEligible(Career)){Report("Backup needs £500, integrity 55+, trust 55+, morale 35+, an open roster slot and no earlier backup this shift.");return false;}
+        var data=new AgentData("Officer Backup "+(Career.officers.RecruitedAgents.Count+1),1,hp:160,strength:18,speed:5);
+        BattleManager.instance.RestoreRecoveredAgent(data);var actor=BattleManager.instance.PlayerAgents.FirstOrDefault(a=>a&&a.Data==data);
+        if(!actor){Report("Backup could not find a safe station spawn. No payment taken.");return false;}
+        Career.officers.RecruitedAgents.Add(data);Career.officers.Money-=500;Career.reinforcementReceipts.Add("shift-"+Career.shift);
+        var nav=actor.GetComponent<NavMeshAgent>();if(nav&&nav.isOnNavMesh)nav.Warp(CityGameplay.ReachableApproach(Station,Station+Vector3.right*4));
+        CrewKit.PaintShirt(actor.transform,new Color(.12f,.38f,.85f));Report("Backup officer deployed at the station. £500 paid once; use the roster strip or world/map selection.");Save();BuildHud();return true;
+    }
     public bool Escort(int index)
     {
         if(!Ready||index<0||index>=Career.calls.Count)return false;
-        var call=Career.calls[index];if(call.state!=3)return false;
+        var call=Career.calls[index];if(call.state!=3||call.inVehicle)return false;
         var officer=Assigned(call);
         bool transfer=!officer;
         EnemyController suspect=null;
@@ -357,7 +437,7 @@ public sealed class PoliceCityMode : MonoBehaviour
     public bool CompleteShift()
     {
         if(!PoliceCampaignStore.FinishShift(Career)){receipt="Complete three patrol checks, resolve both calls, and book the identified suspect before ending this shift.";return false;}
-        receipt="SHIFT COMPLETE - budget +£750, trust +5. Continue when ready.";Save();RefreshHud();return true;
+        receipt=$"SHIFT COMPLETE: £750 grant; £{Career.lastDisciplineCost} disciplinary deductions. Integrity {Career.integrity}, morale {Career.morale}. Continue when ready.";GameFeedback.Emit(GameFeedbackEvent.TaskComplete,Station);Save();RefreshHud();return true;
     }
     public void BeginNextShift()
     {
@@ -398,14 +478,16 @@ public sealed class PoliceCityMode : MonoBehaviour
         frame=LandscapeUI.Rect("Frame",safe,0,0,1600,900);var viewport=safe.gameObject.AddComponent<LandscapeViewport>();viewport.frame=frame;viewport.Fit();
         LandscapeUI.Panel("Top",frame,16,14,1568,70,true);
         caption=LandscapeUI.Text("Career",frame,"",36,26,720,44,25,LandscapeUI.White,true);
-        LandscapeUI.Button("Dispatch",frame,"DISPATCH",1110,24,220,48).onClick.AddListener(OpenDispatch);
+        Tag(LandscapeUI.Button("Dispatch",frame,"DISPATCH",1110,24,220,48),"police.dispatch").onClick.AddListener(OpenDispatch);
         LandscapeUI.Button("Menu",frame,"SAVE & MENU",1340,24,226,48).onClick.AddListener(ExitToMenu);
         var transport=LandscapeUI.Panel("Transport",frame,18,102,280,244,true).rectTransform;
         vehicleSelect=LandscapeUI.Button("SelectVan",transport,"PATROL VAN",12,12,256,48);
+        Tag(vehicleSelect,"police.van");
         vehicleSelect.onClick.AddListener(()=>{PolicePatrolVehicle.Instance?.Select(true);RefreshHud();});
         vehicleStatus=LandscapeUI.Text("VanState",transport,"",14,70,252,64,16,LandscapeUI.White);
         vehicleStatus.overflowMode=TextOverflowModes.Ellipsis;
         vehicleAction=LandscapeUI.Button("BoardExit",transport,"BOARD SELECTED",12,140,256,44,"green");
+        Tag(vehicleAction,"police.boardExit");
         vehicleAction.onClick.AddListener(()=>{var van=PolicePatrolVehicle.Instance;if(van){if(van.PassengerCount>0)van.ExitAll();else van.BoardSelected();receipt=van.Status;}RefreshHud();});
         vehicleStop=LandscapeUI.Button("StopVan",transport,"STOP / CANCEL",12,190,256,40);
         vehicleStop.onClick.AddListener(()=>{var van=PolicePatrolVehicle.Instance;if(van){van.Stop();van.CancelBoarding();receipt=van.Status;}RefreshHud();});
@@ -419,9 +501,10 @@ public sealed class PoliceCityMode : MonoBehaviour
         selectionCaption=LandscapeUI.Text("Selection",frame,"",322,724,940,38,18,LandscapeUI.White,true);
         var board=LandscapeUI.Panel("Officers",frame,322,770,940,96,true).rectTransform;
         officerLabels.Clear();officerButtons.Clear();
-        for(int i=0;i<3;i++)
+        var roster=LandscapeUI.Scroll("OfficerRoster",board,12,12,654,72,horizontal:true).content;
+        for(int i=0;i<Mathf.Min(6,BattleManager.instance.PlayerAgents.Count);i++)
         {
-            int index=i;var button=LandscapeUI.Button("Officer"+i,board,"",14+i*220,12,210,72);
+            int index=i;var button=LandscapeUI.Button("Officer"+i,roster,"",0,0,210,64);LandscapeUI.LayoutSize(button.gameObject,210,64);Tag(button,"police.officer"+i);
             button.onClick.AddListener(()=>{var agents=BattleManager.instance.PlayerAgents;if(index<agents.Count&&!PolicePatrolVehicle.IsMounted(agents[index])){PolicePatrolVehicle.Instance?.Deselect();AgentSelectionManager.instance.ToggleSelect(agents[index]);}});
             officerLabels.Add(button.GetComponentInChildren<TextMeshProUGUI>());officerButtons.Add(button);
         }
@@ -440,11 +523,12 @@ public sealed class PoliceCityMode : MonoBehaviour
         if(Career.officers.RecruitedAgents.All(a=>a==null||!a.IsAlive))return "All officers are down. Regroup at the station to recover your team.";
         if(Career.completedShiftKeys.Contains("shift-"+Career.shift))return "Shift complete. Budget and trust are saved. Choose NEXT SHIFT in Dispatch.";
         var van=PolicePatrolVehicle.Instance;
+        if(van&&van.SuspectCount>0)return "CUSTODY TRANSPORT: drive to the police station, park, then DISPATCH > BOOK AT STATION. Suspects must walk from the curb to booking.";
         if(van&&van.Selected&&van.PassengerCount>0)return "PATROL VAN SELECTED: tap a road to drive your team. EXIT OFFICERS at the curb for patrol checks, assessment and arrests.";
         if(Career.patrolChecks.Count<3)return "PATROL YOUR BEAT: select officers and BOARD SELECTED to travel together, or walk. Hold each patrol check on foot for 6s. "+Career.patrolChecks.Count+"/3 checked.";
         var call=Career.calls.FirstOrDefault(x=>x.state<4);
         if(call==null)return "All calls resolved. Return to Dispatch and COMPLETE SHIFT.";
-        return call.state==0?"DISPATCH: "+call.title+". Send selected officers and assess on foot.":call.state==1?"IDENTIFIED SUSPECT: approach, select a nearby officer, then DETAIN.":call.state==2?"DETAINING: keep your officer beside the suspect for 5s.":!Assigned(call)?"ESCORT OFFICER DOWN: bring another officer beside the detained suspect, select them, then TAKE OVER ESCORT.":"ESCORT & BOOK: return the assigned officer and suspect to the blue station area.";
+        return call.state==0?"DISPATCH: "+call.title+". Send selected officers and assess on foot.":call.state==1?"IDENTIFIED SUSPECT: approach with an officer. DETAIN, or accept a bribe with integrity/trust/discipline consequences.":call.state==2?"DETAINING: keep your officer beside the suspect for 5s.":!Assigned(call)?"ESCORT OFFICER DOWN: bring another officer beside the detained suspect, select them, then TAKE OVER ESCORT.":"CUSTODY: use DISPATCH > LOAD SUSPECT to walk to the parked van, or ESCORT ON FOOT to the station.";
     }
     void RefreshHud()
     {
@@ -457,9 +541,9 @@ public sealed class PoliceCityMode : MonoBehaviour
             // A booking marker can share the station ring without duplicating
             // the permanent station caption. A waiting handover needs its label.
             var markerLabel=marker.GetComponentInChildren<TextMeshPro>(true);
-            if(markerLabel)markerLabel.gameObject.SetActive(!(markerCall.state==3&&Assigned(markerCall)));
+            if(markerLabel)markerLabel.gameObject.SetActive(!markerCall.inVehicle&&!(markerCall.state==3&&Assigned(markerCall)));
         }
-        caption.text=$"POLICE PATROL · SHIFT {Career.shift:00}    £{Career.officers.Money:N0}    TRUST {Career.trust}";
+        caption.text=$"POLICE {Career.shift:00} · £{Career.officers.Money:N0} · TRUST {Career.trust} · INT {Career.integrity} · MORALE {Career.morale}";
         string goalText=Goal();objective.text=goalText;status.text=receipt;
         if(lastReceipt!=receipt){lastReceipt=receipt;receiptUntil=Time.unscaledTime+6f;}
         bool duplicate=string.Equals((receipt??"").Trim(),goalText.Trim(),StringComparison.OrdinalIgnoreCase)
@@ -467,7 +551,7 @@ public sealed class PoliceCityMode : MonoBehaviour
         if(receiptPlate)receiptPlate.SetActive(!string.IsNullOrWhiteSpace(receipt)&&!duplicate&&!(PolicePatrolVehicle.Instance&&PolicePatrolVehicle.Instance.Selected&&receipt.StartsWith("Tap an officer"))&&Time.unscaledTime<receiptUntil);
         var select=AgentSelectionManager.instance;var van=PolicePatrolVehicle.Instance;
         selectionCaption.text=van&&van.Selected?$"PATROL VAN SELECTED · {van.PassengerCount}/{PolicePatrolVehicle.Capacity} ABOARD · Tap a road = DRIVE · EXIT OFFICERS = work on foot":$"{select?.SelectedAgents.Count??0} OFFICERS SELECTED · Tap street = MOVE · drag = CAMERA · tap officer = ADD / REMOVE";
-        if(vehicleStatus)vehicleStatus.text=van?$"{van.PassengerCount} aboard · {van.BoardingCount} boarding\n{van.Status}":"Patrol van unavailable: on-foot duties remain playable.";
+        if(vehicleStatus)vehicleStatus.text=van?$"{van.PassengerCount} officers · {van.SuspectCount} custody · {van.BoardingCount} boarding\n{van.Status}":"Patrol van unavailable: on-foot duties remain playable.";
         if(vehicleAction){vehicleAction.interactable=van;vehicleAction.GetComponentInChildren<TextMeshProUGUI>().text=van&&van.PassengerCount>0?"EXIT OFFICERS":"BOARD SELECTED";}
         if(vehicleStop)vehicleStop.gameObject.SetActive(van&&(van.IsDriving||van.BoardingCount>0));
         for(int i=0;i<officerLabels.Count;i++)
@@ -477,10 +561,11 @@ public sealed class PoliceCityMode : MonoBehaviour
             officerLabels[i].color=agent&&agent.IsSelected?new Color(.2f,.85f,1f):LandscapeUI.White;
         }
         var call=Career.calls.ElementAtOrDefault(focusedCall);
-        primary.GetComponentInChildren<TextMeshProUGUI>().text=Career.completedShiftKeys.Contains("shift-"+Career.shift)?"NEXT SHIFT":Career.calls.All(c=>c.state>=4)&&Career.patrolChecks.Count==3?"COMPLETE SHIFT":Career.officers.RecruitedAgents.All(a=>a==null||!a.IsAlive)?"RECOVER OFFICERS":call?.state==1?"DETAIN SUSPECT":call?.state==3?(!Assigned(call)?"TAKE OVER ESCORT":"ESCORT TO STATION"):Career.patrolChecks.Count<3?"PATROL NEXT CHECK":"RESPOND TO CALL";
+        primary.GetComponentInChildren<TextMeshProUGUI>().text=Career.completedShiftKeys.Contains("shift-"+Career.shift)?"NEXT SHIFT":Career.calls.All(c=>c.state>=4)&&Career.patrolChecks.Count==3?"COMPLETE SHIFT":Career.officers.RecruitedAgents.All(a=>a==null||!a.IsAlive)?"RECOVER OFFICERS":van&&van.SuspectCount>0?(CityBusinessSystem.HorizontalDistance(van.transform.position,Station)>18?"RETURN TO STATION":"BOOK AT STATION"):call?.state==1?"DETAIN SUSPECT":call?.state==3?(!Assigned(call)?"TAKE OVER ESCORT":"ESCORT TO STATION"):Career.patrolChecks.Count<3?"PATROL NEXT CHECK":"RESPOND TO CALL";
     }
     void PrimaryAction()
     {
+        var van=PolicePatrolVehicle.Instance;if(van&&van.SuspectCount>0){if(CityBusinessSystem.HorizontalDistance(van.transform.position,Station)>18)DriveVanToStation();else BookVanSuspects();return;}
         if(Career.completedShiftKeys.Contains("shift-"+Career.shift)){BeginNextShift();return;}
         if(Career.calls.All(c=>c.state>=4)&&Career.patrolChecks.Count==3){CompleteShift();return;}
         if(Career.officers.RecruitedAgents.All(a=>a==null||!a.IsAlive)){RecoverOfficers();return;}
@@ -499,20 +584,56 @@ public sealed class PoliceCityMode : MonoBehaviour
     {
         if(!sheet)return;sheet.SetActive(true);LandscapeUI.Clear(callRows);
         bool done=Career.completedShiftKeys.Contains("shift-"+Career.shift);sheet.transform.Find("EndShift").gameObject.SetActive(!done);sheet.transform.Find("NextShift").gameObject.SetActive(done);
+        var support=DispatchRow("Support",150);
+        LandscapeUI.Text("Text",support,$"Integrity {Career.integrity}/100 · morale {Career.morale}/100 · discipline debt £{Career.disciplineDebt}\nBackup: £500, integrity/trust 55+, morale 35+. One officer per shift, six maximum.",16,12,620,110,18,LandscapeUI.White,true);
+        var backup=LandscapeUI.Button("Backup",support,"REQUEST BACKUP £500",666,20,260,50);backup.interactable=PoliceCampaignStore.ReinforcementEligible(Career);backup.onClick.AddListener(()=>{RequestReinforcements();OpenDispatch();});
+        if(PolicePatrolVehicle.Instance&&PolicePatrolVehicle.Instance.SuspectCount>0)Tag(LandscapeUI.Button("Book",support,"BOOK AT STATION",666,82,260,50,"green"),"police.book").onClick.AddListener(()=>{BookVanSuspects();CloseDispatch();});
+        if(PolicePatrolVehicle.Instance&&PolicePatrolVehicle.Instance.SuspectCount>0)
+        {
+            var stationRow=DispatchRow("StationReturn",90);LandscapeUI.Text("Text",stationRow,"CUSTODY TRANSPORT\nDrive to station before unloading suspects for physical booking.",16,10,620,68,19,LandscapeUI.White,true);
+            Tag(LandscapeUI.Button("Station",stationRow,"DRIVE TO STATION",666,18,260,54),"police.returnStation").onClick.AddListener(()=>{DriveVanToStation();CloseDispatch();});
+        }
         for(int i=0;i<3;i++)
         {
             int index=i;var row=LandscapeUI.Panel("Patrol"+i,callRows,0,0,944,90,true);LandscapeUI.LayoutSize(row.gameObject,944,90);
             LandscapeUI.Text("Text",row.transform,$"PATROL CHECK {i+1} · {(Career.patrolChecks.Contains(i)?"COMPLETE":"HOLD 6s")}",16,14,620,56,21,LandscapeUI.White,true);
-            LandscapeUI.Button("Assign",row.transform,"ASSIGN PATROL",666,20,260,50).onClick.AddListener(()=>AssignPatrol(index));
+            Tag(LandscapeUI.Button("Assign",row.transform,"ASSIGN PATROL",666,20,260,50),"police.patrolAssign"+i).onClick.AddListener(()=>AssignPatrol(index));
         }
         for(int i=0;i<Career.calls.Count;i++)
         {
             int index=i;var call=Career.calls[i];var row=LandscapeUI.Panel(call.id,callRows,0,0,944,174,true);LandscapeUI.LayoutSize(row.gameObject,944,174);
             string state=call.state==0?"AWAITING RESPONSE":call.state==1?"IDENTIFIED SUSPECT":call.state==2?"DETAINING":call.state==3?(!Assigned(call)?"ESCORT OFFICER DOWN - HANDOVER REQUIRED":"ESCORT TO STATION"):"RESOLVED";
             LandscapeUI.Text("Text",row.transform,call.title+" · "+state+"\n"+call.detail,16,14,620,140,19,LandscapeUI.White,true);
-            var action=LandscapeUI.Button("Action",row.transform,call.state==0?"RESPOND":call.state==1?"DETAIN":call.state==3?(!Assigned(call)?"TAKE OVER ESCORT":"ESCORT"):"VIEW",666,30,260,54);
-            action.onClick.AddListener(()=>{focusedCall=index;CameraPanTouchOnly.Instance?.FocusOn(CallActionPoint(call));if(call.state==0)Respond(index);else if(call.state==1)Detain(index);else if(call.state==3)Escort(index);CloseDispatch();});
+            var action=LandscapeUI.Button("Action",row.transform,call.state==0?"RESPOND":call.state==1?"DETAIN":call.inVehicle?"SHOW VAN":call.state==3?(!Assigned(call)?"TAKE OVER ESCORT":"ESCORT"):"VIEW",666,30,260,54);
+            Tag(action,"police.call"+i);
+            action.onClick.AddListener(()=>{focusedCall=index;CameraPanTouchOnly.Instance?.FocusOn(CallActionPoint(call));if(call.state==0)Respond(index);else if(call.state==1)Detain(index);else if(call.inVehicle)PolicePatrolVehicle.Instance?.Select(true);else if(call.state==3)Escort(index);CloseDispatch();});
+            if(call.state==1)Tag(LandscapeUI.Button("Bribe",row.transform,$"BRIBE +£{call.bribeOffer} / INT -18",666,98,260,50),"police.bribe"+i).onClick.AddListener(()=>{TryAcceptBribe(index);CloseDispatch();});
+            if(call.state==3&&!call.inVehicle)Tag(LandscapeUI.Button("Load",row.transform,"LOAD SUSPECT",666,98,260,50,"green"),"police.load"+i).onClick.AddListener(()=>{LoadSuspect(index);CloseDispatch();});
         }
+        if(CrowdOperations)
+        {
+            var row=DispatchRow("CrowdOperation",156);LandscapeUI.Text("Text",row,"STADIUM PUBLIC ORDER\n"+CrowdOperations.Description,16,12,620,122,19,LandscapeUI.White,true);
+            Tag(LandscapeUI.Button("AssignCrowd",row,"ASSIGN CROWD TEAM",666,18,260,50),"police.crowdAssign").onClick.AddListener(()=>{CrowdOperations.AssignSelected();CloseDispatch();});
+            LandscapeUI.Button("FocusCrowd",row,"SHOW CLASH",666,82,260,50).onClick.AddListener(()=>{CameraPanTouchOnly.Instance?.FocusOn(CrowdOperations.Location);CloseDispatch();});
+        }
+        if(CityRoadIncidentSystem.Instance)foreach(var incident in CityRoadIncidentSystem.Instance.ActiveIncidents)
+        {
+            string id=incident.Id;var row=DispatchRow("Road "+id,156);
+            LandscapeUI.Text("Text",row,"ROAD RESPONSE · "+id+"\nSelect an on-foot officer to secure the site. Recovery truck: £450 hire once + £75 dispatch; physical arrival and crew coverage required.",16,12,620,122,18,LandscapeUI.White,true);
+            string anchorSuffix=id==Career.PoliceTutorialRoadId?"":":"+id;
+            Tag(LandscapeUI.Button("SecureRoad",row,"ASSIGN ROAD TEAM",666,18,260,50),"police.roadAssign"+anchorSuffix).onClick.AddListener(()=>{CityRoadIncidentSystem.Instance.TryAssignOfficers(id,AgentSelectionManager.instance.SelectedAgents);CloseDispatch();});
+            var tow=Tag(LandscapeUI.Button("Recovery",row,"DISPATCH RECOVERY",666,82,260,50,"green"),(PoliceRecoveryVehicle.Instance?"police.recoveryDispatch":"police.recoveryHire")+anchorSuffix);
+            tow.onClick.AddListener(()=>{CityRoadIncidentSystem.Instance.TryDispatchTow(id);CloseDispatch();});
+        }
+        if(PoliceRecoveryVehicle.Instance)
+        {
+            var row=DispatchRow("RecoveryControl",118);LandscapeUI.Text("Text",row,"RECOVERY TRUCK\n"+PoliceRecoveryVehicle.Instance.Status,16,10,620,94,18,LandscapeUI.White,true);
+            Tag(LandscapeUI.Button("SelectRecovery",row,"DRIVE RECOVERY",666,24,260,54),"police.recoverySelect").onClick.AddListener(()=>{PoliceRecoveryVehicle.Instance.Select(true);CloseDispatch();});
+        }
+        var help=DispatchRow("Guide",100);LandscapeUI.Text("Text",help,"POLICE FIELD GUIDE\nReplay controls and real station/dispatch tasks.",16,10,620,80,19,LandscapeUI.White,true);
+        Tag(LandscapeUI.Button("Replay",help,"REPLAY GUIDE",666,22,260,54),"police.replay").onClick.AddListener(()=>{CloseDispatch();GuidedCityTutorial.Replay(true);});
     }
+    RectTransform DispatchRow(string name,float height){var row=LandscapeUI.Panel(name,callRows,0,0,944,height,true);LandscapeUI.LayoutSize(row.gameObject,944,height);return row.rectTransform;}
+    static Button Tag(Button button,string id){TutorialAnchor.Tag(button,id);return button;}
     public void CloseDispatch(){if(sheet)sheet.SetActive(false);}
 }

@@ -4,7 +4,7 @@ PASS Police patrol checks are distinct reachable locations away from the station
 PASS Police roster is separate from the preserved firm roster
 PASS Launching police leaves the firm save bytes unchanged
 PASS Selected officer accepts a real A/B patrol duty
-PASS Patrol walks the officer and preserves selection (travel=1.2, order=Patrol, selected=True)
+PASS Patrol walks the officer and preserves selection (travel=3.0, order=Patrol, selected=True)
 PASS Physical officer presence completes patrol check 1
 PASS Physical officer presence completes patrol check 2
 PASS Physical officer presence completes patrol check 3
@@ -49,4 +49,4 @@ PASS Leaving police restores the exact original firm campaign
 PASS Firm campaign remains byte-identical after full police shift and exit
 RESULT 49 passed, 0 failed
 Native city fixture: disposable firm and police files; officer movement speed raised for test travel; simulation time accelerated; no real account save touched.
-UTC 2026-11-02T19:20:11.3345869Z
+UTC 2026-11-03T04:46:07.6318432Z

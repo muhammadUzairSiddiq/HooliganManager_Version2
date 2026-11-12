@@ -1,0 +1,13 @@
+Unity editor observation only; not device profiling, phone FPS, a full-city stress test or a performance acceptance gate.
+Completed bounded editor timing observation; no timing pass threshold applied.
+UTC 2026-11-03T04:17:46.3416465Z
+Stage: Following moving Brick with an independently moving Dex; production roster speed 2.5 and brisk gait, simulation time scale 1
+Viewport 1280x720; Unity 6000.0.80f1; batch False; NVIDIA GeForce MX130 / Direct3D11
+Pipeline Mobile_RPAsset; actual map renderer Mobile_Renderer; actual main renderer Mobile_Renderer
+Map camera options: shadows False, post False, HDR False, MSAA False, AA None
+Observed rendered-frame samples 120/120; complete True; elapsed 3.998s; time scale 1.00
+unscaledDeltaTime milliseconds: median 28.096, p95 59.484, minimum 19.123, maximum 81.380
+Actors: living crew 6, active enemies 45, selected 2, moving at start 2
+Observed peaks: routes 2/24, cached routes 6/24, labels 1/6, effects 0
+GameFeedbackBurst source pool: 6 bursts x 6 stars; active burst count observed below. Other presentation systems not profiled.
+Raw samples and rendered/update frame counter bounds are in the JSON. No profiler/GC attribution was collected. Sampling overhead and the editor are included.

@@ -115,6 +115,9 @@ public static class CityAtmosphere
         foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
             if (cam == null) continue;
+            // The minimap owns its offscreen renderer/copy/shadow policy.
+            // Atmospheric world-camera refreshes must not re-enable its shadows.
+            if (cam.GetComponentInParent<LiveMiniMap>()) continue;
             // Bad occlusion data makes buildings vanish / look hollow.
             cam.useOcclusionCulling = false;
 

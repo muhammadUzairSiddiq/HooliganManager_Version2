@@ -1,0 +1,14 @@
+PASS Fresh configuration defaults to valid Google sample IDs on Android and iOS
+PASS Rewarded sample units use the correct platform IDs
+PASS Test mode rejects a non-sample rewarded unit
+PASS Live mode rejects missing publisher IDs
+PASS Live mode rejects Google demonstration IDs
+PASS Live configuration accepts correctly formed publisher app and rewarded IDs
+PASS Enabled interstitials require their own ad-unit ID
+PASS Disabled mode requires no advertising account IDs
+PASS A duplicate SDK reward callback awards once
+PASS A completed fullscreen attempt closes once and reports its reward
+PASS Cancel/failure or a late callback cannot award a reward
+PASS A callback from an older attempt cannot credit a newer attempt
+PASS Committed project asset is configured for test ads on both platforms
+PASS Forced transition ads are disabled by default

@@ -21,7 +21,8 @@ public sealed class MatchdayStrategySystem:MonoBehaviour
         get
         {
             var d=GameManager.Data;var s=MatchdayTactics.Ensure(d);
-            if(!owner||!owner.HasStarted)return "MATCHDAY PLAN · position groups, choose your approach, then START.";
+            if(!owner||!owner.HasStarted)return "MATCHDAY · start at the stadium when your crew is ready.";
+            if(owner.StreetOperations&&owner.StreetOperations.IsCurrent)return owner.StreetOperations.Summary;
             if(owner.IsAftermath)return d.MatchdayIncidentResolved?"MATCHDAY COMPLETE · review your results and continue.":"MATCHDAY AFTERMATH · retry missed coverage to protect both locations.";
             int next=Enumerable.Range(0,2).FirstOrDefault(i=>!ResponseComplete(i));
             if(!ResponseComplete(next))return $"{titles[next]} · {CrewNear(points[next],11)}/{MatchdayTactics.CrewRequired(d,next)} crew · {Mathf.Max(0,ResponseDeadline(next)-owner.ElapsedSeconds):0}s left";
@@ -42,6 +43,7 @@ public sealed class MatchdayStrategySystem:MonoBehaviour
     Button startButton,retryButton,closeDayButton,escortButton,stallButton;
     readonly List<GameObject> planRows=new List<GameObject>();
     EnemyController supporter;
+    readonly List<EnemyController> escortParty=new List<EnemyController>();
     Vector3 pickup,stallPoint;
     int focusedResponse=-1,stallRevision=-1;
     float refresh,followClock,saveClock;
@@ -50,7 +52,7 @@ public sealed class MatchdayStrategySystem:MonoBehaviour
     {
         var system=stadium.GetComponent<MatchdayStrategySystem>()??stadium.gameObject.AddComponent<MatchdayStrategySystem>();system.owner=stadium;
         var city=CityGameplay.Instance;
-        system.points[0]=CityGameplay.ReachableApproach(city.Home,center+new Vector3(0,0,-18));
+        system.points[0]=city.Locations[5];
         system.points[1]=CityGameplay.ReachableApproach(city.Home,city.Locations[1]);
         system.pickup=system.FindEscortMeetingPoint(city);
         system.stallPoint=CityGameplay.ReachableApproach(city.Home,system.points[1]+Vector3.right*20);
@@ -92,16 +94,14 @@ public sealed class MatchdayStrategySystem:MonoBehaviour
     public static bool CanStart(PlayerData d,out string reason)
     {
         reason="";if(d==null){reason="Campaign unavailable.";return false;}
-        if(!RecoveryProgression.OrientationComplete(d)){reason="Learn selection, repeat movement and split control first.";return false;}
-        if(!d.TransportPrepared||!d.StadiumAccessPrepared){reason="Complete transport and stadium access preparation in Operations first.";return false;}
-        if((d.RecruitedAgents?.Count(a=>a!=null&&a.IsAlive)??0)<2){reason="Recruit or recover two living crew for separate assignments.";return false;}
+        if((d.RecruitedAgents?.Count(a=>a!=null&&a.IsAlive)??0)<2){reason="Recruit or recover two living crew for Matchday.";return false;}
         return MatchdayTactics.CanCommit(d,out reason);
     }
     public static bool RoutesReachable(out string reason)
     {
         reason="";var city=CityGameplay.Instance;if(!city||city.Locations==null){reason="City navigation is loading.";return false;}
         var path=new NavMeshPath();
-        foreach(var point in city.Locations)if(!NavMesh.CalculatePath(city.Home,point,NavMesh.AllAreas,path)||path.status!=NavMeshPathStatus.PathComplete){reason="A mandatory city route is blocked. Matchday cannot start until navigation is repaired.";return false;}
+        foreach(var point in new[]{city.Locations[1],city.Locations[5]})if(!NavMesh.CalculatePath(city.Home,point,NavMesh.AllAreas,path)||path.status!=NavMeshPathStatus.PathComplete){reason="A mandatory city route is blocked. Matchday cannot start until navigation is repaired.";return false;}
         return true;
     }
     public void ActivateResponses()
@@ -150,6 +150,14 @@ public sealed class MatchdayStrategySystem:MonoBehaviour
         if(owner.HasStarted)
         {
             d.MatchdayCompletedResponses??=new List<string>();d.MatchdayFailedResponses??=new List<string>();d.MatchdayPenalizedResponses??=new List<string>();
+            bool streetDay=owner.StreetOperations&&owner.StreetOperations.IsCurrent;
+            if(streetDay)
+            {
+                for(int i=0;i<markers.Length;i++)if(markers[i])markers[i].gameObject.SetActive(false);
+                TickRallyEscort(d,tactics);
+                TickStall(d,tactics);
+                return;
+            }
             for(int i=0;i<2;i++)
             {
                 bool done=ResponseComplete(i),failed=d.MatchdayFailedResponses.Contains(responseIds[i]);float progress=i==0?d.MatchdayStadiumResponseSeconds:d.MatchdayPubResponseSeconds;
@@ -157,13 +165,13 @@ public sealed class MatchdayStrategySystem:MonoBehaviour
                 {
                     d.MatchdayFailedResponses.Add(responseIds[i]);failed=true;
                     if(!d.MatchdayPenalizedResponses.Contains(responseIds[i])){d.MatchdayPenalizedResponses.Add(responseIds[i]);d.FanMorale=Mathf.Max(0,d.FanMorale-5);if(tactics.plan!=1)d.PoliceHeat=Mathf.Min(10,d.PoliceHeat+1);if(i==1){var pub=CityBusinessLedger.Find(d,"pub");if(pub!=null)pub.disruptionSeconds=Mathf.Max(pub.disruptionSeconds,90);}}
-                    CityGameplay.Instance?.PostEvent(titles[i]+" missed. Consequences saved; retry from aftermath.");GameManager.Save();
+                    GameFeedback.Emit(GameFeedbackEvent.TaskFailed,points[i]);CityGameplay.Instance?.PostEvent(titles[i]+" missed. Consequences saved; retry from aftermath.");GameManager.Save();
                 }
                 float needed=MatchdayTactics.HoldSeconds(d,i);
                 if(!done&&!failed&&CrewNear(points[i],11)>=MatchdayTactics.CrewRequired(d,i)&&!CityBusinessSystem.HostilesNear(points[i],12))
                 {
                     progress=Mathf.Min(needed,progress+Time.deltaTime);if(i==0)d.MatchdayStadiumResponseSeconds=progress;else d.MatchdayPubResponseSeconds=progress;
-                    if(progress>=needed){d.MatchdayCompletedResponses.Add(responseIds[i]);d.Money+=MatchdayTactics.Reward(d,i);d.FanMorale=Mathf.Min(100,d.FanMorale+2);CityGameplay.Instance?.PostEvent(titles[i]+$" covered. £{MatchdayTactics.Reward(d,i)} earned; crew remains under your control.");GameManager.Save();}
+                    if(progress>=needed){d.MatchdayCompletedResponses.Add(responseIds[i]);d.Money+=MatchdayTactics.Reward(d,i);d.FanMorale=Mathf.Min(100,d.FanMorale+2);GameFeedback.Emit(GameFeedbackEvent.TaskComplete,points[i]);CityGameplay.Instance?.PostEvent(titles[i]+$" covered. £{MatchdayTactics.Reward(d,i)} earned; crew remains under your control.");GameManager.Save();}
                 }
                 if(markers[i]){markers[i].text=titles[i]+"\n"+(ResponseComplete(i)?"COVERED":failed?"MISSED":$"{CrewNear(points[i],11)}/{MatchdayTactics.CrewRequired(d,i)} CREW · HOLD {progress:0}/{needed:0}s");markers[i].GetComponent<ZoneLabelBillboard>().CommandPriority=focusedResponse==i;}
             }
@@ -175,6 +183,101 @@ public sealed class MatchdayStrategySystem:MonoBehaviour
         else TickStall(d,tactics);
         if(IsOpen&&Time.unscaledTime>=refresh){refresh=Time.unscaledTime+.3f;RefreshBoard();}
     }
+    public bool RallyEscort()
+    {
+        var d=GameManager.Data;
+        var tactics=MatchdayTactics.Ensure(d);
+        if(!owner.HasStarted||owner.IsAftermath||tactics.escortComplete)return false;
+        var meet=tactics.escortPositioned?tactics.escortPosition:pickup;
+        var actor=AgentSelectionManager.instance?.SelectedAgents.FirstOrDefault(member=>member&&member.IsAlive
+            &&!member.IsActivityLocked&&CityBusinessSystem.HorizontalDistance(member.transform.position,meet)<12);
+        if(!actor)
+        {
+            CityGameplay.Instance?.PostEvent("Select a crew member beside the waiting fans to rally them.");
+            return false;
+        }
+        tactics.escortOfficerId=actor.Data.AgentId;
+        if(!tactics.escortPositioned)
+        {
+            tactics.escortPosition=pickup;
+            tactics.escortPositioned=true;
+            tactics.escortPartyPositions=new List<Vector3>();
+            for(int index=0;index<5;index++)
+                tactics.escortPartyPositions.Add(pickup+new Vector3((index%3-1)*1.8f,0,(index/3)*2f));
+        }
+        CityGameplay.Instance?.PostEvent("FANS RALLIED · move your guide to the stadium gate. The group follows on foot.");
+        GameManager.Save();
+        return true;
+    }
+
+    void TickRallyEscort(PlayerData data,MatchdayTacticsState tactics)
+    {
+        if(owner.IsAftermath||tactics.escortComplete||!tactics.escortPositioned||string.IsNullOrEmpty(tactics.escortOfficerId))return;
+        tactics.escortPartyPositions??=new List<Vector3>();
+        if(tactics.escortPartyPositions.Count==0)return;
+        while(escortParty.Count<tactics.escortPartyPositions.Count)escortParty.Add(null);
+        followClock+=Time.deltaTime;
+        if(followClock<.45f)return;
+        followClock=0;
+        var guide=BattleManager.instance.PlayerAgents.FirstOrDefault(actor=>actor&&actor.IsAlive
+            &&!actor.IsActivityLocked&&actor.Data.AgentId==tactics.escortOfficerId);
+        bool guideAtGate=guide&&CityBusinessSystem.HorizontalDistance(guide.transform.position,points[0])<=10;
+        int alive=0,arrived=0;
+        for(int index=0;index<escortParty.Count;index++)
+        {
+            var body=escortParty[index];
+            var saved=tactics.escortPartyPositions[index];
+            if(saved.y < -100)continue;
+            if(!body)
+            {
+                body=BattleManager.instance.SpawnMatchdayFighter(saved,"HOME FANS",LandscapeUI.Green,65,0,
+                    MatchdayUnitRole.HomeSupporter,"PLAYER SUPPORTER ESCORT",true);
+                if(!body)continue;
+                escortParty[index]=body;
+                body.HoldFire(true);
+                var march=body.GetComponent<MatchdayMarch>();
+                if(march)march.enabled=false;
+            }
+            if(!body.IsAlive)
+            {
+                tactics.escortPartyPositions[index]=new Vector3(0,-1000,0);
+                continue;
+            }
+            alive++;
+            tactics.escortPartyPositions[index]=body.transform.position;
+            if(CityBusinessSystem.HorizontalDistance(body.transform.position,points[0])<13)arrived++;
+            if(guide)
+            {
+                tactics.escortPosition=body.transform.position;
+                var formation=guide.transform.right*((index%3-1)*1.5f)-guide.transform.forward*(2+index/3);
+                var target=guideAtGate?points[0]+formation*.35f:guide.transform.position+formation;
+                if(!body.TryBeginEscort(target,true)&&guideAtGate)
+                    body.TryBeginEscort(points[0],true);
+            }
+            else body.EndEscort();
+        }
+        if(alive<3&&tactics.escortPartyPositions.Count(point=>point.y>=-100)<3)
+        {
+            foreach(var body in escortParty)if(body&&body.IsAlive)BattleManager.instance.DespawnMatchdayFighter(body);
+            escortParty.Clear();
+            tactics.escortPositioned=false;
+            tactics.escortOfficerId=null;
+            tactics.escortPartyPositions.Clear();
+            CityGameplay.Instance?.PostEvent("Escort dispersed. Rally a fresh group or choose another Matchday objective.");
+            GameManager.Save();
+            return;
+        }
+        if(!guideAtGate||arrived<3)return;
+        tactics.escortComplete=true;
+        data.Money+=175;
+        data.Reputation+=2;
+        data.FanMorale=Mathf.Min(100,data.FanMorale+3);
+        foreach(var body in escortParty)if(body&&body.IsAlive)body.TryBeginEscort(points[0],false);
+        GameFeedback.Emit(GameFeedbackEvent.TaskComplete,points[0]);
+        CityGameplay.Instance?.PostEvent("FANS CHECKED IN · your group reached the stadium approach. Escort earned £175.");
+        GameManager.Save();
+    }
+
     void TickEscort(PlayerData d,MatchdayTacticsState s)
     {
         if(s.escortComplete||string.IsNullOrEmpty(s.escortOfficerId)||owner.IsAftermath)return;
@@ -196,7 +299,7 @@ public sealed class MatchdayStrategySystem:MonoBehaviour
         followClock+=Time.deltaTime;if(followClock>.4f){followClock=0;supporter.SetCinematicIdle(false);supporter.BeginEscort(actor.transform.position+Vector3.back*2,true);}
         if(CityBusinessSystem.HorizontalDistance(actor.transform.position,points[0])>10||CityBusinessSystem.HorizontalDistance(supporter.transform.position,points[0])>12||CityBusinessSystem.HostilesNear(points[0],12))return;
         s.escortSeconds+=Time.deltaTime;if(s.escortSeconds<5)return;
-        s.escortComplete=true;d.Money+=175;d.Reputation+=2;d.FanMorale=Mathf.Min(100,d.FanMorale+3);supporter.SetCinematicIdle(true);GameManager.Save();CityGameplay.Instance?.PostEvent("Supporters arrived safely. Escort +£175, reputation +2, morale +3. No duplicate reward.");
+        s.escortComplete=true;d.Money+=175;d.Reputation+=2;d.FanMorale=Mathf.Min(100,d.FanMorale+3);supporter.SetCinematicIdle(true);GameFeedback.Emit(GameFeedbackEvent.TaskComplete,points[0]);GameManager.Save();CityGameplay.Instance?.PostEvent("Supporters arrived safely. Escort +£175, reputation +2, morale +3. No duplicate reward.");
     }
     void TickStall(PlayerData d,MatchdayTacticsState s)
     {
@@ -216,12 +319,27 @@ public sealed class MatchdayStrategySystem:MonoBehaviour
     }
     void ShowStall()
     {
-        if(stallModel)return;var prefab=Resources.Load<GameObject>("HomeFacilities/SupplyYard");if(!prefab)return;
+        if(stallModel)return;var prefab=Resources.Load<GameObject>("HomeFacilities/TradeStall");if(!prefab)return;
         stallModel=Instantiate(prefab,transform);stallModel.name="PLAYER BUILT MATCHDAY STALL";stallModel.transform.position=stallPoint;
         foreach(var collider in stallModel.GetComponentsInChildren<Collider>())collider.enabled=false;
         ZoneLabelUtil.Create(stallModel.transform,"MATCHDAY STALL",4,5);
     }
-    public void OpenBoard(){if(!board)BuildBoard();CityUiSheets.Open(this,CloseBoard);board.SetActive(true);RefreshBoard();}
+    public void ResetFixtureActors()
+    {
+        foreach(var actor in escortParty)
+            if(actor&&actor.IsAlive&&actor.gameObject.activeInHierarchy&&actor.MatchdayGroupName=="PLAYER SUPPORTER ESCORT")
+                BattleManager.instance.DespawnMatchdayFighter(actor);
+        if(supporter&&supporter.IsAlive&&supporter.gameObject.activeInHierarchy&&supporter.MatchdayGroupName=="PLAYER SUPPORTER ESCORT")
+            BattleManager.instance.DespawnMatchdayFighter(supporter);
+        escortParty.Clear();supporter=null;
+        if(stallModel)Destroy(stallModel);
+        stallRevision=-1;
+    }
+    public void OpenBoard()
+    {
+        if(owner&&owner.AutomaticMatchdaysEnabled){owner.OpenBriefing();return;}
+        if(!board)BuildBoard();CityUiSheets.Open(this,CloseBoard);board.SetActive(true);RefreshBoard();
+    }
     public void CloseBoard(){if(board)board.SetActive(false);}
     RectTransform Row(string name,float height)
     {var row=LandscapeUI.Panel(name,body,0,0,880,height,true).rectTransform;LandscapeUI.LayoutSize(row.gameObject,880,height);return row;}
@@ -232,16 +350,16 @@ public sealed class MatchdayStrategySystem:MonoBehaviour
         LandscapeUI.Text("Title",root,"MATCHDAY COMMAND",20,16,690,40,27,LandscapeUI.White,true);LandscapeUI.Button("Close",root,"CLOSE",790,14,150,48).onClick.AddListener(CloseBoard);
         summary=LandscapeUI.Text("Summary",root,"",22,72,916,90,18,LandscapeUI.White);
         body=LandscapeUI.Scroll("Decisions",root,20,172,920,368).content;
-        for(int i=0;i<3;i++){int plan=i;var row=Row("Plan"+i,132);planRows.Add(row.gameObject);planText[i]=Detail(row,"");plans[i]=LandscapeUI.Button("Choose",row,"CHOOSE",658,36,204,56);plans[i].onClick.AddListener(()=>{MatchdayTactics.Choose(GameManager.Data,plan);GameManager.Save();RefreshBoard();});}
+        for(int i=0;i<3;i++){int plan=i;var row=Row("Plan"+i,132);planRows.Add(row.gameObject);planText[i]=Detail(row,"");plans[i]=TutorialAnchor.Tag(LandscapeUI.Button("Choose",row,"CHOOSE",658,36,204,56),"match.plan"+i);plans[i].onClick.AddListener(()=>{MatchdayTactics.Choose(GameManager.Data,plan);GameManager.Save();RefreshBoard();});}
         for(int i=0;i<2;i++)
         {
             int index=i;var row=Row("Response"+i,170);responseText[i]=Detail(row,"",120);
-            assign[i]=LandscapeUI.Button("Assign",row,"SEND SELECTED",658,18,204,54,"green");assign[i].onClick.AddListener(()=>Assign(index));
+            assign[i]=TutorialAnchor.Tag(LandscapeUI.Button("Assign",row,"SEND SELECTED",658,18,204,54,"green"),"match.response"+i);assign[i].onClick.AddListener(()=>Assign(index));
             supply[i]=LandscapeUI.Button("Supply",row,"EQUIP · 2 SUPPLIES",658,88,204,54);supply[i].onClick.AddListener(()=>{SpendSupplies(index);RefreshBoard();});
         }
         var escort=Row("SupporterEscort",148);escortText=Detail(escort,"",110);escortButton=LandscapeUI.Button("Assign",escort,"ASSIGN ESCORT",658,44,204,58);escortButton.onClick.AddListener(()=>AssignEscort());
         var stall=Row("Stall",164);stallText=Detail(stall,"",130);stallButton=LandscapeUI.Button("Build",stall,"BUILD STALL",658,48,204,58);stallButton.onClick.AddListener(()=>{var s=MatchdayTactics.Ensure(GameManager.Data);if(s.stallBuilt){CameraPanTouchOnly.Instance?.FocusOn(stallPoint);AgentSelectionManager.instance?.CommandSelectedMoveTo(stallPoint);CloseBoard();}else BuildStall();});
-        startButton=LandscapeUI.Button("Start",root,"START MATCHDAY",20,566,920,62,"green");startButton.onClick.AddListener(()=>{if(owner.BeginMatchday())CloseBoard();else RefreshBoard();});
+        startButton=TutorialAnchor.Tag(LandscapeUI.Button("Start",root,"START MATCHDAY",20,566,920,62,"green"),"match.start");startButton.onClick.AddListener(()=>{if(owner.BeginMatchday())CloseBoard();else RefreshBoard();});
         retryButton=LandscapeUI.Button("RetryResponses",root,"RETRY MISSED COVERAGE",20,566,920,62);retryButton.onClick.AddListener(()=>{owner.RetryMissedResponses();CloseBoard();});
         closeDayButton=LandscapeUI.Button("CloseDay",root,"REVIEW & CONTINUE TO NEXT DAY",20,566,920,62,"green");closeDayButton.onClick.AddListener(()=>{CloseBoard();owner.CloseMatchday();});
     }

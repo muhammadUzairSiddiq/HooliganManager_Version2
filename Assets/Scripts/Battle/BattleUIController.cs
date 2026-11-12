@@ -103,6 +103,7 @@ public class BattleUIController : MonoBehaviour
         moveBtn?.onClick.AddListener(OnMovePressed);
         pauseButton?.onClick.AddListener(OnPause);
         SyncPauseButtonIcon(BattleManager.instance?.IsPaused ?? false);
+        EnsurePauseAudioSettings();
 
         // Deactivate attack, retreat, and move — city HUD shows Capture/Retreat contextually.
         if (attackBtn != null) attackBtn.gameObject.SetActive(false);
@@ -651,6 +652,7 @@ public class BattleUIController : MonoBehaviour
 
     private void OnPause()
     {
+        if(GameFeedback.SettingsOpen){GameFeedback.CloseSettings();return;}
         // Toggle the pause menu panel.
         // The panel itself calls BattleManager.SetPaused(true/false).
         if (BattlePauseMenuController.instance != null)
@@ -668,6 +670,18 @@ public class BattleUIController : MonoBehaviour
         }
 
         SyncPauseButtonIcon(BattleManager.instance?.IsPaused ?? false);
+    }
+
+    void EnsurePauseAudioSettings()
+    {
+        var pause=BattlePauseMenuController.instance;
+        var card=pause&&pause.pausePanel?pause.pausePanel.transform.Find("PauseCard"):null;
+        if(!card||card.Find("SoundMotion"))return;
+        if(pause.resumeButton)LandscapeUI.Place(pause.resumeButton.GetComponent<RectTransform>(),43,188,672,56);
+        if(pause.abortButton)LandscapeUI.Place(pause.abortButton.GetComponent<RectTransform>(),43,328,672,56);
+        var subtitle=card.Find("Subtitle") as RectTransform;if(subtitle)LandscapeUI.Place(subtitle,38,110,682,64);
+        var audio=LandscapeUI.Button("SoundMotion",card,"SOUND & MOTION",43,258,672,56);
+        audio.onClick.AddListener(GameFeedback.OpenSettings);
     }
 
     /// <summary>

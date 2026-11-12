@@ -1,0 +1,5 @@
+FAIL Tutorial watchdog expired.
+PASS No runtime exceptions or error logs during tutorial input: 
+RESULT 1 passed, 1 failed
+Isolated Unity editor fixture. Production 2.5 base-speed crew and normal simulation rate; durable actors/unrelated firm rival arrivals suppressed. UI taps go through EventSystem raycasts and the real tutorial proxy. Includes separate first-use Police tutorial with real custody/crowd/recovery work. No phone touch, client acceptance, natural-session or store validation.
+UTC 2026-11-05T02:10:35.7781872Z

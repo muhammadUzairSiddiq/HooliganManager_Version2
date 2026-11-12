@@ -31,10 +31,10 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
         if(!GetComponent<ConciseCityButtons>())gameObject.AddComponent<ConciseCityButtons>();
         if (volumeSlider)
         {
-            volumeSlider.SetValueWithoutNotify(PlayerPrefs.GetFloat("HM.MasterVolume", 1));
-            volumeSlider.onValueChanged.AddListener(value => { AudioListener.volume = value; PlayerPrefs.SetFloat("HM.MasterVolume", value); });
+            volumeSlider.SetValueWithoutNotify(GameFeedback.MasterVolume);
+            volumeSlider.onValueChanged.AddListener(value => GameFeedback.MasterVolume = value);
         }
-        AudioListener.volume = PlayerPrefs.GetFloat("HM.MasterVolume", 1);
+        AudioListener.volume = GameFeedback.MasterVolume;
         Application.targetFrameRate = PlayerPrefs.GetInt("HM.FrameRate", 60);
         motion = GetComponent<LandscapeScreenMotion>();
         SimpleShellLayout.Apply(this);
@@ -64,8 +64,8 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
     public void Navigate(string action)
     {
         if (action == "settings") { ShowSettings(true); return; }
-        if (action == "close-settings") { ShowSettings(false); PlayerPrefs.Save(); return; }
-        if (action == "credits") { GamePopup.Instance.Show("HOOLIGAN MANAGER", "Build your firm. Rule the terraces.\nA football firm strategy game.\nUI artwork: the project's Updated UI collection.\nCrowd audio: Gregor Quendel — Free Crowd Cheering Sounds (CC BY 4.0).\ngregorquendel.com · creativecommons.org/licenses/by/4.0/\nopengameart.org/content/free-crowd-cheering-sounds", new GamePopup.Option("BACK", PanelColor, null)); return; }
+        if (action == "close-settings") { ShowSettings(false); GameFeedback.SavePreferences(); return; }
+        if (action == "credits") { GamePopup.Instance.Show("HOOLIGAN MANAGER", "Build your firm. Rule the terraces.\nA football firm strategy game.\nUI artwork: the project's Updated UI collection.\nMusic: Urban Theme — MintoDog; Espionage — brandon75689 (CC0).\nUI, foley and jingles: Kenney.nl (CC0).\ncreativecommons.org/publicdomain/zero/1.0/\nCrowd: Gregor Quendel — Free Crowd Cheering Sounds (CC BY 4.0).\ngregorquendel.com · creativecommons.org/licenses/by/4.0/\nopengameart.org/content/free-crowd-cheering-sounds", new GamePopup.Option("BACK", PanelColor, null)); return; }
         if (action == "load")
         {
             if (GameManager.HasSaveData())
@@ -107,7 +107,7 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
             pages[i].SetActive(names[i] == action);
         }
         motion?.HighlightButtons(action);
-        if (screenTitle) screenTitle.text = action == "home" ? "YOUR TOWN" : action == "trips" ? "AWAY TRIPS" : action.ToUpper();
+        if (screenTitle) screenTitle.text = action == "home" ? "YOUR TOWN" : action == "trips" ? "AWAY MODE" : action.ToUpper();
         if (action == "squad") BuildSquad();
         if (action == "missions") BuildMissions();
         Refresh();
@@ -162,11 +162,11 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
         if (visible)
         {
             var panel=settingsPanel.transform.Find("Settings");
-            if(panel&&!panel.Find("TapMovement"))
+            if(panel)
             {
-                var help=panel.Find("Controls");if(help)help.gameObject.SetActive(false);
-                LandscapeUI.Text("TapMovementTitle",panel,"TAP MOVEMENT",44,428,480,40,23,null,true);
-                LandscapeUI.Text("TapMovement",panel,"DWARF WALK",570,414,244,58,24,LandscapeUI.White,true);
+                var audio=panel.GetComponent<AudioSettingsControls>();
+                if(!audio){audio=panel.gameObject.AddComponent<AudioSettingsControls>();audio.Build(volumeSlider);}
+                else audio.Refresh();
             }
             settingsPanel.transform.SetAsLastSibling();
             var rt = settingsPanel.GetComponent<RectTransform>();
@@ -190,6 +190,7 @@ public sealed class LandscapeFrontEnd : MonoBehaviour
     void RefreshMenuButtons()
     {
         if (!mainMenu) return;
+        SimpleShellLayout.RefreshModes();
         bool hasSave = GameManager.HasSaveData();
         foreach (var selectable in GetComponentsInChildren<Selectable>(true))
         {

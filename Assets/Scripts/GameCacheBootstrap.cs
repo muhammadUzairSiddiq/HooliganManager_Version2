@@ -1,75 +1,110 @@
+using System;
 using System.IO;
 using UnityEngine;
 
-/// <summary>
-/// Clears stale PlayerPrefs / Unity cache once per fresh install of this package.
-/// Android updates that keep the same package id can leave a doomed campaign save
-/// (all 0 HP / empty away selection) which immediately shows WASTED on gameplay load.
-/// A brand-new package id already starts clean; this still runs as a safety net.
-/// </summary>
 public static class GameCacheBootstrap
 {
-    /// <summary>Bump when shipping a build that must force a one-time prefs wipe.</summary>
+    // Older editor fixtures still preserve this preference.
     public const string InstallMarkerKey = "HM.InstallCleared.v3";
+    const string CacheVersionKey = "HM.CacheVersion";
 
-    /// <summary>Runs before any scene Awake so GameData never loads a doomed save first.</summary>
+    internal static string InstalledVersion
+    {
+        get
+        {
+#if UNITY_EDITOR
+            return null;
+#else
+            return Application.version;
+#endif
+        }
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Boot()
     {
-        ClearAllGameCacheForFirstInstall();
-    }
-
-    /// <summary>
-    /// MainMenu safety net — same first-install wipe. Safe to call repeatedly;
-    /// only runs once per InstallMarkerKey.
-    /// </summary>
-    public static void ClearAllGameCacheForFirstInstall()
-    {
-#if UNITY_EDITOR
-        // Isolated playtests must never clear the developer's real save/settings.
-        if (!string.IsNullOrEmpty(SaveDataInLocal.EditorSaveOverride)) return;
-#endif
-        if (PlayerPrefs.HasKey(InstallMarkerKey))
+        string version = InstalledVersion;
+        if (string.IsNullOrEmpty(version) || PlayerPrefs.GetString(CacheVersionKey, "") == version)
             return;
 
-        Debug.Log("[GameCacheBootstrap] First install of this package — clearing campaign cache.");
-        ClearAllGameCache();
-        PlayerPrefs.SetInt(InstallMarkerKey, 1);
-        PlayerPrefs.Save();
+        bool temporaryCleared = ClearTemporaryCache(Application.temporaryCachePath);
+        bool downloadsCleared = false;
+        try
+        {
+            downloadsCleared = Caching.ClearCache();
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("[GameCacheBootstrap] Could not clear Unity's download cache: " + e.Message);
+        }
+
+        // A locked cache can be retried on the next launch. Tutorial refresh
+        // has its own saved version and does not depend on the cache result.
+        if (temporaryCleared && downloadsCleared)
+        {
+            PlayerPrefs.SetString(CacheVersionKey, version);
+            PlayerPrefs.Save();
+        }
     }
 
-    /// <summary>Wipes campaign saves, settings prefs, and Unity download cache.</summary>
-    public static void ClearAllGameCache()
+    public static bool ClearTemporaryCache(string path)
     {
-        try
-        {
-            if (Caching.compressionEnabled || Caching.cacheCount > 0)
-                Caching.ClearCache();
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogWarning("[GameCacheBootstrap] Caching.ClearCache failed: " + e.Message);
-        }
+        if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+            return true;
 
+        bool cleared = true;
         try
         {
-            string temp = Application.temporaryCachePath;
-            if (!string.IsNullOrEmpty(temp) && Directory.Exists(temp))
+            foreach (var entry in new DirectoryInfo(path).EnumerateFileSystemInfos())
             {
-                foreach (var path in Directory.GetFiles(temp))
+                try
                 {
-                    try { File.Delete(path); } catch { /* ignore locked files */ }
+                    if (entry is DirectoryInfo directory)
+                        directory.Delete((entry.Attributes & FileAttributes.ReparsePoint) == 0);
+                    else
+                        entry.Delete();
+                }
+                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                {
+                    cleared = false;
+                    Debug.LogWarning("[GameCacheBootstrap] Temporary cache item could not be cleared: " + e.Message);
                 }
             }
         }
-        catch (System.Exception e)
+        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
         {
-            Debug.LogWarning("[GameCacheBootstrap] Temp cache wipe failed: " + e.Message);
+            cleared = false;
+            Debug.LogWarning("[GameCacheBootstrap] Temporary cache could not be read: " + e.Message);
         }
+        return cleared;
+    }
 
-        // Campaign authority + settings. DeleteAll is intentional for first install
-        // of a new package build so no prior doomed save can revive.
-        PlayerPrefs.DeleteAll();
-        PlayerPrefs.Save();
+    public static bool RefreshFirmTutorial(PlayerData data, string version)
+    {
+        if (!RefreshTutorialVersion(data, version)) return false;
+        data.MobileTutorialVersion = 0;
+        data.MobileTutorialStep = 0;
+        data.MobileTutorialRequired = true;
+        data.FirstSessionCoachHidden = false;
+        data.MatchdayTutorialPending = false;
+        return true;
+    }
+
+    public static bool RefreshPoliceTutorial(PoliceCampaignData career, string version)
+    {
+        if (!RefreshTutorialVersion(career?.officers, version)) return false;
+        career.PoliceTutorialVersion = 0;
+        career.PoliceTutorialStep = 0;
+        career.PoliceTutorialRequired = true;
+        career.PoliceTutorialRoadId = null;
+        return true;
+    }
+
+    static bool RefreshTutorialVersion(PlayerData data, string version)
+    {
+        if (data == null || string.IsNullOrEmpty(version) || data.TutorialAppVersion == version)
+            return false;
+        data.TutorialAppVersion = version;
+        return true;
     }
 }

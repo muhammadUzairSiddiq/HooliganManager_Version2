@@ -53,6 +53,7 @@ public sealed class LandscapeBattleHUD : MonoBehaviour
         }
         if(Keyboard.current!=null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
+            if(GameFeedback.SettingsOpen){GameFeedback.CloseSettings();return;}
             var controller=BattlePauseMenuController.instance;
             if(controller) { if(controller.IsVisible) controller.Hide(); else controller.Show(); }
         }

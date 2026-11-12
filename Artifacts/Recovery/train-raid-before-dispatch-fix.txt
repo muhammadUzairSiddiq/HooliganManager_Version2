@@ -1,0 +1,31 @@
+PASS Actual train service retains the authored railway height
+PASS Passenger dispatch rejects a train that is not physically at its stop
+FAIL The actual station-positioned train stops its carriages before dispatch
+FAIL One real stop dispatches multiple named home, visiting and neutral groups
+FAIL Home, visiting and city-traveller groups head to distinct pub, stadium and shop purposes
+PASS Station groups emerge from distinct connected carriage-projected exits instead of one spawn pile
+PASS Recorded actual arrival spawn points are on station-level curbs rather than rooftops
+FAIL Every actual arrival actor receives a complete route on its own navigation type
+PASS Arriving supporters physically leave their exits along the assigned routes
+PASS Ambient arrivals stay bounded and never create free player crew
+PASS The same actual train can serve a later scheduled stop
+PASS Repeated arrival waves respect both local and shared city actor budgets
+PASS Disabling the service releases its pooled arrivals and the held train without hiding railway geometry
+PASS An unguarded actual business accepts a real existing-gang raid assignment
+PASS Raid uses multiple existing members of one real firm and does not invent an ambient army
+PASS Assigned raiders physically travel toward the shop
+PASS Actual arrival and timed on-site work record NPC loot, disruption and cooldown once
+PASS NPC theft never rewards the player's wallet/heat and cannot replay within its saved cooldown
+PASS Native save retains rival raid identity, disruption and replay protection
+PASS A completed shop raid uses bounded local damage feedback and respects reduced-motion preference
+PASS Repeated damage feedback reuses at most two effects and adds no world collider
+PASS Transient damage clears, and water foam exists only for a verified existing surface
+PASS A separate venue can receive a later independent raid
+PASS A newer real route cancels the raid without theft and retains the replacement navigation order
+PASS A defender may pre-position outside a shop while rivals begin their real approach
+PASS Actual defender arrival interrupts exposed rival work before any loot or disruption outcome
+PASS A real on-foot police patrol can wait outside an independently targeted shop
+PASS Actual police arrival interrupts the exposed shop raid without crediting NPC loot
+RESULT 24 passed, 4 failed
+Native disposable fixture: train spline phase positioned at its real station stop to isolate dispatch; durable fast response crew, accelerated time, automatic rival clashes disabled. Existing gang actors still walk actual complete routes and perform timed work. No natural service-frequency/device/performance claim.
+UTC 2026-11-03T04:20:36.0292024Z

@@ -1,4 +1,92 @@
-LATEST OWNER PRIORITIES - 02 NOVEMBER 2026
+LATEST OWNER CORRECTION - 12 NOVEMBER 2026: AUTOMATIC MATCHDAY AND RTS
+Prioritize direct RTS squad control and a readable living city. Matchday runs
+alongside Home without an explicit start, paid setup or objective quota.
+Crowds, roadblocks, gates, policing and dispersal run by themselves. Offer one
+optional field order at a time and show consequences in the world. This
+supersedes the earlier mandatory stadium start and checklist.
+
+PRECEDING OWNER CORRECTION - 12 NOVEMBER 2026: MATCHDAY REFERENCE AND POLICE
+Review the Going Dutch gameplay sequence again. Bring its crowd movement,
+fenced approaches and simultaneous street pressure into the existing city.
+Show real 3D cones and barricades at multiple roads. Give local closures
+marked police vehicles, foot officers, flashing lights and positional sirens.
+Give the stadium and other missions actions with observable outcomes.
+Connect Home preparation, Matchday decisions, Away deployment and return
+through shared campaign consequences. Make the next action visible in the
+existing RTS HUD. Close actual travel lanes with upright barriers and cones.
+Police work removes the blockade and releases the waiting crowd.
+
+LATEST OWNER CORRECTION - 05 NOVEMBER 2026: CAMERA PASSAGE AND LIVE MATCHDAY
+Hide eligible building renderers while the camera passes through them and
+restore them on exit. Roads and railway geometry stay visible.
+Use the same world button style as other city locations and anchor Matchday
+beside the actual stadium. Verify the football game reference directly.
+Build simultaneous activity across districts. Supporters should arrive and
+move through the city, multiple road closures should affect traffic, and police
+should pursue and arrest fighting crew, rivals and supporters. Replace passive
+coverage objectives with distinct actions and outcomes, including varied Home
+missions. This supersedes the earlier touch-only visibility rule and 3D sign.
+
+PRECEDING OWNER CORRECTION - 05 NOVEMBER 2026: REAL GAMEPLAY TUTORIAL
+Use the live rendered gameplay and its actual UI, never a replacement camera
+image. Remove blur. Use a translucent black veil, rectangular highlights around
+actual buttons, and real selection/order callbacks. Pause instructions; resume
+for actual travel/work, then stop to show its visible result before NEXT.
+Patrol teaching waits for both real route endpoints. Prevent combat and damage
+throughout teaching, including work intervals; restore normal combat on exit.
+Shorten onboarding by removing redundant/nonessential steps. Move and frame the
+camera at the actual stadium and show its local Matchday activities.
+This supersedes the earlier blurred backdrop and immediate step advancement.
+
+PRECEDING OWNER CORRECTION - 05 NOVEMBER 2026: TUTORIAL COLOUR AND BLUR
+Tutorial pauses keep the world in colour. Reserve the silver pause presentation
+for real game pauses; do not infer it from the tutorial's stopped simulation clock.
+Replace the opaque blackout with a translucent blurred environment outside the
+sharp circular target. Keep minimal floating text and make Back, Next and Skip
+colourful and touchable. This supersedes the earlier opaque-blackout direction.
+
+LATEST OWNER CORRECTION - 05 NOVEMBER 2026: MODES AND WORLD MATCHDAY
+Home, Away and Police are three explicit modes. Away stays locked until the
+existing Home campaign unlock is earned; preserve previously unlocked saves.
+Remove the Away Trip and Matchday HUD shortcuts. Matchday is a living gameplay
+event entered through a real 3D MATCHDAY sign at the stadium, with local world
+actions for preparation, teams and starting. Do not present the event as a
+standalone command-screen destination. The tutorial points at that world sign.
+This supersedes older instructions below to expose those two HUD buttons.
+
+LATEST OWNER PRIORITIES - 05 NOVEMBER 2026: GUIDED OPERATIONS
+The owner explicitly requests a first-time-only blackout/spotlight tutorial that
+pauses instructions, animates a hand at one valid target and ignores other taps.
+Resume only for real movement/work, then pause on actual completion. Teach the
+seven Home parts, RTS targeting, recruitment and Matchday; provide per-part skip,
+separate Police teaching and deliberate replay. This overrides older nonmodal,
+no-blackout and no-tutorial-pause wording. Never fake skipped campaign progress.
+Expose Away trips, fix compact-map expansion and stretched full-map projection,
+and provide named bottom-right injury/event news with hide/show. Add living
+stadium crowds, visible road obstacles and queues, Hooligan NPC clearance and
+player Police crane/recovery work, physical custody/van booking and meaningful
+saved bribe/integrity/trust consequences. Read Guided_Operations_Pass.md and the
+latest Implementation_Status.md. Historical tests/APKs do not certify this cut.
+LATEST OWNER PRIORITIES - 03 NOVEMBER 2026: TRACKING AND PRESENTATION
+The owner recognizes improvement and now prioritizes knowing exactly where each
+member is going. Deliver a synchronized tactical minimap with real names,
+selection, actual navigation routes, clear territorial footprints and explicit
+rerouting; expand on tap. Provide equal world-view support: remaining route lines,
+individual focus/follow and readable offscreen crew direction. Do not rely on a
+split group's centroid to locate a specific person. Increase travel pace without
+advancing the whole simulation clock or silently rewriting saved character stats.
+Improve locomotion blending, completed Home model visibility, animated Home
+boundary growth, station arrival waves, real rival shop raids and bounded local
+effects. Tutorial should stay short, action-led and clearer, with visible world
+results. Sound/music and UI response are now explicitly authorized: older
+no-bounce wording below is superseded for decorative animation. Keep the actual
+button hitbox/layout stable; offer reduced motion and separate audio controls.
+Re-use existing art and appropriately licensed assets; record audio provenance.
+Pool/throttle effects, routes and map updates. Do not add a permanent information
+dump or claim device FPS/store readiness from editor checks. Read
+Docs/Recovery/Tracking_Presentation_Pass.md for this implementation and evidence.
+
+EARLIER OWNER PRIORITIES - 02 NOVEMBER 2026
 First compare the actual project with client messages/documents and the verified
 Storm Over Europe principles, then implement the production redesign. Read
 Docs/Recovery/Production_Gap_Comparison.md before the next gameplay/UI change.

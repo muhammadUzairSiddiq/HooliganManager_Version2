@@ -34,6 +34,18 @@ namespace ITHappy
         private NativeArray<SplineData>[] m_SplineData;
 
         private NativeArray<CarData> m_CarData;
+        private float[] m_OriginalIncidentSpeeds;
+        private bool[] m_IncidentSpeedRestricted;
+        private bool m_HasIncidentRestrictions;
+        public int IncidentStoppedVehicleCount
+        {
+            get
+            {
+                if(m_IncidentSpeedRestricted==null||!m_CarTransport.IsCreated)return 0;int count=0;
+                for(int i=0;i<m_IncidentSpeedRestricted.Length;i++)if(m_IncidentSpeedRestricted[i]&&m_CarTransport[i].speed<.4f)count++;
+                return count;
+            }
+        }
         private NativeArray<CrossData> m_CrossData;
 
         private NativeArray<CarTransport> m_CarTransport;
@@ -85,6 +97,8 @@ namespace ITHappy
             }
 
             m_Spawner.GetArrayReferences(ref m_CarData, ref m_CarTransport, ref m_CarTransform);
+            m_OriginalIncidentSpeeds=new float[m_CarData.Length];m_IncidentSpeedRestricted=new bool[m_CarData.Length];
+            for(int i=0;i<m_CarData.Length;i++)m_OriginalIncidentSpeeds[i]=m_CarData[i].speed;
 
             InitBuffers();
 
@@ -112,11 +126,30 @@ namespace ITHappy
             }
 
             var time = Time.time;
+            UpdateIncidentSpeeds();
             m_Compute.SetFloat("Rf_DeltaTime", time - m_MovedTime);
 
             m_MovedTime = time;
             m_Compute.Dispatch(m_KernelIndex, m_ThreadsSideX / k_GroupSizeX, 1, 1);
             RequestCallbacks();
+        }
+
+        private void UpdateIncidentSpeeds()
+        {
+            if(m_OriginalIncidentSpeeds==null||!m_CarData.IsCreated||!m_CarTransform.IsCreated||m_RCarsData==null)return;
+            var incidents=CityRoadIncidentSystem.Instance;
+            if((!incidents||incidents.ActiveIncidents.Count==0)&&!m_HasIncidentRestrictions)return;
+            bool changed=false,restricted=false;
+            for(int i=0;i<m_CarData.Length;i++)
+            {
+                bool blocked=CityRoadIncidentSystem.TrafficSpeedMultiplier(m_CarTransform[i].position,m_CarTransform[i].forward)==0;
+                restricted|=blocked;if(blocked==m_IncidentSpeedRestricted[i])continue;
+                m_IncidentSpeedRestricted[i]=blocked;var data=m_CarData[i];data.speed=blocked?0:m_OriginalIncidentSpeeds[i];m_CarData[i]=data;changed=true;
+            }
+            m_HasIncidentRestrictions=restricted;
+            // Existing GPU spacing makes followers queue behind the stopped car.
+            // Clearing restores cached authored speeds, never teleports transforms.
+            if(changed)m_RCarsData.SetData(m_CarData);
         }
 
         private void ApplyBuffersData()

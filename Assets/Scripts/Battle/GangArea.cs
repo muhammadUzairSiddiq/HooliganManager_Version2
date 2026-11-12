@@ -312,6 +312,9 @@ public sealed class WorldChoiceBar : MonoBehaviour
         {
             var option = options[i];
             var button = LandscapeUI.Button("Choice" + i, _frame, option.label, 0, 0, 156, 48, "dark");
+            if(option.label=="START PATROL")TutorialAnchor.Tag(button,"rts.patrolConfirm");
+            if(option.label=="CANCEL")TutorialAnchor.Tag(button,"rts.choiceCancel");
+            GetComponent<StadiumMatchdayControl>()?.TagChoice(button,i);
             var image = button.targetGraphic as UnityEngine.UI.Image;
             if (image) image.color = option.color;
             var act = option.action;
@@ -345,7 +348,7 @@ public sealed class WorldChoiceBar : MonoBehaviour
         RectTransformUtility.ScreenPointToLocalPointInRectangle(_frame, projected, null, out var local);
         float x = local.x - _frame.rect.xMin;
         float y = Mathf.Clamp(_frame.rect.yMax - local.y,285f,_frame.rect.height-155f);
-        bool visible = !AgentSelectionManager.BlocksWorldTap() && projected.z > 0.1f && x > 80f && x < _frame.rect.width - 80f && y > 110f && y < _frame.rect.height - 70f;
+        bool visible = (!AgentSelectionManager.BlocksWorldTap()||GuidedCityTutorial.AllowsWorldChoice) && projected.z > 0.1f && x > 80f && x < _frame.rect.width - 80f && y > 110f && y < _frame.rect.height - 70f;
         SetOn(visible);
         if (!visible) return;
         float row = 156f * _buttons.Count + 8f * Mathf.Max(0, _buttons.Count - 1);

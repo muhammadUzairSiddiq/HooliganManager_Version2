@@ -1,0 +1,49 @@
+DETAIL Clean service before positioning: wave=0, stopped=False, finished=True, groups=0, live=0, shared=2
+PASS Actual train service retains the authored railway height
+PASS Passenger dispatch rejects a train that is not physically at its stop
+PASS The actual station-positioned train stops its carriages before dispatch
+DETAIL Completed first stop: wave=1, stopped=True, finished=True, groups=3, live=9, shared=14
+DETAIL dispatch: Wave 1: live=0/18, shared=2, station=(673.15, 0.01, -144.09), carriage=(674.61, 9.59, -207.60)
+DETAIL dispatch: HOME FANS: members=4/4, exit=(676.15, 0.01, -144.09), venue=(-64.20, 0.01, -216.90), invalidSpawn=0, rejectedRoute=0, rejectedBodyOrBudget=0, live=4, shared=9
+DETAIL dispatch: VISITING SUPPORTERS: members=2/4, exit=(658.34, 0.16, -210.29), venue=(78.88, 0.01, -216.90), invalidSpawn=0, rejectedRoute=2, rejectedBodyOrBudget=0, live=6, shared=11
+DETAIL dispatch: CITY TRAVELLERS: members=3/3, exit=(658.60, 0.11, -215.45), venue=(369.19, 0.04, 171.32), invalidSpawn=0, rejectedRoute=0, rejectedBodyOrBudget=0, live=9, shared=14
+DETAIL group=HOME FANS; firm=North City Crew; members=4; exit=(676.15, 0.01, -144.09); venue=(-64.20, 0.01, -216.90)
+DETAIL actor=-1689126, alive=True, position=(666.28, 0.01, -140.30), type=0, mask=-1, onMesh=True, hasPath=True, pending=False, status=PathComplete, remaining=Infinity, escortFailure=
+DETAIL actor=-1689534, alive=True, position=(668.51, 0.01, -140.73), type=0, mask=-1, onMesh=True, hasPath=True, pending=False, status=PathComplete, remaining=Infinity, escortFailure=
+DETAIL actor=-1689738, alive=True, position=(667.16, 0.01, -139.55), type=0, mask=-1, onMesh=True, hasPath=True, pending=False, status=PathComplete, remaining=Infinity, escortFailure=
+DETAIL actor=-1689942, alive=True, position=(669.45, 0.01, -139.98), type=0, mask=-1, onMesh=True, hasPath=True, pending=False, status=PathComplete, remaining=Infinity, escortFailure=
+DETAIL group=VISITING SUPPORTERS; firm=VISITING SUPPORTERS; members=2; exit=(658.34, 0.16, -210.29); venue=(78.88, 0.01, -216.90)
+DETAIL actor=-1690146, alive=True, position=(657.41, 0.11, -204.02), type=0, mask=-1, onMesh=True, hasPath=True, pending=False, status=PathComplete, remaining=Infinity, escortFailure=
+DETAIL actor=-1690350, alive=True, position=(657.52, 0.11, -202.74), type=0, mask=-1, onMesh=True, hasPath=True, pending=False, status=PathComplete, remaining=Infinity, escortFailure=
+DETAIL group=CITY TRAVELLERS; firm=NEUTRAL CITY TRAVELLERS; members=3; exit=(658.60, 0.11, -215.45); venue=(369.19, 0.04, 171.32)
+DETAIL actor=-1690554, alive=True, position=(658.00, 0.16, -212.31), type=0, mask=-1, onMesh=True, hasPath=True, pending=False, status=PathComplete, remaining=Infinity, escortFailure=
+DETAIL actor=-1690758, alive=True, position=(658.25, 0.16, -213.34), type=0, mask=-1, onMesh=True, hasPath=True, pending=False, status=PathComplete, remaining=Infinity, escortFailure=
+DETAIL actor=-1690962, alive=True, position=(658.36, 0.16, -211.28), type=0, mask=-1, onMesh=True, hasPath=True, pending=False, status=PathComplete, remaining=Infinity, escortFailure=
+PASS One real stop dispatches multiple named home, visiting and neutral groups
+PASS Home, visiting and city-traveller groups head to distinct pub, stadium and real shop purposes
+PASS Station groups emerge from distinct connected carriage-projected exits instead of one spawn pile
+PASS Recorded actual arrival spawn points are on station-level curbs rather than rooftops
+PASS Every actual arrival actor receives a complete route on its own navigation type
+PASS Arriving supporters physically leave their exits along the assigned routes
+PASS Ambient arrivals stay bounded and never create free player crew
+PASS The same actual train can serve a later scheduled stop
+PASS Repeated arrival waves respect both local and shared city actor budgets
+PASS Disabling the service releases its pooled arrivals and the held train without hiding railway geometry
+PASS An unguarded actual business accepts a real existing-gang raid assignment
+PASS Raid uses multiple existing members of one real firm and does not invent an ambient army
+PASS Assigned raiders physically travel toward the shop
+PASS Actual arrival and timed on-site work record NPC loot, disruption and cooldown once
+PASS NPC theft never rewards the player's wallet/heat and cannot replay within its saved cooldown
+PASS Native save retains rival raid identity, disruption and replay protection
+PASS A completed shop raid uses bounded local damage feedback and respects reduced-motion preference
+PASS Repeated damage feedback reuses at most two effects and adds no world collider
+PASS Transient damage clears, and water foam exists only for a verified existing surface
+PASS A separate venue can receive a later independent raid
+PASS A newer real route cancels the raid without theft and retains the replacement navigation order
+PASS A defender may pre-position outside a shop while rivals begin their real approach
+PASS Actual defender arrival interrupts exposed rival work before any loot or disruption outcome
+PASS A real on-foot police patrol can wait outside an independently targeted shop
+PASS Actual police arrival interrupts the exposed shop raid without crediting NPC loot
+RESULT 28 passed, 0 failed
+Native disposable fixture: train spline phase positioned at its real station stop to isolate dispatch; durable fast response crew, accelerated time, automatic rival clashes disabled. Existing gang actors still walk actual complete routes and perform timed work. No natural service-frequency/device/performance claim.
+UTC 2026-11-03T04:27:28.4954820Z

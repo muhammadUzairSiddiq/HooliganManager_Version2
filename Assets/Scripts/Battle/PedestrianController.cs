@@ -5,6 +5,10 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class PedestrianController : MonoBehaviour
 {
+    static readonly System.Collections.Generic.HashSet<PedestrianController> active=new System.Collections.Generic.HashSet<PedestrianController>();
+    public static int ActiveCount=>active.Count;
+    void OnEnable(){active.Add(this);}
+    void OnDisable(){active.Remove(this);}
     public float walkSpeed = 1.0f;
     public float minWaitTime = 2.0f;
     public float maxWaitTime = 7.0f;
@@ -92,8 +96,7 @@ public class PedestrianController : MonoBehaviour
         float speed = _navAgent.velocity.magnitude;
         if (_animController != null)
         {
-            // If we are not waiting, ALWAYS play the walking animation, regardless of NavMesh velocity.
-            // This ensures they start walking immediately on spawn without waiting for acceleration.
+            // Match the real velocity: stationary people must not tread in place.
             float normSpeed = Mathf.Clamp01(speed / Mathf.Max(.1f, walkSpeed)) * .5f;
             // We pass false for isFighting so it uses Idle instead of BattleIdle when standing still
             _animController.Tick(normSpeed, _streetFight || _conversationPaused);

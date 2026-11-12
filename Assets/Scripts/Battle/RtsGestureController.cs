@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
@@ -104,19 +105,35 @@ public sealed class RtsGestureController : MonoBehaviour
         if (mode == InputMode.PatrolA || mode == InputMode.PatrolB)
         {
             if (!Ground(p, out var point)) { Hint("Choose a walkable street"); return; }
-            if (mode == InputMode.PatrolA) { routeA = point; routePreview=RtsOrderVisual.Pin(transform,point,"A",Color.cyan); Mode = InputMode.PatrolB; Hint("PATROL · tap point B"); }
+            AcceptTargetPoint(point);
+            return;
+        }
+        if (mode == InputMode.Menu || mode == InputMode.PatrolReady) { Cancel(); return; }
+        selection.HandleTap(p);
+    }
+
+    /// <summary>Shared validated world target path, also used by the exclusive first-run spotlight.</summary>
+    public bool AcceptTargetPoint(Vector3 point)
+    {
+        if(Mode==InputMode.GuardArea)
+        {
+            IssueGuard(GuardBounds(point,point+new Vector3(8,0,8)));
+            return Mode==InputMode.Camera;
+        }
+        if(Mode==InputMode.PatrolA||Mode==InputMode.PatrolB)
+        {
+            if (Mode == InputMode.PatrolA) { routeA = point; routePreview=RtsOrderVisual.Pin(transform,point,"A",Color.cyan); Mode = InputMode.PatrolB; Hint("PATROL · tap point B"); }
             else
             {
-                if (Vector3.Distance(routeA, point) < 3f) { Hint("Choose point B farther away"); return; }
+                if (Vector3.Distance(routeA, point) < 3f) { Hint("Choose point B farther away"); return false; }
                 routeB = point; Mode = InputMode.PatrolReady; Anchor(point);
                 RtsOrderVisual.Pin(routePreview.transform,point,"B",Color.cyan);
                 WorldChoiceBar.Present(anchor, "PATROL A → B", Cancel,
                     ("START PATROL", LandscapeUI.Green, StartPatrol), ("CANCEL", LandscapeUI.PanelColor, Cancel));
             }
-            return;
+            return true;
         }
-        if (mode == InputMode.Menu || mode == InputMode.PatrolReady) { Cancel(); return; }
-        selection.HandleTap(p);
+        return false;
     }
 
     void Anchor(Vector3 point)

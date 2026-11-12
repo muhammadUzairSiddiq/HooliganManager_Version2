@@ -1,0 +1,39 @@
+PASS Traffic hot-reload cache recovery preserves and advances the existing interpolation sample
+PASS Actual wheel movement restores its lost renderer cache without exceptions
+PASS Disabled cached traffic parts do not receive movement updates
+PASS Destroyed Unity components held by an interface cache are safely skipped
+PASS Disabled traffic targets ignore late incoming transform samples
+PASS Missing traffic routes retain the last safe pose and export an empty buffer slot
+PASS Destroyed traffic targets safely export an empty slot without stopping other traffic
+PASS Every semantic event references an imported, non-empty authored clip
+PASS Menu/exploration and matchday use distinct authored music cues
+PASS One persistent service owns exactly two music sources and eight effects voices
+PASS Existing campaign MusicVolume/SFXVolume are honored when new global preferences are absent
+PASS Resized authored Save and Performance buttons retain centered captions wholly inside their actual hit areas
+PASS Actual settings slider callbacks independently update music and effects volumes
+PASS Music mute affects both music channels without muting effects
+PASS Effects mute affects all eight voices without muting music
+PASS New stadium sources immediately honor an already-muted effects bus
+PASS Press response decorates the label while the actual button hitbox stays fixed
+PASS Release microbounce animates only decorative content, preserving the exact tap area
+PASS Reduced motion suppresses decorative bounce with unchanged button geometry
+PASS One hundred same-frame combat events are throttled to one actual pooled voice
+PASS A burst of one hundred rewards reuses the six-slot decoration pool without allocating more stars
+PASS Success effects have no raycast surface and cannot block world commands
+PASS Success effects retire themselves after their bounded lifetime
+PASS Reduced motion suppresses success particles while leaving semantic audio available
+PASS The real music mixer crossfades two imported cues concurrently
+PASS Completed crossfade retires the outgoing cue rather than accumulating music sources
+PASS Save & Close durably preserves both channel values in the isolated native campaign
+PASS Public live settings opens the shared controls without pausing or leaving the current scene
+PASS Live settings backdrop covers the entire 20:9 frame and its panel remains centered
+PASS Live settings backdrop covers the entire 4:3 frame and its panel remains centered
+PASS Open live settings blocks world commands through the shared input guard
+PASS Live settings sliders use the same independent music/effects callbacks
+PASS Close consumes its release while retaining the live simulation speed
+PASS Dismissal guard retires after its bounded release window
+PASS Closing audio settings over an explicit Pause does not resume the simulation
+PASS Settings exposes in-app credits for existing attributed crowd and new CC0 audio
+PASS Actual menu reload preserves independent volume, mute and reduced-motion preferences
+PASS Scene reload retains one bounded audio service rather than stacking music owners
+RESULT 38 passed, 0 failed

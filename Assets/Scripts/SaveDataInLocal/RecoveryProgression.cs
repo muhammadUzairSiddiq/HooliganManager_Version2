@@ -14,6 +14,10 @@ public static class RecoveryProgression
         if (data == null) return;
         data.RecoveryVersion = Version;
         data.RecoveryGuidedStart = true;
+        data.MobileTutorialRequired = true;
+        data.TutorialAppVersion = GameCacheBootstrap.InstalledVersion;
+        data.MobileTutorialStep = 0;
+        data.MobileTutorialVersion = 0;
         data.CampaignStartingHeatApplied = true;
         data.PoliceHeat = StarterHeat;
     }

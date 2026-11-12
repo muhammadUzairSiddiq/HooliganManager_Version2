@@ -55,6 +55,11 @@ public static class ProductionStrategyPlaytest
     static void Tick()
     {
         if(!SessionState.GetBool(Key,false)||!EditorApplication.isPlaying||finished)return;
+        // Defer only unrelated arrivals in this disposable campaign. Do not
+        // disable their components or affect the deliberate matchday director.
+        var isolatedData=GameManager.Data;
+        if(isolatedData?.RivalStreets!=null)foreach(var firm in isolatedData.RivalStreets)if(firm!=null)firm.nextArrivalSeconds=Mathf.Max(firm.nextArrivalSeconds,10000);
+        if(CityTrainSchedule.Instance)CityTrainSchedule.Instance.AutomaticArrivalsEnabled=false;
         if(EditorApplication.timeSinceStartup>deadline){Finish("Production strategy watchdog expired.");return;}
         if(running||!Ready())return;
         running=true;deadline=EditorApplication.timeSinceStartup+900;
@@ -70,7 +75,7 @@ public static class ProductionStrategyPlaytest
     {
         if(finished)return;finished=true;if(error!=null)rows.Add("FAIL "+error);
         rows.Add($"RESULT {rows.Count(r=>r.StartsWith("PASS "))} passed, {rows.Count(r=>r.StartsWith("FAIL "))} failed");
-        rows.Add("Native disposable fixture: five durable fast crew; accelerated time; unrelated rival/police pressure suppressed. Matchday clock frozen after explicit start to isolate allocation, escort and staffing, then resumed through its real aftermath timer. Later preparation is seeded; not a natural campaign, device touch, performance or client-acceptance test.");
+        rows.Add("Native disposable fixture: durable crew; Home builder uses production base speed 2.5 with normal-time travel and up to 3x stationary work; later matchday uses the existing fast response crew/accelerated clock, with a production-speed escort guide. Unrelated arrivals/police pressure suppressed. Matchday clock frozen after explicit start to isolate allocation, escort and staffing, then resumed through real aftermath. Later preparation is seeded; not a natural campaign, device touch, performance or client-acceptance test.");
         rows.Add("UTC "+DateTime.UtcNow.ToString("O"));RecoveryReport.WriteLines(Report,rows);Time.timeScale=1;EditorApplication.isPlaying=false;
     }
     static IEnumerator Until(Func<bool> complete,float seconds=60)
@@ -85,13 +90,32 @@ public static class ProductionStrategyPlaytest
         if(LivePoliceSystem.Instance){LivePoliceSystem.Instance.StopAllCoroutines();LivePoliceSystem.Instance.enabled=false;}
         foreach(var actor in BattleManager.instance.EnemyAgents)if(actor){actor.SetCinematicIdle(true);actor.isHostile=false;}
     }
+    static void HomeDetail(HomeTerritorySystem home,AgentController builder,string stage)
+    {
+        var state=GameManager.Data?.HomeBuildings?.Find(b=>b.site==1);var nav=builder?builder.GetComponent<NavMeshAgent>():null;
+        string route=nav&&nav.enabled&&nav.isOnNavMesh?$"hasPath={nav.hasPath},pending={nav.pathPending},status={nav.pathStatus},remaining={nav.remainingDistance},destination={nav.destination},speed={nav.speed:0.00},velocity={nav.velocity},corners={nav.path.corners.Length}":"navigation unavailable";
+        rows.Add($"DETAIL {stage}: status={home.Status}; active={home.IsBuilding}; site={home.ActiveSite}; work={home.Progress:0.00}; yardLevel={state?.level}; target={state?.targetLevel}; requested={state?.constructing}; cash={GameManager.Data?.Money}; supplies={GameManager.Data?.CitySupplies}; builder={(builder?builder.transform.position:Vector3.zero)}; builderState={(builder?builder.CurrentState.ToString():"missing")}; revision={(builder?builder.OrderRevision:-1)}; {route}");
+        RecoveryReport.WriteLines(Report,rows);
+    }
+    static IEnumerator HomeUntil(HomeTerritorySystem home,AgentController builder,Func<bool> complete,string stage,float seconds=110)
+    {
+        float until=Time.realtimeSinceStartup+seconds;
+        while(!complete()&&Time.realtimeSinceStartup<until)
+        {
+            bool working=builder&&builder.CurrentState==AgentController.State.Idle&&home.ActiveSite>=0&&home.Progress>0&&Near(builder,home.Sites[home.ActiveSite],HomeTerritorySystem.WorkRadius);
+            Time.timeScale=working?3:1;yield return null;
+        }
+        Time.timeScale=1;HomeDetail(home,builder,stage+(complete()?" reached":" TIMED OUT"));
+    }
     static IEnumerator Run()
     {
-        yield return new WaitForSecondsRealtime(2);Isolate();Time.timeScale=5;
+        yield return new WaitForSecondsRealtime(2);Isolate();Time.timeScale=1;
         var data=GameManager.Data;var city=CityGameplay.Instance;var home=HomeTerritorySystem.Instance;var hud=ModernCityHud.Instance;var select=AgentSelectionManager.instance;
         var crew=BattleManager.instance.PlayerAgents.Where(a=>a&&a.IsAlive).ToArray();
-        Check(crew.Length==5&&!StadiumMatchdayActivity.Instance.HasStarted,"Fresh fixture has a viable crew and waits for a deliberate matchday start");
+        StadiumMatchdayActivity.Instance.AutomaticMatchdaysEnabled=false;
+        Check(crew.Length==5&&!StadiumMatchdayActivity.Instance.HasStarted,"Legacy manual fixture has a viable crew and awaits explicit start");
         if(crew.Length<5)yield break;
+        float fixtureBuilderSpeed=crew[0].Data.Speed;crew[0].Data.Speed=2.5f;crew[0].ApplyRosterStats();
         Check(FirstSessionGuide.TryLesson(data,out var lesson)&&lesson.step==1&&lesson.button=="OPEN CREW","First lesson names the actual CREW button and waits for selection");
         hud.OpenCrew();yield return null;hud.CloseSheet();
         Check(!data.LearnedSelection&&FirstSessionGuide.TryLesson(data,out lesson)&&lesson.step==1,"Opening the crew sheet alone cannot complete the selection lesson");
@@ -99,20 +123,20 @@ public static class ProductionStrategyPlaytest
         Check(RecoveryProgression.OrientationComplete(data)&&FirstSessionGuide.TryLesson(data,out lesson)&&lesson.step==5,"Real selection, repeated movement and group split advance to the Home construction lesson");
         Select(crew[0]);int cash=data.Money;
         Check(home.BeginBuild(0),"The tutorial's headquarters action assigns real selected crew");
-        yield return Until(()=>home.Progress>2||!home.IsBuilding);
+        yield return HomeUntil(home,crew[0],()=>home.Progress>2||!home.IsBuilding,"HQ actual on-site work");
         var ghost=GameObject.Find("HOME CONSTRUCTION IN PROGRESS");float earlyHeight=ghost?ghost.transform.localScale.y:0;
-        yield return new WaitForSeconds(3);
+        Time.timeScale=home.Progress>0&&crew[0].CurrentState==AgentController.State.Idle?3:1;yield return new WaitForSeconds(3);Time.timeScale=1;
         Check(home.IsBuilding&&ghost&&ghost.transform.localScale.y>earlyHeight,"On-site work visibly grows the construction model before completion");
-        yield return Until(()=>!home.IsBuilding);
+        yield return HomeUntil(home,crew[0],()=>!home.IsBuilding,"HQ completion");
         Check(HomeTerritorySystem.Level(data,0)==1&&data.Money==cash,"Headquarters completes once without a cash charge");
         Check(FirstSessionGuide.TryLesson(data,out lesson)&&lesson.step==6,"Finished headquarters leads to a specific supply-production lesson");
-        Check(home.BeginBuild(1),"Selected crew starts the supply yard in the world");yield return Until(()=>!home.IsBuilding);
+        Check(home.BeginBuild(1),"Selected crew starts the supply yard in the world");yield return HomeUntil(home,crew[0],()=>!home.IsBuilding,"Supply yard completion");
         Check(HomeTerritorySystem.Level(data,1)==1&&data.Money==cash-300,"Supply yard consumes its declared investment only after construction");
-        Check(home.BeginBuild(2),"Training ground can be developed after the headquarters");yield return Until(()=>!home.IsBuilding);
+        Check(home.BeginBuild(2),"Training ground can be developed after the headquarters");yield return HomeUntil(home,crew[0],()=>!home.IsBuilding,"Training completion");
         Check(HomeTerritorySystem.Level(data,2)==1&&data.HomeTrainingLevel==1&&!FirstSessionGuide.TryLesson(data,out lesson),"All three developed facilities complete the short coach through actual outcomes");
         data.CitySupplies=20;cash=data.Money;int upgradeCost=HomeTerritorySystem.Cost(data,1);
         Check(home.BeginBuild(1),"A completed base permits a second-level production investment");
-        yield return Until(()=>home.Progress>4||!home.IsBuilding);
+        yield return HomeUntil(home,crew[0],()=>home.Progress>4||!home.IsBuilding,"Upgrade before native save");
         float savedWork=home.Progress;GameManager.Save();var loaded=SaveDataInLocal.DataLoad();
         Check(savedWork>0&&loaded.HomeBuildings.Any(b=>b.site==1&&b.constructing&&b.targetLevel==2&&b.workSeconds>=savedWork-.1f&&b.workerIds.Contains(crew[0].Data.AgentId)),"Native save retains unfinished investment, work progress and actual builder identity");
         string builderId=crew[0].Data.AgentId;int oldHomeId=home.GetInstanceID();Time.timeScale=1;
@@ -125,10 +149,14 @@ public static class ProductionStrategyPlaytest
             rows.Add($"DETAIL construction resume: status={home?.Status}; active={home?.IsBuilding}; progress={home?.Progress}; savedWork={savedWork}; level={resumeState.level}; requested={resumeState.constructing}; target={resumeState.targetLevel}; workers={string.Join(",",resumeState.workerIds)}; liveCrew={crew.Length}; expectedBuilderPresent={crew.Any(a=>a.Data.AgentId==builderId)}; cash={data.Money}; expectedBeforeCharge={cash}");
         }
         Check(home&&home.IsBuilding&&home.Progress>=savedWork-.1f,"A real scene reload resumes unfinished construction rather than charging or resetting it");
-        Time.timeScale=5;yield return Until(()=>!home.IsBuilding);
+        var resumedBuilder=crew.FirstOrDefault(a=>a.Data.AgentId==builderId);
+        yield return HomeUntil(home,resumedBuilder,()=>!home.IsBuilding,"Resumed production investment");
         Check(HomeTerritorySystem.Level(data,1)==2&&data.Money==cash-upgradeCost,"Resumed investment completes to level two and debits its price once");
         Check(data.CityDevelopment.Find(p=>p.site==1).level>=2&&GameObject.Find("SUPPLY YARD upgrade 2"),"Production upgrade changes supply capacity and adds visible built-world development");
         Check(!data.HomeBuildings.Find(b=>b.site==1).constructing,"Completed investment clears its saved work assignment");
+        // Retain the established later allocation fixture; only Home travel
+        // changed, while its separate escort guide still returns to base 2.5.
+        crew[0].Data.Speed=fixtureBuilderSpeed;crew[0].ApplyRosterStats();Time.timeScale=5;
 
         // Verify the owner's explicit visibility rule using an actual screen-space touch.
         var visibility=RtsBuildingVisibility.Instance;var roads=UnityEngine.Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None).Where(r=>r.name.StartsWith("road_")||r.name.StartsWith("railway_")&&!r.name.StartsWith("railway_station_")).ToArray();
@@ -173,6 +201,7 @@ public static class ProductionStrategyPlaytest
         Select(crew[3]);select.CommandSelectedMoveTo(city.Home);yield return Until(()=>!Near(crew[3],match.StallPoint,12),40);
         cash=data.Money;supplies=data.CitySupplies;
         Check(stadium.BeginMatchday()&&data.Money==cash-150&&data.CitySupplies==supplies-2,"Explicit START commits the selected trade plan cost once");
+        data.MatchdayStreet=null; // Exercise an older in-progress coverage save.
         yield return new WaitForSeconds(1);Isolate();stadium.enabled=false;
         cash=data.Money;supplies=data.CitySupplies;
         Check(!stadium.BeginMatchday()&&data.Money==cash&&data.CitySupplies==supplies&&!MatchdayTactics.Choose(data,1),"Repeated START cannot charge again or change a committed matchday approach");

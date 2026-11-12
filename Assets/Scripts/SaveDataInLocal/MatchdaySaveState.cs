@@ -5,10 +5,10 @@ using UnityEngine;
 [Serializable]
 public sealed class MatchdayGroupSave
 {
-    public string name,color,task;
+    public string name,color,task,cordonId;
     public int role,taskIndex,opponent=-1;
     public Vector3 home,destination;
-    public bool inConflict;
+    public bool inConflict, gateQueue;
     public float nextTaskSeconds,conflictSeconds;
     public List<MatchdayMemberSave> members=new List<MatchdayMemberSave>();
 }
@@ -17,5 +17,5 @@ public sealed class MatchdayMemberSave
 {
     public float hp;
     public Vector3 position;
-    public bool wasSpawned;
+    public bool wasSpawned, detained;
 }

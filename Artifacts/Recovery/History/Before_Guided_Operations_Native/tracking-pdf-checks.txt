@@ -1,0 +1,6 @@
+PASS Draft PDF contains 14 current review pages and all 134 historical appendix pages (148 total).
+PASS All 553 native checks in the PDF match current inspected reports; zero native failures.
+PASS Original historical PDF SHA-256 unchanged; all 134 appended pages retain identical extracted text and annotation counts.
+PASS First appended historical page renders pixel-identically to the original at 60 DPI.
+PASS Initial 13 review layouts rendered and inspected; added mobile RTS control/hold-menu page rendered at 110 DPI and inspected without clipping, overlap or missing image.
+DRAFT: Android package pending; final delivery page must be regenerated and visually checked after actual build verification.

@@ -1030,10 +1030,10 @@ public class BattleManager : MonoBehaviour
         var plan = RivalGrowthSystem.BuildSpawnPlan(GameManager.Data);
         int onMap = 0;
         foreach (var e in _enemyAgents)
-            if (e != null && e.IsAlive && e.firmName != "POLICE") onMap++;
+            if (e != null && e.IsAlive && !e.IsAmbientMatchdayUnit && e.firmName != "POLICE") onMap++;
         foreach (var order in plan)
         {
-            int alive = _enemyAgents.Count(e => e != null && e.IsAlive && e.firmName == order.firmName);
+            int alive = _enemyAgents.Count(e => e != null && e.IsAlive && !e.IsAmbientMatchdayUnit && e.firmName == order.firmName);
             int need = Mathf.Max(0, order.count - alive);
             while (need > 0 && onMap < RivalGrowthSystem.MaxOnMap)
             {
@@ -1041,7 +1041,7 @@ public class BattleManager : MonoBehaviour
                 bool found = false;
                 foreach (var e in _enemyAgents)
                 {
-                    if (e == null || e.firmName != order.firmName) continue;
+                    if (e == null || e.IsAmbientMatchdayUnit || e.firmName != order.firmName) continue;
                     center = e.transform.position;
                     found = true;
                     break;
@@ -1142,18 +1142,24 @@ public class BattleManager : MonoBehaviour
 
     /// <summary>A matchday pocket: real fighters the player can meet without moving the camera.</summary>
     public EnemyController SpawnMatchdayFighter(Vector3 pos, string firm, Color color, float hp, float dmg,
-                                                 MatchdayUnitRole role, string groupName = null)
+                                                 MatchdayUnitRole role, string groupName = null, bool essential = false)
     {
         if (enemyAgentPrefab == null || string.IsNullOrEmpty(firm)) return null;
-        if (!CityActivityStreaming.TryReserveBody(pos)) return null;
+        if (!CityActivityStreaming.TryReserveBody(pos,essential)) return null;
         var sourceNav=enemyAgentPrefab.GetComponent<NavMeshAgent>();
         var spawnFilter=new NavMeshQueryFilter{agentTypeID=sourceNav?sourceNav.agentTypeID:0,areaMask=sourceNav?sourceNav.areaMask:NavMesh.AllAreas};
         if(!NavMesh.SamplePosition(pos,out NavMeshHit hit,10f,spawnFilter)){CityActivityStreaming.ReleaseBody();return null;}
         pos=hit.position;
         var go = RivalBodyPool.Take(enemyAgentPrefab, pos, Quaternion.identity,role==MatchdayUnitRole.Police?"police":"supporter");
-        if (go == null) return null;
+        if (go == null) {CityActivityStreaming.ReleaseBody();return null;}
         var ec = go.GetComponent<EnemyController>();
-        if (ec == null) return null;
+        if (ec == null)
+        {
+            CityActivityStreaming.ReleaseBody();
+            // A malformed instance cannot be reused as a supporter on the next
+            // request. Retire it instead of poisoning the shared role pool.
+            Destroy(go);return null;
+        }
         ec.StopAllCoroutines();
         ec.patrolRadius = 4.5f;
         ec.detectionRadius = firm == "POLICE" ? 16f : 8f;
@@ -1163,6 +1169,7 @@ public class BattleManager : MonoBehaviour
         ec.Initialise(hp, dmg, 2.1f, 1f,roleModels?(role==MatchdayUnitRole.Police?roleModels.police:roleModels.civilians):null);
         var spawnedNav=ec.GetComponent<NavMeshAgent>();
         if(spawnedNav&&!spawnedNav.Warp(pos)){CityActivityStreaming.ReleaseBody();RivalBodyPool.Release(go);return null;}
+        if(spawnedNav)spawnedNav.avoidancePriority=50;
         ec.isHostile = false;
         ec.ConfigureMatchdayRole(role, groupName ?? firm);
         CrewKit.PaintShirt(ec.transform, color);
@@ -1650,6 +1657,7 @@ public class BattleManager : MonoBehaviour
     public void OnAgentDied(AgentController agent)
     {
         _playerAgentsKilled++;
+        CityNewsFeed.ReportCasualty(agent);
         GameManager.Save();
         GameAudio.Play("injury");
         InjuryNotifications.Report(agent.Data);
@@ -1956,11 +1964,10 @@ public class BattleManager : MonoBehaviour
     }
 
     /// <summary>Nearby crew join a scrap. The rest of the firm keeps its orders.</summary>
-    public void AlertNearbyCrew(AgentController source, float radius = 8f)
+    public void AlertNearbyCrew(AgentController source,EnemyController enemy,float radius=8f)
     {
         if (source == null) return;
         radius += source.Data != null ? source.Data.Intelligence * 0.6f : 0f;
-        var enemy = GetNearestEnemy(source.transform.position);
         if (enemy == null || !enemy.IsAlive) return;
         float limit = radius + 6f;
         foreach (var a in _playerAgents)
@@ -1970,7 +1977,7 @@ public class BattleManager : MonoBehaviour
             if (a.CurrentState == AgentController.State.AutoAttacking) continue;
             if (Vector3.Distance(a.transform.position, source.transform.position) > radius) continue;
             if (Vector3.Distance(a.transform.position, enemy.transform.position) > limit) continue;
-            a.CommandAttackTarget(enemy);
+            a.EngageForDefence(enemy);
         }
     }
 

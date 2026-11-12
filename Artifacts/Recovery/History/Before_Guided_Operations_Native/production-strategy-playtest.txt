@@ -1,0 +1,61 @@
+PASS Fresh fixture has a viable crew and waits for a deliberate matchday start
+PASS First lesson names the actual CREW button and waits for selection
+PASS Opening the crew sheet alone cannot complete the selection lesson
+PASS Real selection, repeated movement and group split advance to the Home construction lesson
+PASS The tutorial's headquarters action assigns real selected crew
+DETAIL HQ actual on-site work reached: status=BUILDING FIRM HEADQUARTERS L1 · 19%; active=True; site=0; work=2.22; yardLevel=0; target=0; requested=False; cash=20000; supplies=0; builder=(103.96, 0.01, 95.30); builderState=Idle; revision=3; hasPath=False,pending=False,status=PathComplete,remaining=0,destination=(103.96, 0.01, 95.30),speed=4.13,velocity=(0.00, 0.00, 0.00),corners=1
+PASS On-site work visibly grows the construction model before completion
+DETAIL HQ completion reached: status=FIRM HEADQUARTERS LEVEL 1 COMPLETE. Saved permanent development.; active=False; site=-1; work=12.15; yardLevel=0; target=0; requested=False; cash=20000; supplies=0; builder=(103.96, 0.01, 95.30); builderState=Idle; revision=3; hasPath=False,pending=False,status=PathComplete,remaining=0,destination=(103.96, 0.01, 95.30),speed=4.13,velocity=(0.00, 0.00, 0.00),corners=1
+PASS Headquarters completes once without a cash charge
+PASS Finished headquarters leads to a specific supply-production lesson
+PASS Selected crew starts the supply yard in the world
+DETAIL Supply yard completion reached: status=SUPPLY YARD LEVEL 1 COMPLETE. Saved permanent development.; active=False; site=-1; work=18.04; yardLevel=1; target=1; requested=False; cash=19700; supplies=0; builder=(118.16, 0.01, 95.30); builderState=Idle; revision=4; hasPath=False,pending=False,status=PathComplete,remaining=0,destination=(118.16, 0.01, 95.30),speed=4.13,velocity=(0.00, 0.00, 0.00),corners=1
+PASS Supply yard consumes its declared investment only after construction
+PASS Training ground can be developed after the headquarters
+DETAIL Training completion reached: status=TRAINING GROUND LEVEL 1 COMPLETE. Saved permanent development.; active=False; site=-1; work=20.07; yardLevel=1; target=1; requested=False; cash=19250; supplies=0; builder=(133.05, 0.01, 95.29); builderState=Idle; revision=5; hasPath=False,pending=False,status=PathComplete,remaining=0,destination=(133.05, 0.01, 95.29),speed=4.13,velocity=(0.00, 0.00, 0.00),corners=1
+PASS All three developed facilities complete the short coach through actual outcomes
+PASS A completed base permits a second-level production investment
+DETAIL Upgrade before native save reached: status=BUILDING SUPPLY YARD L2 · 10%; active=True; site=1; work=4.00; yardLevel=1; target=2; requested=True; cash=19250; supplies=20; builder=(118.16, 0.01, 95.38); builderState=Idle; revision=6; hasPath=False,pending=False,status=PathComplete,remaining=0,destination=(118.16, 0.01, 95.38),speed=4.13,velocity=(0.00, 0.00, 0.00),corners=1
+PASS Native save retains unfinished investment, work progress and actual builder identity
+PASS A real scene reload resumes unfinished construction rather than charging or resetting it
+DETAIL Resumed production investment reached: status=SUPPLY YARD LEVEL 2 COMPLETE. Saved permanent development.; active=False; site=-1; work=40.05; yardLevel=2; target=2; requested=False; cash=18650; supplies=20; builder=(118.16, 0.01, 95.33); builderState=Idle; revision=1; hasPath=False,pending=False,status=PathComplete,remaining=0,destination=(118.16, 0.01, 95.33),speed=4.13,velocity=(0.00, 0.00, 0.00),corners=1
+PASS Resumed investment completes to level two and debits its price once
+PASS Production upgrade changes supply capacity and adds visible built-world development
+PASS Completed investment clears its saved work assignment
+PASS Roads, station platforms and parking are excluded from the building-only reveal rule
+PASS A building is not automatically hidden just because a unit is behind it
+PASS An explicit building touch hides its rendering while retaining collision
+PASS The reveal leaves every sampled road and railway renderer unchanged
+PASS Ordinary site footprints are hidden by default instead of dumping circles across the city
+PASS The controlled supporter corridor fits a starter walker's matchday budget instead of requiring a whole-city march
+PASS Player deliberately chooses the higher-staffing matchday trade approach
+PASS Separate crews can pre-position before matchday starts without replacing each other's duty
+PASS A spare selected member accepts the optional visible matchday-stall investment
+PASS Actual travel and twenty seconds of work build the stall and consume its declared resources once
+PASS Pre-positioning a pub guard does not request territory capture or silently charge an occupation tax
+PASS An existing stall cannot replay its build charge
+PASS A separate crew member can be assigned to meet arriving supporters
+PASS Pre-positioned groups physically reach their separate stadium, pub and supporter pickup destinations
+PASS Pre-positioning and an unattended calendar cannot auto-start matchday or pay coverage/trade rewards
+PASS Explicit START commits the selected trade plan cost once
+PASS Repeated START cannot charge again or change a committed matchday approach
+PASS One stadium guard covers its location while one pub member cannot satisfy the trade plan's two-person requirement
+PASS An empty built stall generates no passive matchday income
+PASS Equipping the pub spends two supplies once and cannot be replayed
+PASS Sending a second pub member completes that response without replacing the stadium group's guard order
+PASS Covering locations early does not auto-finish the chapter before aftermath
+PASS Real staffing at the built stall earns the trade approach's ninety-pound active-play payout
+PASS Moving the stall's crew away stops its income clock and payouts
+PASS Supporter pickup creates an actual following group rather than an instant reward
+PASS The escort's selected guide accepts a real stadium route
+PASS The guide and actual supporter follower physically travel to the stadium and complete the escort
+PASS Completed escort pays its declared reward once and rejects a duplicate assignment
+PASS Native save retains the chosen approach, invested stall, escort, equipped response and coverage outcomes
+PASS The real resumed matchday clock reaches aftermath and records the completed operation once
+PASS Remaining in aftermath cannot replay the operation outcome or pay another reward
+PASS A revised order cancels the explicit capture without tax or changing another group's guard duty
+PASS Explicit capture physically completes, charges its declared tax once, rejects replay and opens no global popup
+PASS Returning to Home with a later Away unlock cannot replay territory income or force a receipt popup
+RESULT 52 passed, 0 failed
+Native disposable fixture: durable crew; Home builder uses production base speed 2.5 with normal-time travel and up to 3x stationary work; later matchday uses the existing fast response crew/accelerated clock, with a production-speed escort guide. Unrelated arrivals/police pressure suppressed. Matchday clock frozen after explicit start to isolate allocation, escort and staffing, then resumed through real aftermath. Later preparation is seeded; not a natural campaign, device touch, performance or client-acceptance test.
+UTC 2026-11-03T04:41:01.6277200Z

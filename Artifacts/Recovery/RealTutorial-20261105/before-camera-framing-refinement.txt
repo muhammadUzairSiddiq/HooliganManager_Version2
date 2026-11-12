@@ -1,0 +1,264 @@
+PASS Essential Home guide reduced from 51 to 32 steps
+PASS No captured environment or blur layer replaces the real gameplay/UI
+PASS Pointer reaches the actual gameplay Button at 2400x1080
+PASS Real UI uses a rectangular highlight with translucent black, no blur, at 2400x1080
+PASS Navigation fits 2400x1080
+PASS NEXT cannot bypass a real action and tutorial pause keeps colour at 2400x1080
+PASS Pointer reaches the actual gameplay Button at 1024x768
+PASS Real UI uses a rectangular highlight with translucent black, no blur, at 1024x768
+PASS Navigation fits 1024x768
+PASS NEXT cannot bypass a real action and tutorial pause keeps colour at 1024x768
+PASS Pointer reaches the actual gameplay Button at 1280x720
+PASS Real UI uses a rectangular highlight with translucent black, no blur, at 1280x720
+PASS Navigation fits 1280x720
+PASS NEXT cannot bypass a real action and tutorial pause keeps colour at 1280x720
+PASS Instruction pauses real gameplay: YOUR CREW
+PASS Highlight and native pointer match the real visible Button: YOUR CREW
+PASS Actual gameplay target accepts input: YOUR CREW
+PASS An accepted action never skips straight to the next lesson: YOUR CREW
+PASS Real result remains paused for inspection: YOUR CREW
+PASS Result does not immediately disappear: YOUR CREW
+PASS NEXT advances only after the visible real result: YOUR CREW
+PASS Instruction pauses real gameplay: SELECT A MEMBER
+PASS Highlight and native pointer match the real visible Button: SELECT A MEMBER
+PASS Actual gameplay target accepts input: SELECT A MEMBER
+PASS An accepted action never skips straight to the next lesson: SELECT A MEMBER
+PASS Real result remains paused for inspection: SELECT A MEMBER
+PASS Result does not immediately disappear: SELECT A MEMBER
+PASS NEXT advances only after the visible real result: SELECT A MEMBER
+PASS Instruction pauses real gameplay: FIND YOUR MEMBER
+PASS Actual gameplay target accepts input: FIND YOUR MEMBER
+PASS An accepted action never skips straight to the next lesson: FIND YOUR MEMBER
+PASS Real result remains paused for inspection: FIND YOUR MEMBER
+PASS Result does not immediately disappear: FIND YOUR MEMBER
+PASS NEXT advances only after the visible real result: FIND YOUR MEMBER
+PASS Instruction pauses real gameplay: LOOK AROUND
+PASS An accepted action never skips straight to the next lesson: LOOK AROUND
+PASS Real result remains paused for inspection: LOOK AROUND
+PASS Result does not immediately disappear: LOOK AROUND
+PASS NEXT advances only after the visible real result: LOOK AROUND
+PASS Instruction pauses real gameplay: ZOOM IN
+PASS An accepted action never skips straight to the next lesson: ZOOM IN
+PASS Real result remains paused for inspection: ZOOM IN
+PASS Result does not immediately disappear: ZOOM IN
+PASS NEXT advances only after the visible real result: ZOOM IN
+PASS Instruction pauses real gameplay: ZOOM OUT
+PASS An accepted action never skips straight to the next lesson: ZOOM OUT
+PASS Real result remains paused for inspection: ZOOM OUT
+PASS Result does not immediately disappear: ZOOM OUT
+PASS NEXT advances only after the visible real result: ZOOM OUT
+PASS Instruction pauses real gameplay: MOVE
+PASS Actual gameplay target accepts input: MOVE
+PASS An accepted action never skips straight to the next lesson: MOVE
+PASS Only real work resumes; NEXT cannot skip its result: MOVE
+PASS Tutorial blocks real damage to crew and rivals even during resumed movement
+PASS Real arrival/work completes before presenting a result: MOVE
+PASS MOVE physically travels through the actual city
+PASS No tutorial fight kills or injures a real member: MOVE
+PASS Real result remains paused for inspection: MOVE
+PASS Result does not immediately disappear: MOVE
+PASS NEXT advances only after the visible real result: MOVE
+PASS Instruction pauses real gameplay: MAKE A GROUP
+PASS Highlight and native pointer match the real visible Button: MAKE A GROUP
+PASS Actual gameplay target accepts input: MAKE A GROUP
+PASS An accepted action never skips straight to the next lesson: MAKE A GROUP
+PASS Real result remains paused for inspection: MAKE A GROUP
+PASS Result does not immediately disappear: MAKE A GROUP
+PASS NEXT advances only after the visible real result: MAKE A GROUP
+PASS Instruction pauses real gameplay: ADD A MEMBER
+PASS Highlight and native pointer match the real visible Button: ADD A MEMBER
+PASS Actual gameplay target accepts input: ADD A MEMBER
+PASS An accepted action never skips straight to the next lesson: ADD A MEMBER
+PASS Real result remains paused for inspection: ADD A MEMBER
+PASS Result does not immediately disappear: ADD A MEMBER
+PASS NEXT advances only after the visible real result: ADD A MEMBER
+PASS Instruction pauses real gameplay: REMOVE ONE MEMBER
+PASS Highlight and native pointer match the real visible Button: REMOVE ONE MEMBER
+PASS Actual gameplay target accepts input: REMOVE ONE MEMBER
+PASS An accepted action never skips straight to the next lesson: REMOVE ONE MEMBER
+PASS Real result remains paused for inspection: REMOVE ONE MEMBER
+PASS Result does not immediately disappear: REMOVE ONE MEMBER
+PASS NEXT advances only after the visible real result: REMOVE ONE MEMBER
+PASS Instruction pauses real gameplay: DESELECT ALL
+PASS Highlight and native pointer match the real visible Button: DESELECT ALL
+PASS Actual gameplay target accepts input: DESELECT ALL
+PASS An accepted action never skips straight to the next lesson: DESELECT ALL
+PASS Real result remains paused for inspection: DESELECT ALL
+PASS Result does not immediately disappear: DESELECT ALL
+PASS NEXT advances only after the visible real result: DESELECT ALL
+PASS Instruction pauses real gameplay: TAKE CONTROL AGAIN
+PASS Actual gameplay target accepts input: TAKE CONTROL AGAIN
+PASS An accepted action never skips straight to the next lesson: TAKE CONTROL AGAIN
+PASS Real result remains paused for inspection: TAKE CONTROL AGAIN
+PASS Result does not immediately disappear: TAKE CONTROL AGAIN
+PASS NEXT advances only after the visible real result: TAKE CONTROL AGAIN
+PASS Instruction pauses real gameplay: BUILD YOUR HOME
+PASS Highlight and native pointer match the real visible Button: BUILD YOUR HOME
+PASS Actual gameplay target accepts input: BUILD YOUR HOME
+PASS An accepted action never skips straight to the next lesson: BUILD YOUR HOME
+PASS Real result remains paused for inspection: BUILD YOUR HOME
+PASS Result does not immediately disappear: BUILD YOUR HOME
+PASS NEXT advances only after the visible real result: BUILD YOUR HOME
+PASS Instruction pauses real gameplay: HEADQUARTERS
+PASS Highlight and native pointer match the real visible Button: HEADQUARTERS
+PASS Actual gameplay target accepts input: HEADQUARTERS
+PASS An accepted action never skips straight to the next lesson: HEADQUARTERS
+PASS Only real work resumes; NEXT cannot skip its result: HEADQUARTERS
+PASS Real arrival/work completes before presenting a result: HEADQUARTERS
+PASS No tutorial fight kills or injures a real member: HEADQUARTERS
+PASS Real result remains paused for inspection: HEADQUARTERS
+PASS Result does not immediately disappear: HEADQUARTERS
+PASS NEXT advances only after the visible real result: HEADQUARTERS
+PASS Instruction pauses real gameplay: MEMBER COMMANDS
+PASS Highlight and native pointer match the real visible Button: MEMBER COMMANDS
+PASS Actual gameplay target accepts input: MEMBER COMMANDS
+PASS An accepted action never skips straight to the next lesson: MEMBER COMMANDS
+PASS Real result remains paused for inspection: MEMBER COMMANDS
+PASS Result does not immediately disappear: MEMBER COMMANDS
+PASS NEXT advances only after the visible real result: MEMBER COMMANDS
+PASS Instruction pauses real gameplay: GUARD
+PASS Highlight and native pointer match the real visible Button: GUARD
+PASS Actual gameplay target accepts input: GUARD
+PASS An accepted action never skips straight to the next lesson: GUARD
+PASS Real result remains paused for inspection: GUARD
+PASS Result does not immediately disappear: GUARD
+PASS NEXT advances only after the visible real result: GUARD
+PASS Instruction pauses real gameplay: PLACE YOUR GUARD
+PASS Actual gameplay target accepts input: PLACE YOUR GUARD
+PASS An accepted action never skips straight to the next lesson: PLACE YOUR GUARD
+PASS Only real work resumes; NEXT cannot skip its result: PLACE YOUR GUARD
+PASS Real arrival/work completes before presenting a result: PLACE YOUR GUARD
+PASS No tutorial fight kills or injures a real member: PLACE YOUR GUARD
+PASS Real result remains paused for inspection: PLACE YOUR GUARD
+PASS Result does not immediately disappear: PLACE YOUR GUARD
+PASS NEXT advances only after the visible real result: PLACE YOUR GUARD
+PASS Instruction pauses real gameplay: PATROL
+PASS Highlight and native pointer match the real visible Button: PATROL
+PASS Actual gameplay target accepts input: PATROL
+PASS An accepted action never skips straight to the next lesson: PATROL
+PASS Real result remains paused for inspection: PATROL
+PASS Result does not immediately disappear: PATROL
+PASS NEXT advances only after the visible real result: PATROL
+PASS Instruction pauses real gameplay: PATROL ROUTE
+PASS Highlight and native pointer match the real visible Button: PATROL ROUTE
+PASS Actual gameplay target accepts input: PATROL ROUTE
+PASS An accepted action never skips straight to the next lesson: PATROL ROUTE
+PASS Real result remains paused for inspection: PATROL ROUTE
+PASS Result does not immediately disappear: PATROL ROUTE
+PASS NEXT advances only after the visible real result: PATROL ROUTE
+PASS Instruction pauses real gameplay: FIRST PATROL POINT
+PASS Actual gameplay target accepts input: FIRST PATROL POINT
+PASS An accepted action never skips straight to the next lesson: FIRST PATROL POINT
+PASS Real result remains paused for inspection: FIRST PATROL POINT
+PASS Result does not immediately disappear: FIRST PATROL POINT
+PASS NEXT advances only after the visible real result: FIRST PATROL POINT
+PASS Instruction pauses real gameplay: SECOND PATROL POINT
+PASS Actual gameplay target accepts input: SECOND PATROL POINT
+PASS An accepted action never skips straight to the next lesson: SECOND PATROL POINT
+PASS Real result remains paused for inspection: SECOND PATROL POINT
+PASS Result does not immediately disappear: SECOND PATROL POINT
+PASS NEXT advances only after the visible real result: SECOND PATROL POINT
+PASS Instruction pauses real gameplay: START PATROL
+PASS Highlight and native pointer match the real visible Button: START PATROL
+PASS Actual gameplay target accepts input: START PATROL
+PASS An accepted action never skips straight to the next lesson: START PATROL
+PASS Only real work resumes; NEXT cannot skip its result: START PATROL
+PASS Real arrival/work completes before presenting a result: START PATROL
+PASS Patrol physically visits both chosen points before NEXT becomes available
+PASS No tutorial fight kills or injures a real member: START PATROL
+PASS Real result remains paused for inspection: START PATROL
+PASS Result does not immediately disappear: START PATROL
+PASS NEXT advances only after the visible real result: START PATROL
+PASS Instruction pauses real gameplay: STOP
+PASS Highlight and native pointer match the real visible Button: STOP
+PASS Actual gameplay target accepts input: STOP
+PASS An accepted action never skips straight to the next lesson: STOP
+PASS Real result remains paused for inspection: STOP
+PASS Result does not immediately disappear: STOP
+PASS NEXT advances only after the visible real result: STOP
+PASS Instruction pauses real gameplay: SCOUT
+PASS Highlight and native pointer match the real visible Button: SCOUT
+PASS Actual gameplay target accepts input: SCOUT
+PASS An accepted action never skips straight to the next lesson: SCOUT
+PASS Real result remains paused for inspection: SCOUT
+PASS Result does not immediately disappear: SCOUT
+PASS NEXT advances only after the visible real result: SCOUT
+PASS Instruction pauses real gameplay: SCOUT THIS STREET
+PASS Actual gameplay target accepts input: SCOUT THIS STREET
+PASS An accepted action never skips straight to the next lesson: SCOUT THIS STREET
+PASS Only real work resumes; NEXT cannot skip its result: SCOUT THIS STREET
+PASS Real arrival/work completes before presenting a result: SCOUT THIS STREET
+PASS No tutorial fight kills or injures a real member: SCOUT THIS STREET
+PASS Real result remains paused for inspection: SCOUT THIS STREET
+PASS Result does not immediately disappear: SCOUT THIS STREET
+PASS NEXT advances only after the visible real result: SCOUT THIS STREET
+PASS Instruction pauses real gameplay: REGROUP
+PASS Highlight and native pointer match the real visible Button: REGROUP
+PASS Actual gameplay target accepts input: REGROUP
+PASS An accepted action never skips straight to the next lesson: REGROUP
+PASS Only real work resumes; NEXT cannot skip its result: REGROUP
+PASS Real arrival/work completes before presenting a result: REGROUP
+PASS No tutorial fight kills or injures a real member: REGROUP
+PASS Real result remains paused for inspection: REGROUP
+PASS Result does not immediately disappear: REGROUP
+PASS NEXT advances only after the visible real result: REGROUP
+PASS Instruction pauses real gameplay: GROW YOUR ROSTER
+PASS Highlight and native pointer match the real visible Button: GROW YOUR ROSTER
+PASS Actual gameplay target accepts input: GROW YOUR ROSTER
+PASS An accepted action never skips straight to the next lesson: GROW YOUR ROSTER
+PASS Real result remains paused for inspection: GROW YOUR ROSTER
+PASS Result does not immediately disappear: GROW YOUR ROSTER
+PASS NEXT advances only after the visible real result: GROW YOUR ROSTER
+PASS Instruction pauses real gameplay: RECRUIT ONE
+PASS Highlight and native pointer match the real visible Button: RECRUIT ONE
+PASS Actual gameplay target accepts input: RECRUIT ONE
+PASS An accepted action never skips straight to the next lesson: RECRUIT ONE
+PASS Real result remains paused for inspection: RECRUIT ONE
+PASS Result does not immediately disappear: RECRUIT ONE
+PASS NEXT advances only after the visible real result: RECRUIT ONE
+PASS Instruction pauses real gameplay: STADIUM MATCHDAY
+PASS Actual gameplay target accepts input: STADIUM MATCHDAY
+PASS An accepted action never skips straight to the next lesson: STADIUM MATCHDAY
+PASS Real result remains paused for inspection: STADIUM MATCHDAY
+PASS Result does not immediately disappear: STADIUM MATCHDAY
+PASS Stadium camera shows the real Matchday world sign and its actual activities
+PASS NEXT advances only after the visible real result: STADIUM MATCHDAY
+PASS Instruction pauses real gameplay: YOUR MINIMAP
+PASS Actual gameplay target accepts input: YOUR MINIMAP
+PASS An accepted action never skips straight to the next lesson: YOUR MINIMAP
+PASS Real result remains paused for inspection: YOUR MINIMAP
+PASS Result does not immediately disappear: YOUR MINIMAP
+PASS NEXT advances only after the visible real result: YOUR MINIMAP
+PASS Instruction pauses real gameplay: YOUR CITY AT A GLANCE
+PASS Highlight and native pointer match the real visible Button: YOUR CITY AT A GLANCE
+PASS Actual gameplay target accepts input: YOUR CITY AT A GLANCE
+PASS An accepted action never skips straight to the next lesson: YOUR CITY AT A GLANCE
+PASS Real result remains paused for inspection: YOUR CITY AT A GLANCE
+PASS Result does not immediately disappear: YOUR CITY AT A GLANCE
+PASS NEXT advances only after the visible real result: YOUR CITY AT A GLANCE
+PASS Instruction pauses real gameplay: CITY NEWS
+PASS Highlight and native pointer match the real visible Button: CITY NEWS
+PASS Actual gameplay target accepts input: CITY NEWS
+PASS An accepted action never skips straight to the next lesson: CITY NEWS
+PASS Real result remains paused for inspection: CITY NEWS
+PASS Result does not immediately disappear: CITY NEWS
+PASS NEXT advances only after the visible real result: CITY NEWS
+PASS Real Home walkthrough completes with movement, patrol and stadium activities
+PASS Only practically completed building, recruitment and command results are saved
+PASS Tutorial exit restores live combat, time and normal input
+PASS Normal gameplay damage works again after the tutorial
+PASS Real pause still applies the silver world
+PASS Real Police officer UI accepts its own native button
+PASS Police selection also waits for visible result and NEXT
+PASS Real Police officer UI accepts its own native button
+PASS Police selection also waits for visible result and NEXT
+PASS Explicit Police per-part skip remains clickable
+PASS Explicit Police per-part skip remains clickable
+PASS Explicit Police per-part skip remains clickable
+PASS Explicit Police per-part skip remains clickable
+PASS Explicit Police per-part skip remains clickable
+PASS Skipping Police physical lessons grants no invented custody/bribe results
+PASS No runtime exceptions or error logs during tutorial input: 
+RESULT 261 passed, 0 failed
+Isolated real gameplay Home walkthrough: native UI button passthrough, black rectangular highlights without blur, 100 HP/2.5 base-speed crew, real movement/guard/patrol/build/recruit results, explicit result confirmation, combat protection and restoration. Police selection/skip checked; Police physical jobs not repeated. No device validation.
+UTC 2026-11-05T16:06:11.4932333Z

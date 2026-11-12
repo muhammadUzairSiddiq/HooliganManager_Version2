@@ -1,0 +1,33 @@
+PASS Fresh Home has one authoritative highlighted footprint and no prebuilt facilities
+PASS Headquarters uses a versioned real existing city-building mesh instead of a tiny stand-in prop
+PASS SupplyYard uses a versioned real existing city-building mesh instead of a tiny stand-in prop
+PASS TrainingGround uses a versioned real existing city-building mesh instead of a tiny stand-in prop
+PASS Selected crew accepts the free visible headquarters construction
+PASS Actual construction has a visible model and scaffold on its plot
+PASS Actual on-site work grows the real model before its completion
+PASS Construction uses one bounded reusable working-dust emitter
+PASS Completion changes the real saved headquarters level without changing its free first-level price
+PASS Crew accepts visible SUPPLY YARD construction
+PASS Crew accepts visible TRAINING GROUND construction
+PASS Three earned facilities visibly expand the authoritative green Home area
+DETAIL FIRM HEADQUARTERS mesh bounds: Center: (103.96, 3.18, 102.80), Extents: (5.50, 3.07, 5.39); site=(103.96, 0.01, 95.30)
+PASS FIRM HEADQUARTERS has a substantial above-ground 3D footprint with its real mesh floor aligned to the site
+PASS FIRM HEADQUARTERS has visible supported materials and adds no walking/road collider
+PASS FIRM HEADQUARTERS is enclosed by the same Home footprint used by map and world UI
+DETAIL SUPPLY YARD mesh bounds: Center: (118.16, 3.63, 102.80), Extents: (5.00, 3.52, 4.73); site=(118.16, 0.01, 95.30)
+PASS SUPPLY YARD has a substantial above-ground 3D footprint with its real mesh floor aligned to the site
+PASS SUPPLY YARD has visible supported materials and adds no walking/road collider
+PASS SUPPLY YARD is enclosed by the same Home footprint used by map and world UI
+DETAIL TRAINING GROUND mesh bounds: Center: (133.05, 4.15, 102.79), Extents: (5.50, 4.05, 4.87); site=(133.05, 0.01, 95.29)
+PASS TRAINING GROUND has a substantial above-ground 3D footprint with its real mesh floor aligned to the site
+PASS TRAINING GROUND has visible supported materials and adds no walking/road collider
+PASS TRAINING GROUND is enclosed by the same Home footprint used by map and world UI
+PASS Home completion does not hide or alter any sampled road, railway or parking renderer
+PASS The built production facility accepts its existing second-level upgrade
+FAIL An earned production upgrade adds a visible annex and expands the green district footprint
+PASS Finished work removes its scaffold and construction preview, keeping the completed building
+FAIL Actual native reload reconstructs all completed 3D models and the upgraded facility
+PASS Reload derives the same earned Home footprint from saved development rather than resetting the green area
+RESULT 25 passed, 2 failed
+Native disposable Home visual fixture: durable fast crew, accelerated build work, unrelated pressure suppressed. Actual meshes, renderer bounds, costs, save/reload and captures; not device touch/performance or natural campaign balance.
+UTC 2026-11-03T03:49:08.9966884Z

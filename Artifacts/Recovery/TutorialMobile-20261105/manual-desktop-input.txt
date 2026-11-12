@@ -1,0 +1,15 @@
+Manual Unity desktop input review, disposable tutorial-preview-save.json only.
+Observed mouse clicks advance CREW / FIND, SELECT, and the world double-tap lesson.
+Observed SKIP PART jump from LOOK AROUND (04/51) to MAKE A GROUP (09/51).
+Observed BACK return to MOVE AGAIN (08/51), then NEXT return to MAKE A GROUP (09/51).
+Two sky.drag attempts did not advance LOOK AROUND. This is an unresolved desktop
+injection observation pending a per-frame InputSystem single-finger drag check;
+it is not evidence of physical phone gesture failure or success.
+No real campaign was used. No physical Android/iOS validation.
+
+Follow-up: the final per-frame single-finger InputSystem test passed through the
+actual UI input module and changed the camera. Two-contact pinch tests also
+passed. These exercise the full input path, rather than invoking OnDrag directly.
+The short desktop automation drag timing was not diagnosed; the earlier two
+attempts are retained as an observation, not labelled successful mouse drags.
+Final focused report: mobile-tutorial-ui-playtest.txt, 253 passed / 0 failed.

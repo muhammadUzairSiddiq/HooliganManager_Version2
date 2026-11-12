@@ -121,7 +121,11 @@ public sealed class ModalPresentation : MonoBehaviour
             _stampThen = null;
             then?.Invoke();
         }
-        bool open = _stamp || Time.timeScale == 0 || GamePopup.AnyOpen || RecruitDialogBox.AnyOpen;
+        // Teaching stops the simulation too, but is not the player's silver pause.
+        bool tutorialPause = GuidedCityTutorial.BlocksInput
+            && !(BattleManager.instance && BattleManager.instance.IsPaused)
+            && !(BattlePauseMenuController.instance && BattlePauseMenuController.instance.IsVisible);
+        bool open = _stamp || !tutorialPause && (Time.timeScale == 0 || GamePopup.AnyOpen || RecruitDialogBox.AnyOpen);
         volume.weight = open ? 1 : 0;
         if (!worldCamera) worldCamera = Camera.main;
         if (worldCamera && worldCamera.TryGetComponent<UniversalAdditionalCameraData>(out var data))

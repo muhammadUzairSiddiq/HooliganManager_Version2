@@ -9,6 +9,16 @@ using System.Linq;
 public static class CampaignMissions
 {
     public const int MissionCount = 5;
+    public const int AwayStockDelivery = 3;
+
+    public static int AwayFare(PlayerData data,int fullFare) =>
+        Math.Max(0,fullFare-Math.Max(0,data?.MatchdayTravelCredit??0));
+
+    public static void ApplyMatchdayResult(PlayerData data,MatchdayStreetState street)
+    {
+        int travelCredit=150+(street.routeReopened?120:0)+(street.pubTrading?80:0)+(street.gateAdmitted?70:0);
+        data.MatchdayTravelCredit=Math.Max(data.MatchdayTravelCredit,travelCredit);
+    }
 
     public readonly struct Mission
     {
@@ -178,7 +188,6 @@ public static class CampaignMissions
         bool scout = d.CompletedCampaignSteps.Contains(OperationKey(1, CityOperationType.ScoutDistrict));
         int crew = d.RecruitedAgents?.Count(a => a != null && a.IsAlive) ?? 0;
         int businesses = d.CityBusinesses?.Count(b => b != null && b.controlled&&CityBusinessLedger.IsHomeId(b.id)) ?? 0;
-        bool prepared = d.TransportPrepared && d.StadiumAccessPrepared;
         return new[] {
             new Step("orientation", "LEARN DIRECT CREW CONTROL", RecoveryProgression.OrientationHint(d), RecoveryProgression.OrientationComplete(d) ? 1 : 0, 1),
             new Step("homebuild", "ESTABLISH YOUR HOME HEADQUARTERS", "Open HOME. Select crew and BUILD the free headquarters inside the highlighted territory. Other facilities develop your permanent base.", HomeTerritorySystem.Built(d,0)?1:0,1),
@@ -187,8 +196,7 @@ public static class CampaignMissions
             new Step("business", "CONTROL A LOCAL BUSINESS", "Open a named food shop and send selected crew to hold it. Leave a defender if rivals approach.", businesses, 1),
             new Step("income", "EARN YOUR FIRST BUSINESS INCOME", "Keep a business controlled and trading until its next income tick.", d.BusinessIncomeEarned > 0 ? 1 : 0, 1),
             new Step("duties", "GUARD AND PATROL WITH SEPARATE GROUPS", "Use GUARD at a venue, then select another group and assign PATROL on a street.", RecoveryProgression.DutiesComplete(d) ? 1 : 0, 1),
-            new Step("preparation", "PREPARE FOR MATCHDAY", "Gather supplies, tickets and social support; prepare transport and stadium access.", prepared ? 1 : 0, 1, prepared ? null : RecoveryProgression.NextPreparation(d)),
-            new Step("matchday", "DIRECT YOUR FIRST MATCHDAY", "Start from the stadium board. Cover the stadium approach and pub with different members.", ActionCount(d, 1, "matchday"), 1),
+            new Step("matchday", "PLAY THROUGH MATCHDAY", "The city starts Matchday automatically. Keep building Home, or send a guard when the stadium calls for help.", ActionCount(d, 1, "matchday"), 1),
             new Step("territory", "SECURE A HOME AREA", "Clear rival pressure and hold one control ring.", TerritoryCount(d, 1), 1),
             new Step("defence", "DEFEND HEADQUARTERS", "Return prepared and defeat the organized rival push to unlock Riverside.", d.HomeDefenceCompleted ? 1 : 0, 1)
         };
@@ -199,6 +207,11 @@ public static class CampaignMissions
         int finished=ContextMission(d);
         if(Completed(d,finished)||Steps(d,finished).Any(s=>!s.Complete))return false;
         completed=Get(finished);d.CompletedCampaignMissions.Add(finished);d.Money+=completed.reward;
+        if(finished>1)
+        {
+            d.CitySupplies+=AwayStockDelivery;
+            d.LastAwayStockMission=finished;
+        }
         if(finished==d.CurrentLevel&&finished<MissionCount)d.CurrentLevel=finished+1;
         return true;
     }

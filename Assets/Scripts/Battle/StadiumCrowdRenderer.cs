@@ -24,6 +24,7 @@ public sealed class StadiumCrowdRenderer : MonoBehaviour
     Camera view;
     float moraleClock,nextSimulation,lastSimulation;
     int attendance=Capacity,routeCursor;
+    bool matchdayRouted;
     public int Population{get;private set;}
     public int GroupCount=>groups.Count;
     public void AppendHeat(List<CityHeatSample> target)
@@ -65,6 +66,13 @@ public sealed class StadiumCrowdRenderer : MonoBehaviour
     void Update()
     {
         if(!library||!view||groups.Count==0)return;
+        if(!matchdayRouted&&(StadiumMatchdayActivity.IsMatchdayActive||PoliceCityMode.Active)&&CityGameplay.Instance&&CityGameplay.Instance.Locations.Length>7)
+        {
+            // Keep the existing population and move its groups along complete
+            // paths toward football destinations; never respawn a crowd blob.
+            matchdayRouted=true;int index=0;int[] venues={5,7,5,1,7,5,6,1};
+            foreach(var group in groups)if(!group.cheering){group.home=CityGameplay.Instance.Locations[venues[index++%venues.Length]];group.route=null;group.nextRoute=0;}
+        }
         moraleClock+=Time.deltaTime;
         if(moraleClock>=120)
         {

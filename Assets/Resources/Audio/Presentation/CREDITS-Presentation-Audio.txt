@@ -1,0 +1,11 @@
+New presentation audio provenance (CC0 1.0 Universal)
+License: https://creativecommons.org/publicdomain/zero/1.0/
+UrbanTheme.ogg: Urban Theme, MintoDog. https://opengameart.org/content/urban-theme
+Espionage.ogg: Espionage, brandon75689, submitted by HaelDB. CC0 option elected. https://opengameart.org/content/espionage
+All other selected OGGs: Kenney (Kenney.nl), Interface Sounds / 50 RPG sound effects / 85 Short music jingles. Pack license files included here.
+https://opengameart.org/content/interface-sounds
+https://opengameart.org/content/50-rpg-sound-effects
+https://opengameart.org/content/85-short-music-jingles
+Original selected bytes are unchanged. Music renamed for readability. Unity import encoding and in-game mixing are adaptations.
+Existing separate stadium MP3 recordings: Gregor Quendel, Free Crowd Cheering Sounds, CC BY 4.0. https://www.gregorquendel.com/ ; https://opengameart.org/content/free-crowd-cheering-sounds ; https://creativecommons.org/licenses/by/4.0/
+Full imported SHA-256 inventory: Docs/Recovery/Audio_Presentation_Pass.md

@@ -1,0 +1,24 @@
+PASS Police career creates the actual player patrol van at a road
+PASS Vehicle spawn is on the road-only navigation area
+PASS An empty patrol van cannot drive without an officer aboard
+PASS Selecting an empty van retains the chosen officers for the boarding action
+PASS Two selected officers receive walking boarding orders without instant collection
+PASS Both officers physically reach and board the parked van
+PASS Seated officers leave foot navigation and task assessment while remaining saved crew
+PASS The unselected third officer keeps their independent assignment
+PASS Selected patrol team accepts a complete road-only driving route
+PASS An invalid off-map drive target preserves the accepted road order
+PASS Van travels visibly and carries the boarded team with it
+PASS Paused simulation does not move the patrol vehicle
+PASS Native police save stores the van and exact boarded officer IDs
+PASS Actual Police Continue restores the same boarded team
+PASS Police Continue resumes near the saved road position and destination
+PASS EXIT OFFICERS deliberately stops and unloads the patrol team
+PASS Disembarked officers regain live foot navigation and task control
+PASS Disembarkation uses nearby walkable curb positions rather than distant teleportation
+PASS The disembarked team is selected for immediate independent RTS orders
+PASS Patrol vehicle and Continue saves leave the firm campaign byte-identical
+PASS Leaving vehicle patrol restores the original firm campaign object
+RESULT 21 passed, 0 failed
+Native editor fixture: real roads, actors, boarding, drive, exit and Continue. Accelerated travel. No device touch or real save used.
+UTC 2026-11-03T04:42:53.9873183Z

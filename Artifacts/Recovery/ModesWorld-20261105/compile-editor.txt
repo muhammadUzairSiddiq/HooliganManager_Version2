@@ -1,0 +1,1 @@
+Assets\Scripts\Editor\GameplaySnapshotCapture.cs(311,23): warning CS0108: 'GameplaySnapshotCapture.CityShotGrabber.camera' hides inherited member 'Component.camera'. Use the new keyword if hiding was intended.

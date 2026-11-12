@@ -1,0 +1,1 @@
+MissingComponentException: There is no 'CanvasRenderer' attached to the "InputShield" game object, but a script is trying to access it.

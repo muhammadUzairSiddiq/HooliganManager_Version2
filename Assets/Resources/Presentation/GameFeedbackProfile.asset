@@ -1,0 +1,110 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ade2b31f49cc48d5ae3e8ba9bc757775, type: 3}
+  m_Name: GameFeedbackProfile
+  m_EditorClassIdentifier: 
+  menuMusic: {fileID: 8300000, guid: 5ea1cf6aa0bd4d85906d9e90a258323a, type: 3}
+  explorationMusic: {fileID: 8300000, guid: 5ea1cf6aa0bd4d85906d9e90a258323a, type: 3}
+  matchdayMusic: {fileID: 8300000, guid: 8abc26f9faa14674b76c39a9d8207de6, type: 3}
+  musicGain: 0.2
+  crossfadeSeconds: 1.5
+  cues:
+  - kind: 0
+    clip: {fileID: 8300000, guid: 3567a6d686aa4223a0b97ace075c9b76, type: 3}
+    gain: 0.32
+    cooldown: 0.065
+    spatial: 0
+  - kind: 1
+    clip: {fileID: 8300000, guid: e96ad02d2b3c4b58bc48f541673ad0a2, type: 3}
+    gain: 0.32
+    cooldown: 0.12
+    spatial: 0
+  - kind: 2
+    clip: {fileID: 8300000, guid: 826f24f4094f43f2bfdc247732ffe098, type: 3}
+    gain: 0.22
+    cooldown: 0.12
+    spatial: 0
+  - kind: 3
+    clip: {fileID: 8300000, guid: 4f037078c44d46ad8374afaa72ba4f5b, type: 3}
+    gain: 0.26
+    cooldown: 0.1
+    spatial: 0
+  - kind: 4
+    clip: {fileID: 8300000, guid: 172a27888a5149f7bbb7e3e76aebe6e4, type: 3}
+    gain: 0.36
+    cooldown: 0.13
+    spatial: 0
+  - kind: 5
+    clip: {fileID: 8300000, guid: 31f739da9cb2465d930e9fc16969a477, type: 3}
+    gain: 0.36
+    cooldown: 0.12
+    spatial: 0
+  - kind: 6
+    clip: {fileID: 8300000, guid: 6afb7d077cdd486e8e803c6fa0565873, type: 3}
+    gain: 0.4
+    cooldown: 0.28
+    spatial: 0
+  - kind: 7
+    clip: {fileID: 8300000, guid: 3b7e95bc91954b5c82fe82aecc34d579, type: 3}
+    gain: 0.4
+    cooldown: 0.3
+    spatial: 0
+  - kind: 8
+    clip: {fileID: 8300000, guid: 1c68d8adbbde4669a464bd26946678a1, type: 3}
+    gain: 0.48
+    cooldown: 0.4
+    spatial: 0
+  - kind: 9
+    clip: {fileID: 8300000, guid: 95144501b5864e97bc89ae71662c2fe6, type: 3}
+    gain: 0.42
+    cooldown: 0.9
+    spatial: 0
+  - kind: 10
+    clip: {fileID: 8300000, guid: 71ba2f23eef74b0680c14af48033273b, type: 3}
+    gain: 0.4
+    cooldown: 0.9
+    spatial: 0
+  - kind: 11
+    clip: {fileID: 8300000, guid: 07e732b2121f44e99f27ca0835fd2318, type: 3}
+    gain: 0.25
+    cooldown: 0.12
+    spatial: 1
+  - kind: 12
+    clip: {fileID: 8300000, guid: 0aadbc2b48864301b14603604deed5e8, type: 3}
+    gain: 0.5
+    cooldown: 0.3
+    spatial: 0
+  - kind: 13
+    clip: {fileID: 8300000, guid: f7d9a7132ca544fba568a08d5706ec05, type: 3}
+    gain: 0.5
+    cooldown: 0.4
+    spatial: 0
+  - kind: 14
+    clip: {fileID: 8300000, guid: 31301e509d7d4e3b9499b9eebe7d0270, type: 3}
+    gain: 0.38
+    cooldown: 0.7
+    spatial: 0
+  - kind: 15
+    clip: {fileID: 8300000, guid: 32421d5921f34b3cb50c0db73090fe7a, type: 3}
+    gain: 0.32
+    cooldown: 0.7
+    spatial: 0
+  - kind: 16
+    clip: {fileID: 8300000, guid: db261cd9fe5a4651b2116df0842f2d85, type: 3}
+    gain: 0.38
+    cooldown: 1
+    spatial: 0
+  - kind: 17
+    clip: {fileID: 8300000, guid: dcf2f039da044868b3057de491ace862, type: 3}
+    gain: 0.16
+    cooldown: 0.14
+    spatial: 1

@@ -1,4 +1,4 @@
-param([switch]$BuildAndroid,[string]$StartAt='production-strategy-playtest')
+param([switch]$BuildAndroid,[string]$StartAt='presentation-feedback-playtest',[string[]]$Skip=@(),[string[]]$Only=@())
 $ErrorActionPreference='Stop'
 $taskRoot=(Resolve-Path '.').Path
 $taskCommand=Join-Path $taskRoot '.utmp/landscape-command.txt'
@@ -30,6 +30,14 @@ function Wait-EditorEdit {
   throw 'Editor state acknowledgement timed out.'
 }
 $taskChecks=@(
+ @{Command='guided-tutorial-playtest';Report='Artifacts/Recovery/guided-tutorial-playtest.txt';Seconds=1300},
+ @{Command='police-operations-playtest';Report='Artifacts/Recovery/police-operations-playtest.txt';Seconds=850},
+ @{Command='road-incident-playtest';Report='Artifacts/Recovery/road-incident-playtest.txt';Seconds=750},
+ @{Command='presentation-feedback-playtest';Report='Artifacts/Recovery/presentation-feedback-playtest.txt';Seconds=450},
+ @{Command='home-visual-playtest';Report='Artifacts/Recovery/home-visual-playtest.txt';Seconds=650},
+ @{Command='tactical-map-playtest';Report='Artifacts/Recovery/tactical-map-playtest.txt';Seconds=650},
+ @{Command='crew-tracking-playtest';Report='Artifacts/Recovery/crew-tracking-playtest.txt';Seconds=750},
+ @{Command='train-raid-playtest';Report='Artifacts/Recovery/train-raid-playtest.txt';Seconds=850},
  @{Command='production-strategy-playtest';Report='Artifacts/Recovery/production-strategy-playtest.txt';Seconds=1100},
  @{Command='police-vehicle-playtest';Report='Artifacts/Recovery/police-vehicle-playtest.txt';Seconds=800},
  @{Command='police-career-playtest';Report='Artifacts/Recovery/police-playtest.txt';Seconds=850},
@@ -44,6 +52,8 @@ $taskChecks=@(
 $taskStartIndex=0
 for($taskIndex=0;$taskIndex-lt $taskChecks.Count;$taskIndex++){if($taskChecks[$taskIndex].Command-eq $StartAt){$taskStartIndex=$taskIndex;break}}
 foreach($check in $taskChecks[$taskStartIndex..($taskChecks.Count-1)]) {
+  if($Skip-contains $check.Command){continue}
+  if($Only.Count-and $Only-notcontains $check.Command){continue}
   Wait-EditorEdit
   $report=Join-Path $taskRoot $check.Report
   $sent=Send-RecoveryCommand $check.Command

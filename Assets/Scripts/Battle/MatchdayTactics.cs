@@ -12,6 +12,7 @@ public sealed class MatchdayTacticsState
     public bool stallBuildRequested;
     public Vector3 escortPosition;
     public bool escortPositioned;
+    public List<Vector3> escortPartyPositions=new List<Vector3>();
     public List<int> supplySupport=new List<int>();
 }
 
@@ -27,7 +28,10 @@ public static class MatchdayTactics
     }
     public static int CashCost(int plan)=>plan==0?0:plan==1?200:150;
     public static int SupplyCost(int plan)=>plan==0?0:2;
-    public static string Description(int plan)=>plan==1?"£200 + 2 supplies. Steward equipment cuts each hold to 15s. Missed coverage adds no heat.":plan==2?"£150 + 2 supplies. Pub needs TWO crew, pays £225 on coverage. Staff a built stall for extra trade.":"No upfront cost. One crew per location, 20s coverage, £100 each. Keep a spare member for escort or trade.";
+    public static string Description(int plan) => plan==1
+        ?"£200 and 2 supplies. Faster police barrier removal."
+        :plan==2?"£150 and 2 supplies. Larger pub trade payout."
+        :"Free to start. Complete two of the three street objectives.";
     public static bool Choose(PlayerData d,int plan)
     {
         var s=Ensure(d);if(s==null||plan<0||plan>2||s.planCommitted)return false;s.plan=plan;return true;

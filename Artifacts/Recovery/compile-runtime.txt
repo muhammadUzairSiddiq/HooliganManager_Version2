@@ -1,10 +1,10 @@
 Assets\Scripts\Battle\MapController.cs(6,7): warning CS0105: The using directive for 'UnityEngine.SceneManagement' appeared previously in this namespace
-Assets\Scripts\Battle\BattleUIController.cs(255,13): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
-Assets\Scripts\Battle\BattleUIController.cs(583,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
-Assets\Scripts\Battle\BattleUIController.cs(699,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
-Assets\Scripts\Battle\CameraPanTouchOnly.cs(563,42): warning CS0618: 'Object.FindObjectOfType<T>(bool)' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'
-Assets\Scripts\Battle\GamePopup.cs(119,73): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
-Assets\Scripts\Battle\BattleManager.cs(1948,21): warning CS0618: 'Object.FindObjectsOfType<T>()' is obsolete: 'Object.FindObjectsOfType has been deprecated. Use Object.FindObjectsByType instead which lets you decide whether you need the results sorted or not.  FindObjectsOfType sorts the results by InstanceID but if you do not need this using FindObjectSortMode.None is considerably faster.'
+Assets\Scripts\Battle\BattleUIController.cs(256,13): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
+Assets\Scripts\Battle\BattleUIController.cs(584,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
+Assets\Scripts\Battle\BattleUIController.cs(713,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
+Assets\Scripts\Battle\CameraPanTouchOnly.cs(618,42): warning CS0618: 'Object.FindObjectOfType<T>(bool)' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'
+Assets\Scripts\Battle\GamePopup.cs(120,73): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
+Assets\Scripts\Battle\BattleManager.cs(1956,21): warning CS0618: 'Object.FindObjectsOfType<T>()' is obsolete: 'Object.FindObjectsOfType has been deprecated. Use Object.FindObjectsByType instead which lets you decide whether you need the results sorted or not.  FindObjectsOfType sorts the results by InstanceID but if you do not need this using FindObjectSortMode.None is considerably faster.'
 Assets\Scripts\Battle\RecruitDialogBox.cs(127,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
 Assets\Scripts\Battle\ZoneLabelUtil.cs(25,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
 Assets\Scripts\ModalPresentation.cs(109,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
@@ -12,22 +12,20 @@ Assets\Scripts\UI\Landscape\HudIconFactory.cs(73,13): warning CS0618: 'TMP_Text.
 Assets\Scripts\UI\Landscape\CityMissionHUD.cs(49,17): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
 Assets\Scripts\UI\Landscape\LandscapeUI.cs(72,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
 Assets\Scripts\UI\Landscape\LandscapeUI.cs(78,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
-Assets\Scripts\UI\Landscape\LandscapeUI.cs(113,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
-Assets\Scripts\UI\Landscape\SimpleShellLayout.cs(109,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
+Assets\Scripts\UI\Landscape\LandscapeUI.cs(114,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
+Assets\Scripts\UI\Landscape\SimpleShellLayout.cs(140,9): warning CS0618: 'TMP_Text.enableWordWrapping' is obsolete: 'The enabledWordWrapping property is now obsolete. Please use the textWrappingMode property instead.'
 Assets\Scripts\UI\PoliceRaidGameplayController.cs(216,21): warning CS0618: 'Object.FindObjectOfType<T>(bool)' is obsolete: 'Object.FindObjectOfType has been deprecated. Use Object.FindFirstObjectByType instead or if finding any instance is acceptable the faster Object.FindAnyObjectByType'
 Assets\Scripts\PastoralPackage\SpriteAtlasGenerator.cs(148,9): warning CS0618: 'TextureImporter.spritesheet' is obsolete: 'Support for accessing sprite meta data through spritesheet has been removed. Please use the UnityEditor.U2D.Sprites.ISpriteEditorDataProvider interface instead.'
-Assets\Scripts\Battle\PreBattleSequencer.cs(132,22): warning CS0414: The field 'PreBattleSequencer._sequenceDone' is assigned but its value is never used
-Assets\Scripts\Battle\RecruitArea.cs(24,18): warning CS0414: The field 'RecruitArea._inConversation' is assigned but its value is never used
-Assets\Scripts\Battle\StadiumMatchdayActivity.cs(39,35): warning CS0414: The field 'StadiumMatchdayActivity.nextReplacement' is assigned but its value is never used
-Assets\Scripts\Battle\TerritoryControlPoint.cs(33,9): warning CS0414: The field 'TerritoryControlPoint.lastPercent' is assigned but its value is never used
-Assets\Scripts\UI\Landscape\LandscapeButtonPolish.cs(19,11): warning CS0414: The field 'LandscapeButtonPolish.press' is assigned but its value is never used
-Assets\Scripts\Battle\StadiumMatchdayActivity.cs(191,10): warning CS0414: The field 'StadiumMatchdayActivity.pendingEscalation' is assigned but its value is never used
-Assets\Scripts\Battle\CameraPanTouchOnly.cs(74,17): warning CS0414: The field 'CameraPanTouchOnly._fingerDownCount' is assigned but its value is never used
-Assets\Scripts\PastoralPackage\UI\GearRotationTextmeshProGUI.cs(12,18): warning CS0414: The field 'GearRotationTextmeshProGUI.isCountingDown' is assigned but its value is never used
-Assets\Scripts\GameManager.cs(10,34): warning CS0414: The field 'GameManager.PlayablePoliceEnabled' is assigned but its value is never used
-Assets\Scripts\Battle\RecruitArea.cs(21,18): warning CS0414: The field 'RecruitArea._promptArmed' is assigned but its value is never used
+Assets\Scripts\Battle\StadiumMatchdayActivity.cs(45,35): warning CS0414: The field 'StadiumMatchdayActivity.nextReplacement' is assigned but its value is never used
 Assets\Scripts\Battle\RecruitArea.cs(23,18): warning CS0414: The field 'RecruitArea._mustLeaveBeforeReprompt' is assigned but its value is never used
-Assets\Scripts\UI\Landscape\LandscapeButtonPolish.cs(26,11): warning CS0414: The field 'LandscapeButtonPolish.shown' is assigned but its value is never used
-Assets\Scripts\UI\PoliceRaidGameplayController.cs(136,17): warning CS0414: The field 'PoliceRaidGameplayController._agentsLostInRaid' is assigned but its value is never used
-Assets\Scripts\UI\PoliceRaidGameplayController.cs(129,19): warning CS0414: The field 'PoliceRaidGameplayController._tickTimer' is assigned but its value is never used
+Assets\Scripts\GameManager.cs(10,34): warning CS0414: The field 'GameManager.PlayablePoliceEnabled' is assigned but its value is never used
+Assets\Scripts\Battle\PreBattleSequencer.cs(132,22): warning CS0414: The field 'PreBattleSequencer._sequenceDone' is assigned but its value is never used
+Assets\Scripts\Battle\TerritoryControlPoint.cs(33,9): warning CS0414: The field 'TerritoryControlPoint.lastPercent' is assigned but its value is never used
+Assets\Scripts\Battle\RecruitArea.cs(21,18): warning CS0414: The field 'RecruitArea._promptArmed' is assigned but its value is never used
+Assets\Scripts\PastoralPackage\UI\GearRotationTextmeshProGUI.cs(12,18): warning CS0414: The field 'GearRotationTextmeshProGUI.isCountingDown' is assigned but its value is never used
 Assets\Scripts\Battle\RecruitArea.cs(25,18): warning CS0414: The field 'RecruitArea._camWasEnabled' is assigned but its value is never used
+Assets\Scripts\UI\PoliceRaidGameplayController.cs(129,19): warning CS0414: The field 'PoliceRaidGameplayController._tickTimer' is assigned but its value is never used
+Assets\Scripts\UI\PoliceRaidGameplayController.cs(136,17): warning CS0414: The field 'PoliceRaidGameplayController._agentsLostInRaid' is assigned but its value is never used
+Assets\Scripts\Battle\StadiumMatchdayActivity.cs(219,10): warning CS0414: The field 'StadiumMatchdayActivity.pendingEscalation' is assigned but its value is never used
+Assets\Scripts\Battle\CameraPanTouchOnly.cs(74,17): warning CS0414: The field 'CameraPanTouchOnly._fingerDownCount' is assigned but its value is never used
+Assets\Scripts\Battle\RecruitArea.cs(24,18): warning CS0414: The field 'RecruitArea._inConversation' is assigned but its value is never used

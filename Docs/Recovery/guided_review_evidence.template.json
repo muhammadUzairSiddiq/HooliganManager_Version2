@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-05",
+  "current_evidence_reviewed": false,
+  "reports": [
+    {"key": "tutorial", "label": "Exclusive guided tutorial", "path": "Artifacts/Recovery/guided-tutorial-playtest.txt", "required": true, "current": false, "sha256": ""},
+    {"key": "map_news", "label": "Map tap, aspect and saved news", "path": "Artifacts/Recovery/tactical-map-playtest.txt", "required": true, "current": false, "sha256": ""},
+    {"key": "roads", "label": "Road queues and actual recovery", "path": "Artifacts/Recovery/road-incident-playtest.txt", "required": true, "current": false, "sha256": ""}
+  ],
+  "captures": {
+    "tutorial_select": {"path": "Artifacts/Recovery/tutorial-select-1280x720.png", "current": false, "sha256": "", "caption": "Current native tutorial capture; exact lesson and fixture limitations are recorded in its report."},
+    "tutorial_moving": {"path": "Artifacts/Recovery/tutorial-moving.png", "current": false, "sha256": "", "caption": "Actual movement wait with simulation resumed; a click alone cannot complete arrival."},
+    "map_standard": {"path": "Artifacts/Recovery/tactical-map-1280x720.png", "current": false, "sha256": "", "caption": "1280 x 720 current native map view."},
+    "map_wide": {"path": "Artifacts/Recovery/tactical-map-2400x1080.png", "current": false, "sha256": "", "caption": "2400 x 1080 current native map view."},
+    "map_tablet": {"path": "Artifacts/Recovery/tactical-map-1024x768.png", "current": false, "sha256": "", "caption": "1024 x 768 current native map view."},
+    "news_standard": {"path": "Artifacts/Recovery/city-news-feed-1280x720.png", "current": false, "sha256": "", "caption": "Saved bounded news including a real named casualty; synthetic backlog used only to exercise history capacity."},
+    "news_wide": {"path": "Artifacts/Recovery/city-news-feed-2400x1080.png", "current": false, "sha256": "", "caption": "Wide current news view with stable bottom-right controls."},
+    "news_tablet": {"path": "Artifacts/Recovery/city-news-feed-1024x768.png", "current": false, "sha256": "", "caption": "Tablet-shaped current news view; device touch comfort remains untested."},
+    "police_tutorial": {"path": "Artifacts/Recovery/tutorial-police-select.png", "current": false, "sha256": "", "caption": "Actual Police teaching in the separately saved officer career."},
+    "road_queue": {"path": "Artifacts/Recovery/road-incident-queue.png", "current": false, "sha256": "", "caption": "Actual road incident and queued city movement in the isolated fixture."},
+    "road_work": {"path": "Artifacts/Recovery/road-incident-towing.png", "current": false, "sha256": "", "caption": "Physical recovery vehicle and on-site work; fixture setup is described in its report."},
+    "road_clear": {"path": "Artifacts/Recovery/road-incident-cleared.png", "current": false, "sha256": "", "caption": "Visible road release after actual recovery work."}
+  },
+  "package": {"current": false}
+}

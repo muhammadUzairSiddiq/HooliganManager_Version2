@@ -1,0 +1,9 @@
+Result: Succeeded
+Errors: 0
+Warnings: 4
+Bytes: 1586889645
+Duration: 00:04:30.6981541
+UTC: 2026-11-12T19:30:12.4215968Z
+Version: 0.3.4
+Android version code: 7
+Physical device validation: not performed

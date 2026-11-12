@@ -1,0 +1,42 @@
+PASS Default purchase configuration uses an explicit editor simulator
+PASS Unconfigured owner IDs cannot connect to a real payment store
+PASS Distinct platform IDs form a valid store catalog
+PASS Duplicate native product IDs are rejected
+PASS Missing transaction ID cannot deliver currency
+PASS A callback for another firm cannot credit this campaign
+PASS Restoring past consumables cannot create another currency grant
+PASS A valid matching transaction credits the declared currency once
+PASS Duplicate callback does not grant currency twice
+PASS Native campaign save stores currency and fulfillment token together
+PASS Transaction replay after native reload cannot duplicate delivery
+PASS Restored non-consumable unlocks its entitlement without currency
+PASS Repeated entitlement restore cannot alter currency
+PASS Device receipt ledger and wallet-bound pending intent survive isolated native serialization
+PASS Uncontrolled venue cannot buy/sell resources
+PASS Buying supplies exchanges the exact declared resources
+PASS Selling supplies has a lower price than buying and creates no arbitrage
+PASS First business improvement spends its cash/supply cost once
+PASS Improvement raises future venue income by its declared level multiplier
+PASS Insufficient funds reject the next improvement without payment
+PASS Second venue improvement reaches the saved maximum level
+PASS Fully developed venues cannot replay upgrade spending
+PASS Full supply storage cannot consume purchase funds
+PASS An empty store cannot sell nonexistent resources
+PASS Fresh Home initializes only its original six business records
+PASS Visited Away districts add three scoped venues idempotently
+PASS Scoped definitions use declared district yields and reject unknown districts
+PASS Away ownership cannot grant Home or another district's venue control
+PASS One Away tick earns Home plus active district once, without inactive Away income
+PASS Scoped Away loot pays its district amount once
+PASS Away loot cooldown is independent from Home and repeated loot cannot pay again
+PASS Returning Home does not simulate an inactive Away venue's cooldown or trade
+PASS Native save retains separate Home/Away ownership and cooldowns
+PASS Project purchase asset is configured for explicit test review, with no native payment calls
+PASS Actual fetched pending order waits unconfirmed in the wrong firm and retains its original wallet intent
+PASS Returning to the original firm retries the same fetched pending order without an app restart
+PASS Pending purchase acknowledgement follows native currency/token save and acknowledges the exact SDK order
+PASS Repeated fetched pending orders can retry acknowledgement without delivering currency twice
+PASS Pending-order replay after native wallet reload remains fulfilled once and acknowledgement-ready
+PASS Fetched pending order remains unconfirmed when its campaign service is unavailable
+RESULT 40 passed, 0 failed
+Configuration, local fulfillment and native serialization only. Google/Apple checkout, refunds, server receipt validation and physical devices are not certified.

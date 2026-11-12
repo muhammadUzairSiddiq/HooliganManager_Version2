@@ -34,7 +34,22 @@ public static class LandscapeEditorBridge
             else if(command=="commerce-playtest") CommercePlaytest.Begin();
             else if(command=="purchase-checks") PurchasesChecks.Run();
             else if(command=="production-strategy-playtest") ProductionStrategyPlaytest.Begin();
+            else if(command=="guided-tutorial-playtest") GuidedTutorialPlaytest.Begin();
+            else if(command=="mobile-tutorial-ui-playtest") GuidedTutorialPlaytest.BeginUiSmoke();
+            else if(command=="mobile-tutorial-preview") GuidedTutorialPlaytest.BeginPreview();
+            else if(command=="mode-world-matchday-playtest") ModeWorldMatchdayPlaytest.Begin();
+            else if(command=="matchday-escort-playtest") ModeWorldMatchdayPlaytest.BeginEscort();
+            else if(command=="automatic-matchday-playtest") ModeWorldMatchdayPlaytest.BeginAutomatic();
+            else if(command=="road-incident-playtest") RoadIncidentPlaytest.Begin();
+            else if(command=="police-operations-playtest") PoliceOperationsPlaytest.Begin();
+            else if(command=="tactical-map-playtest") TacticalMapPlaytest.Begin();
+            else if(command=="crew-tracking-playtest") CrewTrackingPlaytest.Begin();
+            else if(command=="home-visual-playtest") HomeVisualPlaytest.Begin();
+            else if(command=="train-raid-playtest") TrainRaidPlaytest.Begin();
+            else if(command=="presentation-feedback-playtest") PresentationFeedbackPlaytest.Begin();
+            else if(command=="prepare-presentation-assets") RedesignAssets.Ensure();
             else if(command=="recovery-build-android") RecoveryBuild.Android();
+            else if(command=="client-build-android") RecoveryBuild.AndroidClient();
             else if(command=="editor-state")
             {
                 var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
@@ -52,6 +67,7 @@ public static class LandscapeEditorBridge
             else if (command=="enhancement-checks") EnhancementChecks.Run();
             else if (command=="enhancement-build") EnhancementChecks.Build();
             else if (command=="refresh") AssetDatabase.Refresh();
+            else if (command=="compile-scripts") UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
             else if (command=="refresh-theme") { AssetDatabase.Refresh(); LandscapeThemeImporter.Import(); }
             else if (command=="city-build") CityGameplayBuilder.Build();
             else if(command=="milestone-checks") MilestoneChecks.Run();

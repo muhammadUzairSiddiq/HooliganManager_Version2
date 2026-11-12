@@ -2,6 +2,61 @@
 
 Read `Docs/AI_SCOPE_GUARDRAILS.txt` first. These tools never replace device testing.
 
+The 05 November guided-operations cut adds `GuidedTutorialPlaytest.Begin`,
+`PoliceOperationsPlaytest.Begin/BeginBatch` and
+`RoadIncidentPlaytest.Begin/BeginBatch`. The tutorial fixture explicitly opts in
+to exclusive first-use UI; older disposable gameplay fixtures suppress it through
+their editor-only save override. Neither path changes a real campaign save.
+Run the guide separately before broader checks to catch its real raycast/wait
+failures. `RunNativeReview.ps1 -StartAt guided-tutorial-playtest -Only ...`
+selects explicit suites. `RunIsolatedNativeReview.ps1` forwards these options and
+preserves the original editor, including a game already in Play mode. Never
+start a second editor/build on the isolated workspace while it is occupied.
+
+After current verification, `BuildIsolatedReview.ps1 -GuidedOperations` writes
+`Hooligan-RTS-Guided-Operations-Review.apk`, `guided-android-build.txt` and a
+separate all-input provenance proof. It uses the same proven build method inside
+the clone and copies to new delivery identities; the previous root APKs/reports
+are preserved. `verify_review_apk.py --guided-operations` checks this distinct
+package and requires successful tutorial, Police operations and road reports in
+addition to the broader evidence. An APK is a review build, not store approval.
+
+The tracking/presentation pass starts with five new native suites: presentation
+feedback (including traffic lifecycle recovery), visible Home models, tactical
+map, production-speed crew tracking and train/rival raids. `RunNativeReview.ps1`
+now runs these before affected regressions. Always obtain a clean runtime AND
+editor compile before starting it; an old loaded editor assembly is not evidence
+for new source. A pending presentation fixture resumes its original preference
+backup if a compilation error prevented Play.
+
+`RunIsolatedNativeReview.ps1` can run the same bridge sequence in the separate
+review workspace without closing the user's editor. It prepares the canonical
+Home resource wrappers, copies their GUID-preserving files back, and copies fresh
+reports/captures back after the sequence. Do not run it concurrently with a build
+on that copy. Its failed-startup log must not be mistaken for test results.
+
+Use `BuildIsolatedReview.ps1 -TrackingPolish` and then
+`verify_review_apk.py --tracking-polish` for the new, separately named tracking
+APK and evidence. The earlier Recovery APK/report/manifest stay unchanged.
+Provenance now checks all Assets/import metas, ProjectSettings and Packages in
+both directions. Library PID files are excluded: copying an active ILPP PID into
+another project can cause Unity to kill the original project's compiler worker.
+
+Crew telemetry reports editor viewport, actual actor/system counts, raw frame
+samples and median/p95 only if its bounded sample completes. It is not Android
+profiling, a full-city stress result or a release performance gate.
+
+An interrupted build can leave Unity Performance Testing's generated
+`Assets/Resources/PerformanceTestRunInfo.json` and
+`PerformanceTestRunSettings.json` plus their two metas in the isolated copy.
+The installed package's `Editor/TestRunBuilder.cs` creates them in
+OnPreprocessBuild and deletes them in OnPostprocessBuild. They are not authored
+project inputs. If the strict pre-build file-count check finds these four extras,
+first confirm the original workspace has none and no isolated editor is running;
+quarantine only those exact leftover files under the copy's `.utmp`, then repeat
+the normal check. Do not exclude arbitrary assets or weaken the input comparison.
+Successful postprocessing must restore the exact authored input set.
+
 The latest production pass adds `ProductionStrategyPlaytest.BeginBatch`,
 `PoliceVehiclePlaytest.BeginBatch`, `CommercePlaytest.BeginBatch` and
 `PurchasesChecks.Run`. Their current reports are respectively
@@ -38,6 +93,12 @@ copied back, with evidence in `isolated-build-source-check.json` and
 copy, and still performs the same hash checks. This workstation's Unity path is
 configured at the top of the script. The GUI resolver stall is separate from
 gameplay/native test results and cannot be represented as a successful GUI build.
+
+Release Player builds increment the patch version and Android/iOS build
+number. Development builds keep the current values. Isolated review builds
+reserve from `UserSettings/HooliganReleaseVersions.txt` in the main workspace,
+then restore the isolated copy's settings. Keep that counter when reusing
+the workspace for subsequent releases.
 
 `compile_recovery.py` uses the installed Unity compiler and the project's cached
 Bee response files to compile runtime and editor assemblies into

@@ -12,6 +12,8 @@ public sealed class CityGameplay : MonoBehaviour
     public Vector3 Home => BattleManager.instance.playerSpawnRoot.position;
     public string[] LocationNames { get; private set; } = System.Array.Empty<string>();
     public Vector3[] Locations { get; private set; }
+    public Vector3 StadiumEntrance { get; private set; }
+    bool stadiumEntranceConnected;
     RectTransform frame;
     GameObject cameraPanel, districtPanel;
     TextMeshProUGUI status;
@@ -29,6 +31,7 @@ public sealed class CityGameplay : MonoBehaviour
     public void PostEvent(string message)
     {
         if(string.IsNullOrWhiteSpace(message))return;
+        CityNewsFeed.Post(message,CityNewsFeed.ClassifyChannel(message));
         if(status)status.text=message;
         var signal = Classify(message);
         if (signal == FeedSignal.Alert || signal == FeedSignal.Warning)
@@ -69,7 +72,7 @@ public sealed class CityGameplay : MonoBehaviour
         return false;
     }
     public static void EnsureExists() { if (!Instance) BattleManager.instance.gameObject.AddComponent<CityGameplay>(); }
-    void Awake() { Instance=this; }
+    void Awake() { Instance=this;CityNewsFeed.Ensure(); }
     void OnDestroy() { if(Instance==this)Instance=null; }
     IEnumerator Start()
     {
@@ -81,11 +84,12 @@ public sealed class CityGameplay : MonoBehaviour
         ClearRailDistrictTrees();
         for(int i=0;i<Locations.Length;i++)
         {
-            Locations[i]=ReachableApproach(Home,Locations[i]);
+            if(i!=5||!stadiumEntranceConnected)Locations[i]=ReachableApproach(Home,Locations[i]);
             var marker=new GameObject(LocationNames[i]); marker.transform.position=Locations[i];
             MiniMapIconFactory.Register(marker.transform,MiniMapIconFactory.Kind.Turf,LocationNames[i]);
             ZoneLabelUtil.Create(marker.transform,LocationNames[i],3.6f,6.8f);
-            marker.AddComponent<CityLocationLabel>().LocationIndex=i;
+            if(!(HomeMode&&i==5))marker.AddComponent<CityLocationLabel>().LocationIndex=i;
+            else if(marker.transform.Find("ZoneLabel"))marker.transform.Find("ZoneLabel").gameObject.SetActive(false);
             BuildLocationMarker(marker.transform,i);
         }
         yield return null;
@@ -138,8 +142,7 @@ public sealed class CityGameplay : MonoBehaviour
         {
             if(HomeMode)
             {
-                var matchday=FindFirstObjectByType<StadiumMatchdayActivity>();
-                if(matchday)matchday.OpenBriefing();else ToggleDestinations();
+                CameraPanTouchOnly.Instance?.FocusOn(Home);
             }
             else ToggleDestinations();
         });
@@ -150,7 +153,7 @@ public sealed class CityGameplay : MonoBehaviour
         if(HomeMode&&!PoliceCityMode.Active&&!GetComponent<HomeTerritorySystem>())gameObject.AddComponent<HomeTerritorySystem>();
         if(!PoliceCityMode.Active)gameObject.AddComponent<ModernCityHud>().Initialize(frame,GetComponent<CityMissionHUD>());
         if(!GetComponent<FocusedWorldPresentation>())gameObject.AddComponent<FocusedWorldPresentation>();
-        PostEvent(HomeMode ? "HOME TERRITORY - select your crew and follow the current objective. Prepare before starting matchday." : "Away trip started. Move from the arrival point and secure the district.");
+        PostEvent(HomeMode ? "HOME TERRITORY · select crew and work on your next Home goal." : "Away trip started. Move from the arrival point and secure the district.");
         while(BattleManager.instance.PlayerAgents.Count==0)yield return null;
         CameraPanTouchOnly.Instance?.CenterOnSelection();
         float wait=8f;
@@ -289,25 +292,37 @@ public sealed class CityGameplay : MonoBehaviour
             .FirstOrDefault(t=>t&&string.Equals(t.name,"stadium_001",System.StringComparison.OrdinalIgnoreCase));
         if(stadium)
         {
-        var renderers=stadium.GetComponentsInChildren<Renderer>(true);
-        Bounds bounds=renderers.Length>0?renderers[0].bounds:new Bounds(stadium.position,new Vector3(40,4,40));
-        for(int i=1;i<renderers.Length;i++)bounds.Encapsulate(renderers[i].bounds);
-        float radius=Mathf.Max(bounds.extents.x,bounds.extents.z)+8f;
-        Vector3 best=Locations[5];float bestDistance=float.MaxValue;
-        for(int i=0;i<32;i++)
-        {
-            float angle=i*Mathf.PI*2f/32f;
-            Vector3 candidate=bounds.center+new Vector3(Mathf.Cos(angle)*radius,0,Mathf.Sin(angle)*radius);
-            if(!NavMesh.SamplePosition(candidate,out var hit,14f,NavMesh.AllAreas))continue;
+            var renderers=stadium.GetComponentsInChildren<Renderer>(true);
+            var bounds=renderers.Length>0?renderers[0].bounds:new Bounds(stadium.position,new Vector3(40,4,40));
+            foreach(var renderer in renderers)bounds.Encapsulate(renderer.bounds);
+            var apron=new Vector3(bounds.center.x,Locations[5].y,bounds.max.z+10);
+            StadiumEntrance=apron;
             var path=new NavMeshPath();
-            if(!NavMesh.CalculatePath(Home,hit.position,NavMesh.AllAreas,path)||path.status!=NavMeshPathStatus.PathComplete)continue;
-            float distance=(hit.position-bounds.center).sqrMagnitude;
-            if(distance<bestDistance){bestDistance=distance;best=hit.position;}
+            float bestPhysical=float.MaxValue,bestConnected=float.MaxValue;
+            Vector3 connected=Locations[5];
+            // The north apron is the stadium entrance. Sample the adjacent pavements
+            // as well as the radial fallback used by the original district binding.
+            for(int ring=0;ring<=7;ring++)
+            for(int direction=0;direction<(ring==0?1:16);direction++)
+            {
+                float angle=direction*Mathf.PI/8;
+                var requested=apron+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*ring*7;
+                if(!NavMesh.SamplePosition(requested,out var hit,5,NavMesh.AllAreas)||Mathf.Abs(hit.position.y-apron.y)>2)continue;
+                if(hit.position.x>bounds.min.x-3&&hit.position.x<bounds.max.x+3&&
+                    hit.position.z>bounds.min.z-3&&hit.position.z<bounds.max.z+3)continue;
+                float distance=(hit.position-apron).sqrMagnitude;
+                if(distance<bestPhysical){bestPhysical=distance;StadiumEntrance=hit.position;}
+                if(distance>=bestConnected||!NavMesh.CalculatePath(Home,hit.position,NavMesh.AllAreas,path)||path.status!=NavMeshPathStatus.PathComplete)continue;
+                if(!NavMesh.CalculatePath(hit.position,Home,NavMesh.AllAreas,path)||path.status!=NavMeshPathStatus.PathComplete)continue;
+                bestConnected=distance;
+                connected=hit.position;
+            }
+            stadiumEntranceConnected=bestConnected<float.MaxValue;
+            if(stadiumEntranceConnected)Locations[5]=connected;
+            LocationNames[5]=HomeMode?"CITY STADIUM":"STADIUM AWAY END";
+            Debug.Log($"[CityGameplay] Stadium entrance {StadiumEntrance}, connected approach {connected}, local route {stadiumEntranceConnected}.");
         }
-        Locations[5]=best;
-        LocationNames[5]=HomeMode?"CITY STADIUM":"STADIUM AWAY END";
-        Debug.Log($"[CityGameplay] Stadium destination bound to real stadium_001 at {best} (model center {bounds.center}).");
-        }
+        else StadiumEntrance=Locations[5];
         BindDistrictBuildings();
     }
 
@@ -529,7 +544,12 @@ public sealed class CityGameplay : MonoBehaviour
     public void OpenLocation(int index)
     {
         if(Locations==null || index<0 || index>=Locations.Length)return;
-        districtPanel.SetActive(false);
+        if(districtPanel)districtPanel.SetActive(false);
+        if(HomeMode&&index==5&&StadiumMatchdayControl.Instance)
+        {
+            StadiumMatchdayControl.Instance.FocusAndOpen();
+            return;
+        }
         CameraPanTouchOnly.Instance?.FocusOn(Locations[index]);
         if(!HomeMode&&index==0){AwayExtractionSystem.Instance?.RequestExtraction();return;}
         bool major=HomeMode && (index==0 || index==1 || index==3 || index==4);
@@ -692,18 +712,20 @@ public sealed class CityGameplay : MonoBehaviour
         }
     }
 
-    public bool CheckCampaignCompletion()
+    public bool CheckCampaignCompletion(bool showPopup=true)
     {
         var d=GameManager.Data;
         if(!CampaignMissions.TryComplete(d,out var mission))return false;
         BattleManager.instance?.PersistBattleProgress();GameManager.Save();
         bool campaignComplete=d.CompletedCampaignMissions!=null&&d.CompletedCampaignMissions.Count>=CampaignMissions.MissionCount;
         string next=campaignComplete?"The five-mission campaign is complete.":$"Mission {d.CurrentLevel:00} is now unlocked: {CampaignMissions.Get(d.CurrentLevel).title}.";
-        PostEvent($"MISSION {mission.number:00} COMPLETE +£{mission.reward:N0}");
+        string stock=mission.number>1?$" · {CampaignMissions.AwayStockDelivery} supplies delivered to Home.":"";
+        PostEvent($"MISSION {mission.number:00} COMPLETE +£{mission.reward:N0}"+stock);
+        if(!showPopup)return true;
         GamePopup.Instance.Show(
             campaignComplete?"CAMPAIGN COMPLETE":$"MISSION {mission.number:00} COMPLETE",
-            mission.title+"\n\nAll linked tasks are complete. Reward: £"+mission.reward.ToString("N0")+"\n"+next,
-            new GamePopup.Option(campaignComplete?"RETURN TO HQ":"PLAN NEXT MISSION",LandscapeUI.Green,()=>
+            mission.title+"\n\nReward £"+mission.reward.ToString("N0")+stock+"\n"+next,
+            new GamePopup.Option(mission.number>1||campaignComplete?"RETURN TO HQ":"CONTINUE AT HOME",LandscapeUI.Green,()=>
             {
                 BattleManager.instance?.PersistBattleProgress();
                 GameManager.instance?.ReturnToDashboard();

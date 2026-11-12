@@ -1,0 +1,140 @@
+PASS First factory frame is dark with hidden unpositioned hands, preventing a white transition flash
+PASS Final navigation fits 2400x1080
+PASS Final circular cutout receives the approved pointer at 2400x1080
+PASS Final navigation fits 1024x768
+PASS Final circular cutout receives the approved pointer at 1024x768
+PASS Final navigation fits 1280x720
+PASS Final circular cutout receives the approved pointer at 1280x720
+PASS Map and news start hidden on final source
+PASS Final NEXT receives a native UI raycast
+PASS Final BACK receives a native UI raycast
+PASS Back/Next reconstruction does not teach selection
+PASS Final real gesture: SELECT A MEMBER
+PASS Final gesture advances only after success: Tap
+PASS Final real gesture: FIND YOUR MEMBER
+PASS Final gesture advances only after success: Tap
+PASS Final real gesture: LOOK AROUND
+PASS Final gesture advances only after success: DoubleTap
+PASS Final real gesture: ZOOM IN
+PASS Final gesture advances only after success: Pan
+PASS Final gesture advances only after success: PinchOut
+PASS Final gesture advances only after success: PinchIn
+PASS Final SKIP receives a native UI raycast
+PASS NEXT navigates without performing: MAKE A GROUP
+PASS Navigation never stalls at MAKE A GROUP
+PASS NEXT navigates without performing: ADD A MEMBER
+PASS Navigation never stalls at ADD A MEMBER
+PASS NEXT navigates without performing: REMOVE ONE MEMBER
+PASS Navigation never stalls at REMOVE ONE MEMBER
+PASS NEXT navigates without performing: DESELECT ALL
+PASS Navigation never stalls at DESELECT ALL
+PASS NEXT navigates without performing: TAKE CONTROL AGAIN
+PASS Navigation never stalls at TAKE CONTROL AGAIN
+PASS NEXT navigates without performing: BUILD YOUR HOME
+PASS Navigation never stalls at BUILD YOUR HOME
+PASS NEXT navigates without performing: FIRM HEADQUARTERS
+PASS Navigation never stalls at FIRM HEADQUARTERS
+PASS NEXT navigates without performing: BUILD YOUR HOME
+PASS Navigation never stalls at BUILD YOUR HOME
+PASS NEXT navigates without performing: SUPPLY YARD
+PASS Navigation never stalls at SUPPLY YARD
+PASS NEXT navigates without performing: BUILD YOUR HOME
+PASS Navigation never stalls at BUILD YOUR HOME
+PASS NEXT navigates without performing: TRAINING GROUND
+PASS Navigation never stalls at TRAINING GROUND
+PASS NEXT navigates without performing: MEMBER COMMANDS
+PASS Navigation never stalls at MEMBER COMMANDS
+PASS NEXT navigates without performing: GUARD
+PASS Navigation never stalls at GUARD
+PASS NEXT navigates without performing: PLACE YOUR GUARD
+PASS Navigation never stalls at PLACE YOUR GUARD
+PASS NEXT navigates without performing: PATROL
+PASS Navigation never stalls at PATROL
+PASS NEXT navigates without performing: PATROL
+PASS Navigation never stalls at PATROL
+PASS NEXT navigates without performing: FIRST PATROL POINT
+PASS Navigation never stalls at FIRST PATROL POINT
+PASS NEXT navigates without performing: SECOND PATROL POINT
+PASS Navigation never stalls at SECOND PATROL POINT
+PASS NEXT navigates without performing: START PATROL
+PASS Navigation never stalls at START PATROL
+PASS NEXT navigates without performing: STOP
+PASS Navigation never stalls at STOP
+PASS NEXT navigates without performing: ATTACK
+PASS Navigation never stalls at ATTACK
+PASS NEXT navigates without performing: CHOOSE YOUR RIVAL
+PASS Navigation never stalls at CHOOSE YOUR RIVAL
+PASS NEXT navigates without performing: CANCEL AN ATTACK
+PASS Navigation never stalls at CANCEL AN ATTACK
+PASS NEXT navigates without performing: SCOUT
+PASS Navigation never stalls at SCOUT
+PASS NEXT navigates without performing: SCOUT THIS STREET
+PASS Navigation never stalls at SCOUT THIS STREET
+PASS NEXT navigates without performing: CAPTURE
+PASS Navigation never stalls at CAPTURE
+PASS NEXT navigates without performing: CHECK THE COST FIRST
+PASS Navigation never stalls at CHECK THE COST FIRST
+PASS NEXT navigates without performing: REGROUP
+PASS Navigation never stalls at REGROUP
+PASS NEXT navigates without performing: MOVE
+PASS Navigation never stalls at MOVE
+PASS NEXT navigates without performing: RETURN HOME
+PASS Navigation never stalls at RETURN HOME
+PASS NEXT navigates without performing: GROW YOUR ROSTER
+PASS Navigation never stalls at GROW YOUR ROSTER
+PASS NEXT navigates without performing: RECRUIT ONE
+PASS Navigation never stalls at RECRUIT ONE
+PASS NEXT navigates without performing: MATCHDAY
+PASS Navigation never stalls at MATCHDAY
+PASS NEXT navigates without performing: CHOOSE YOUR PLAN
+PASS Navigation never stalls at CHOOSE YOUR PLAN
+PASS NEXT navigates without performing: SEND YOUR TEAM
+PASS Navigation never stalls at SEND YOUR TEAM
+PASS NEXT navigates without performing: PREPARE, THEN START
+PASS Navigation never stalls at PREPARE, THEN START
+PASS Final firm map/news target: YOUR MINIMAP
+PASS Navigation never stalls at YOUR MINIMAP
+PASS Final firm map/news target: CREW ON THE MAP
+PASS Navigation never stalls at CREW ON THE MAP
+PASS Final firm map/news target: FOLLOW YOUR ROUTES
+PASS Navigation never stalls at FOLLOW YOUR ROUTES
+PASS Final firm map/news target: CITY NEWS
+PASS Navigation never stalls at CITY NEWS
+PASS Final firm map/news target: CITY UPDATES
+PASS Navigation never stalls at CITY UPDATES
+PASS Final firm map/news target: HIDE THE FEED
+PASS Navigation never stalls at HIDE THE FEED
+PASS Skip remains clickable over an underlying modal
+PASS Navigation never stalls at AWAY TRIPS
+PASS Final guide reveals map/news and clears every owned sheet, pause and input gate on exit
+PASS Navigation and skipped parts never grant money, buildings, recruits or unperformed orders
+PASS Real DESELECT ALL cancels pending targeting so camera input stays available
+PASS Deselect-all does not cancel the member's actual order
+PASS Normal world tap selects the highlighted member after tutorial exit
+PASS Normal world double-tap focuses/selects its member without dropping the other selection
+PASS A following single tap removes only its member
+PASS Final Police overlay starts on its actual first target
+PASS Police officer target receives a real raycast
+PASS Police officer target receives a real raycast
+PASS Police per-part skip is clickable without doing physical work
+PASS Police per-part skip is clickable without doing physical work
+PASS Police per-part skip is clickable without doing physical work
+PASS Police per-part skip is clickable without doing physical work
+PASS Final Police map/news target: YOUR MINIMAP
+PASS Police map/news action finishes: YOUR MINIMAP
+PASS Final Police map/news target: CREW ON THE MAP
+PASS Police map/news action finishes: CREW ON THE MAP
+PASS Final Police map/news target: FOLLOW YOUR ROUTES
+PASS Police map/news action finishes: FOLLOW YOUR ROUTES
+PASS Final Police map/news target: CITY NEWS
+PASS Police map/news action finishes: CITY NEWS
+PASS Final Police map/news target: CITY UPDATES
+PASS Police map/news action finishes: CITY UPDATES
+PASS Final Police map/news target: HIDE THE FEED
+PASS Police map/news action finishes: HIDE THE FEED
+PASS Final Police map/news guide completes and releases input
+PASS Skipping Police work invents no custody or bribe results
+PASS No runtime exceptions or error logs during tutorial input: 
+RESULT 137 passed, 0 failed
+Isolated presentation regression: real firm/Police UI raycasts, two-contact camera gestures, navigation without rewards, staged map/news, deselect targeting cleanup and normal world double-tap. Police physical jobs are skipped without rewards in this focused repeat; the separate full walkthrough records their physical evidence. No device validation.
+UTC 2026-11-05T02:26:38.7811919Z

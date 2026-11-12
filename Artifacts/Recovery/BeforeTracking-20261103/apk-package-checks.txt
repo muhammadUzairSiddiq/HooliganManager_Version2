@@ -1,0 +1,11 @@
+PASS APK entries pass ZIP integrity checks
+PASS ARM64 IL2CPP runtime is packaged
+PASS Native Google Mobile Ads entry point is packaged
+PASS Native UMP consent entry point is packaged
+PASS Native Google Play Billing client is packaged
+PASS Android package and launchable activity can be read
+PASS Packaged Android AdMob App ID matches the project Test configuration
+PASS Required network permission is present
+PASS APK signature verifies (review signing; no store certification)
+PASS Unity build report records success with zero errors
+PASS APK and build report are newer than the reviewed implementation sources

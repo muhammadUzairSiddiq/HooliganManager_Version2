@@ -1,0 +1,77 @@
+{
+  "capturedAtUtc": "2026-11-05T03:13:28.8355080Z",
+  "runtimeCompileErrors": 0,
+  "editorCompileErrors": 0,
+  "runtimeWarnings": 31,
+  "modeWorldPass": 40,
+  "modeWorldFail": 0,
+  "tutorialPass": 256,
+  "tutorialFail": 0,
+  "deviceValidation": false,
+  "files": [
+    {
+      "path": "Assets/Scripts/Battle/StadiumMatchdayControl.cs",
+      "sha256": "f8b837369615f4a2d06e95b1872bc4b61d5bdabb140c4a9dd77a9807b23fdf35"
+    },
+    {
+      "path": "Assets/Scripts/Battle/StadiumMatchdayActivity.cs",
+      "sha256": "4fad3a267f4ebbf993ba1ee85272ce1bc48553646d83b29dd4fa24a1b48e7b09"
+    },
+    {
+      "path": "Assets/Scripts/Battle/AgentSelectionManager.cs",
+      "sha256": "fbbf00d9fbe014e3ea477d7b56408a2c4ca0022b009ddff85bb968635d4a7008"
+    },
+    {
+      "path": "Assets/Scripts/Battle/GangArea.cs",
+      "sha256": "70f9a67df2f111ac76adcabf2c2507f7e295eae9ee2760623690eb38ae061cd9"
+    },
+    {
+      "path": "Assets/Scripts/GameManager.cs",
+      "sha256": "5e6fd90f3a9ed98eb65e92d47a8b77f1cc31e64ca1e1f69cddd05edc12aa55d6"
+    },
+    {
+      "path": "Assets/Scripts/UI/MainMenuController.cs",
+      "sha256": "11bce8a184c50c9849579a8f744dc947eb1755ec251d5c5c40ae753c2d3dcb9a"
+    },
+    {
+      "path": "Assets/Scripts/UI/Landscape/ModernCityHud.cs",
+      "sha256": "d67907994e25f1445c6d8c607cda0ba4fc87ba00223f39d203f471103f4f9efc"
+    },
+    {
+      "path": "Assets/Scripts/UI/Landscape/SimpleShellLayout.cs",
+      "sha256": "ea3c719cae23b949bc1ac0e356ffeab0a4011749e133e84e5bdd50e8a5753a53"
+    },
+    {
+      "path": "Assets/Scripts/UI/Landscape/LandscapeFrontEnd.cs",
+      "sha256": "5a751d68e76bd47c2eae6b83dba0b73310a60f4831fe194f697ca3911e008d63"
+    },
+    {
+      "path": "Assets/Scripts/UI/Landscape/GuidedCityTutorial.cs",
+      "sha256": "f8ca89b11d493ada228390c605101f354394e28c6c4e7973c48b7e2334baddb0"
+    },
+    {
+      "path": "Assets/Scripts/SaveDataInLocal/CampaignMissions.cs",
+      "sha256": "1a158f5086c651dd8207028328cb7c32a8607dc699726290d4856e28d6d149a2"
+    },
+    {
+      "path": "Assets/Scripts/Editor/Landscape/ModeWorldMatchdayPlaytest.cs",
+      "sha256": "4e41c1f6c330cfdefd81d7fe7ac9717c4577c7a38282717be61eed0e1d6fb738"
+    },
+    {
+      "path": "Assets/Scripts/Editor/Landscape/GuidedTutorialPlaytest.cs",
+      "sha256": "88d6d76d32d94eff3d52284304838ddf1d7836f24ca2550a991470c91cef02c6"
+    },
+    {
+      "path": "Docs/AI_SCOPE_GUARDRAILS.txt",
+      "sha256": "0a942bcd294d26efe416999ee0fa4ae6d0c05fb474879e9a4fa610099e5f3b7f"
+    },
+    {
+      "path": "Docs/Recovery/Implementation_Status.md",
+      "sha256": "c0b5f967f0cd9ec236f5d6b5cb26b139da4cbcfe06a1df53e4d71ec91b4e2cd8"
+    },
+    {
+      "path": "Docs/Recovery/Guided_Operations_Pass.md",
+      "sha256": "dadac6cc029aa0bff60ae71b25a176aa68663a525f193a75aea5183cf4255bfb"
+    }
+  ]
+}

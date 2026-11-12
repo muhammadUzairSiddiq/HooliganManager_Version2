@@ -45,6 +45,9 @@ public class AgentAnimController
     // ── Current state tracking — avoids redundant CrossFade calls ─────────
     private string _currentState = string.Empty;
     SupporterGestureAnimation taskAnimation;
+    readonly AgentController crewOwner;
+    readonly EnemyController enemyOwner;
+    float nextTaskProbe;
 
     // ── Crossfade durations (seconds) ─────────────────────────────────────
     private const float FadeToIdle   = 0.20f;
@@ -106,6 +109,9 @@ public class AgentAnimController
     public AgentAnimController(Animator animator)
     {
         _anim       = animator;
+        crewOwner=animator?animator.GetComponentInParent<AgentController>():null;
+        enemyOwner=animator?animator.GetComponentInParent<EnemyController>():null;
+        taskAnimation=animator?animator.GetComponentInParent<SupporterGestureAnimation>():null;
         _runVariant = Random.Range(0, s_RunStates.Length);
         if (_anim) { _anim.applyRootMotion = false; _anim.cullingMode = AnimatorCullingMode.CullUpdateTransforms; _anim.speed = 1; }
 
@@ -128,30 +134,30 @@ public class AgentAnimController
     public void Tick(float speed, bool isFighting = false)
     {
         if (IsLocked) return;
-        speed = Mathf.Clamp01(speed);
+        speed = Mathf.Clamp(speed,0f,1.6f);
 
-        bool runOrder=_anim&&_anim.GetComponentInParent<AgentController>()&&CrewMovementPreference.RunOnTap;
+        bool runOrder=crewOwner&&CrewMovementPreference.RunOnTap;
         if (speed > WalkThreshold && (isFighting||runOrder))
         {
             // Full combat sprint
-            if (_anim != null) _anim.speed = 1f;
+            if (_anim != null) _anim.speed = Mathf.Clamp(speed,.8f,1.35f);
             SmoothCrossFade(s_RunStates[_runVariant], GameplayTuning.Current.animationBlend);
         }
         else if (speed > IdleThreshold)
         {
             // Casual patrol — use the dedicated walk clip
-            if (_anim != null) _anim.speed = 1f;
+            if (_anim != null) _anim.speed = Mathf.Clamp(speed/.52f,.75f,1.25f);
             SmoothCrossFade(AgentAnimParams.States.Walking, GameplayTuning.Current.animationBlend);
         }
         else
         {
             if (_anim != null) _anim.speed = 1f;
             string idleState = isFighting ? AgentAnimParams.States.BattleIdle : AgentAnimParams.States.Idle;
-            var officer=_anim?_anim.GetComponentInParent<EnemyController>():null;
+            var officer=enemyOwner;
             if(!isFighting&&officer&&officer.firmName=="POLICE"&&_anim.HasState(0,Animator.StringToHash("Police Watch")))idleState="Police Watch";
             if(_anim&&!isFighting)
             {
-                if(!taskAnimation)taskAnimation=_anim.GetComponentInParent<SupporterGestureAnimation>();
+                if(!taskAnimation&&Time.time>=nextTaskProbe){nextTaskProbe=Time.time+1f;taskAnimation=_anim.GetComponentInParent<SupporterGestureAnimation>();}
                 string requested=taskAnimation?taskAnimation.RequestedState:null;
                 if(!string.IsNullOrEmpty(requested)&&_anim.HasState(0,Animator.StringToHash(requested)))idleState=requested;
             }

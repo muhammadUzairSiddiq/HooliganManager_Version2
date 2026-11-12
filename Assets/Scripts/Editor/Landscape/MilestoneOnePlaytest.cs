@@ -64,7 +64,7 @@ public static class MilestoneOnePlaytest
                 var menu = UnityEngine.Object.FindFirstObjectByType<MainMenuController>();
                 if (!menu) throw new Exception("Main menu missing");
                 Check(!GameManager.HasLivingCrew(GameManager.Data), "Reproduced defeated saved campaign");
-                Check(menu.newGameBtn.GetComponentInChildren<TextMeshProUGUI>().text.Contains("CHOOSE ROLE"), "Main action introduces role selection");
+                Check(menu.newGameBtn.GetComponentInChildren<TextMeshProUGUI>().text.Contains("CHOOSE MODE"), "Main action introduces Home, Away and Police mode selection");
                 menu.newGameBtn.AfterClickAnimation.Invoke();
                 Check(SimpleShellLayout.ShowModes(),"Role menu is available before entering a campaign");
                 menu.ConfirmNewFirm();

@@ -1,0 +1,171 @@
+{
+  "created_utc": "2026-11-03T05:54:17.456453+00:00",
+  "draft": true,
+  "current_review_pages": 14,
+  "historical_pages": 134,
+  "total_pages": 148,
+  "output": "D:\\Holligan Manager Version 2\\HooliganManager_Version2\\output\\pdf\\Hooligan_Manager_Tracking_Polish_Compiled_Review.pdf",
+  "output_sha256": "f6e2164a47721c8f93d7ba15b76bf582a7557866612ae92ff2de58fb9734aeae",
+  "historical_source": "D:\\Holligan Manager Version 2\\HooliganManager_Version2\\output\\pdf\\Hooligan_Manager_Compiled_RTS_Recovery_Plan.pdf",
+  "historical_source_sha256": "bbf886f3f32424a4d8137347a59d267660d283e27b4f9ee8dc88fb557f8d410f",
+  "historical_source_unchanged": true,
+  "native_results": {
+    "Audio, UI and lifecycle": {
+      "expected_passes": 43,
+      "actual": [
+        43,
+        0
+      ],
+      "report": "Artifacts/Recovery/presentation-feedback-playtest.txt",
+      "sha256": "fb90a5168ff33348c6cea6d925e61b2639b61c9798799787b37a9fe42e933858"
+    },
+    "Visible Home and reload": {
+      "expected_passes": 27,
+      "actual": [
+        27,
+        0
+      ],
+      "report": "Artifacts/Recovery/home-visual-playtest.txt",
+      "sha256": "2ef5800295ac39738c6c8a2ce0803b764c98fa4fb76901009da5dc4127b26b75"
+    },
+    "Tactical map": {
+      "expected_passes": 31,
+      "actual": [
+        31,
+        0
+      ],
+      "report": "Artifacts/Recovery/tactical-map-playtest.txt",
+      "sha256": "b0aa714cdf2e2caf80e2fb95f7a94cc1d9d95919da3e6521948beb204b0bde99"
+    },
+    "Crew routes, finding and follow": {
+      "expected_passes": 47,
+      "actual": [
+        47,
+        0
+      ],
+      "report": "Artifacts/Recovery/crew-tracking-playtest.txt",
+      "sha256": "3d89ce8964374063d96801dc98dcde6e9dc543e19d1380af778fa2e8cba3f277"
+    },
+    "Train arrivals and real rival raids": {
+      "expected_passes": 28,
+      "actual": [
+        28,
+        0
+      ],
+      "report": "Artifacts/Recovery/train-raid-playtest.txt",
+      "sha256": "67c275ddce421c725d6c65dd0385ad901e41cb04d24cee36075c91a7f02e57e5"
+    },
+    "Tutorial, investment and matchday": {
+      "expected_passes": 52,
+      "actual": [
+        52,
+        0
+      ],
+      "report": "Artifacts/Recovery/production-strategy-playtest.txt",
+      "sha256": "596f023dc3500c2bbd6b06588f90b58828c54e7fabc9e1e1e57d479336a62ffd"
+    },
+    "Police vehicle and mounted map": {
+      "expected_passes": 27,
+      "actual": [
+        27,
+        0
+      ],
+      "report": "Artifacts/Recovery/police-vehicle-playtest.txt",
+      "sha256": "10866d198d6a3d7192c6f115106ac2b6e25bec2132dec7a4ba3e8c73f1a17b26"
+    },
+    "Police career": {
+      "expected_passes": 49,
+      "actual": [
+        49,
+        0
+      ],
+      "report": "Artifacts/Recovery/police-playtest.txt",
+      "sha256": "3afbac9c36d80a647511f092e6868b706f0fbcd5760f05e2d6cacca96d7c7642"
+    },
+    "Commerce and Away persistence": {
+      "expected_passes": 30,
+      "actual": [
+        30,
+        0
+      ],
+      "report": "Artifacts/Recovery/commerce-playtest.txt",
+      "sha256": "f7e3e9242666c937f517882035a237084b00283259d0ddf8462b5122f3a609d8"
+    },
+    "Home flow and commands": {
+      "expected_passes": 33,
+      "actual": [
+        33,
+        0
+      ],
+      "report": "Artifacts/Recovery/redesign-playtest.txt",
+      "sha256": "57108a82cccdb6d55633ac5325147d8250d01aa3cae987e3858fe53f0f38e721"
+    },
+    "RTS/city compatibility": {
+      "expected_passes": 104,
+      "actual": [
+        104,
+        0
+      ],
+      "report": "Artifacts/CityQA/rts-controls-playtest.txt",
+      "sha256": "68600a5935c52be494d96fa6fff21053c7b8f05c1ff9924000702304bf47efdd"
+    },
+    "Role menu and new campaign": {
+      "expected_passes": 16,
+      "actual": [
+        16,
+        0
+      ],
+      "report": "Artifacts/Milestone01/playtest-checks.txt",
+      "sha256": "4212194f51fa76f2a1efa54e1e99abd81a4fa67b45474eb2fd16ec1004b10792"
+    },
+    "Native saves": {
+      "expected_passes": 12,
+      "actual": [
+        12,
+        0
+      ],
+      "report": "Artifacts/Recovery/unity-save-checks.txt",
+      "sha256": "bae88433da2d622232a4caf8d71dc448c5f25ecb479bf5121ca38baee8c6ccea"
+    },
+    "Ads configuration and callbacks": {
+      "expected_passes": 14,
+      "actual": [
+        14,
+        0
+      ],
+      "report": "Artifacts/Recovery/ads-checks.txt",
+      "sha256": "774e26cf387f4928a148408be481c58371acc0917b227d84687d407ea5d03d1f"
+    },
+    "Purchases and commerce rules": {
+      "expected_passes": 40,
+      "actual": [
+        40,
+        0
+      ],
+      "report": "Artifacts/Recovery/purchases-checks.txt",
+      "sha256": "d029407b14e12598ad2e44b8c7d6e0be50017e6fa3da2078a90842c2abf5c004"
+    }
+  },
+  "images_sha256": {
+    "Artifacts\\CityQA\\rts-hold-menu.png": "7ff2b934aa9b0d119c5bf541af403a102469e45ff4e68e5269802bbe9c3ed5ef",
+    "Artifacts\\Recovery\\commerce-venue.png": "0022699e85ed23dfcd2f072adc2b8ab24636960cd04170a07a25d6bcd3b759e3",
+    "Artifacts\\Recovery\\crew-finder.png": "56c5452a889d77c58b8c516fdeb917083c19c54a9f2376ac09784d70568643d4",
+    "Artifacts\\Recovery\\crew-split-follow.png": "bc27797b4116976a5238ac5940abde1885725ce83ce3e8e34d700bcd84b98e26",
+    "Artifacts\\Recovery\\crew-world-routes.png": "cac13e36a46069b110f47acf05afa1c1db8c62d22842f015438e9839349da65c",
+    "Artifacts\\Recovery\\home-visual-before.png": "a0910b781fe94880ab80c9dc2fb761db7e9f2ae6b6519b541ad0823d36e2e6f4",
+    "Artifacts\\Recovery\\home-visual-complete.png": "dd4f6e14082c484ba0ea696de62c751cc787c5e706cdecb84f29d93dab2997fc",
+    "Artifacts\\Recovery\\police-patrol-van.png": "a46cbbd5e84c3357c97ce32753076853265f0e7abfc6a16e5ed69977a383f06d",
+    "Artifacts\\Recovery\\presentation-audio-credits.png": "65c27b4cccc0e065d956f203fb67e8ad7bb19ea9e1ab9638ff6f0774c44f44c9",
+    "Artifacts\\Recovery\\presentation-settings.png": "59f782e64a8e84dbd714aef58c018061051debe52519de689e5782c047413052",
+    "Artifacts\\Recovery\\production-matchday-command.png": "fa2ea37696cc4987a3fead890c0ce63e60b2117d0ff74e026d71c2378d8bb160",
+    "Artifacts\\Recovery\\production-matchday-world.png": "89acb98d07a199c8dd96bfae71de399af52c7971da69f0802fa6907c2aeba652",
+    "Artifacts\\Recovery\\rival-shop-raid-defense.png": "0aa87ffe2a015333952d9a536212426b8666ec96d30978fd2e2bf5560577d16c",
+    "Artifacts\\Recovery\\tactical-map-1024x768.png": "e39a5fd6e85961c3f83d58f1d1b41f4abfd0804d4b71ad5fd6aec1ed7448f0fb",
+    "Artifacts\\Recovery\\tactical-map-1280x720.png": "ab4b9b43eff26f551abbac4545e28b6392993e49887c5d68c13cb3ae97b1eb10",
+    "Artifacts\\Recovery\\tactical-map-2400x1080.png": "37371ca6388f90c784a3927f5e1875c3b669b326346867f9fef2a226cf693e2c",
+    "Artifacts\\Recovery\\train-arrival-groups.png": "e3c5b6547fcd93ef320cdc99ea4e752e440a2e70f433c904e5710b482b2c7b5b"
+  },
+  "android_manifest_sha256": null,
+  "physical_device_validation": "not performed",
+  "production_release_certified": false
+}

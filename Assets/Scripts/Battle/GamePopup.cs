@@ -110,6 +110,7 @@ public class GamePopup : MonoBehaviour
         dimmer=Image("Dimmer",root.transform,0,0,1600,900,null,new Color(.04f,.08f,.12f,.44f));dimmer.raycastTarget=true;
         dimmer.gameObject.AddComponent<UiWorldTapBlocker>();
         dialog=Panel("Dialog",root.transform,48,36,1504,828,true);
+        dialog.gameObject.AddComponent<PanelRevealFeedback>();
         Image("TitleBand",dialog.transform,28,20,1448,96,null,new Color(.01f,.02f,.03f,.52f));
         accent=Image("Accent",dialog.transform,28,20,1448,8,null,Red);
         title=Text("Title",dialog.transform,"",48,36,1320,64,46,Red,true,TextAlignmentOptions.Center);

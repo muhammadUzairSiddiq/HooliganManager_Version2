@@ -1,0 +1,46 @@
+PASS Fixture begins with six actual living crew at production roster speed 2.5
+PASS Fresh movement preferences use run-on-tap and default brisk pace 1.65
+PASS Production-speed member accepts a real complete city route
+PASS Run gait uses the actual NavMesh speed after repeated runtime Updates
+PASS Walk preference changes the live NavMesh gait to 52 percent without replacing roster speed
+PASS Run preference takes effect again after runtime Updates
+PASS Temporary speed boost survives Update instead of being overwritten by movement preference
+PASS Temporary speed boost expires back to the configured live gait
+PASS Pace/gait/boost changes preserve saved production speed and global simulation time scale
+PASS Actual city travel advances the crew and exposes real complete remaining path corners/endpoints
+PASS Camera follows the moving individual rather than an empty group centroid
+PASS Tracked moving crew has a bounded real name/destination label without an extra pointer hitbox
+PASS A new real route replaces the tracked member's previous destination
+PASS World route record refreshes the accepted reroute and actual endpoint
+PASS Compact map follows the accepted reroute's actual remaining navigation start and endpoint
+PASS Unreachable reroute retains the exact previous live order and navigation destination
+PASS Rejected reroute preserves the compact map's real previous destination
+PASS Explicit manual camera focus cancels individual follow without changing crew orders
+PASS NavMesh Warp arranges a split group and separate Home guard for camera checks
+PASS Centering a split selection follows LastPicked instead of the empty midpoint
+PASS Individual camera centering preserves the command selection and another group's guard
+PASS Focus is a one-time individual view and leaves selection/other duties intact
+FAIL The independently deployed member accepts a real route before map tracking
+PASS Tracking from the expanded map pins an individual while world camera input stays frozen
+PASS Rendered camera matrix plus displayed UV crop matches map coordinates independently of inverse mapping
+PASS Dragging immediately synchronizes cached terrain crop and live marker projection
+PASS Zooming immediately synchronizes rendered terrain and map marker projection
+PASS Map collapse re-enables the camera and preserves individual follow target/focus
+PASS Map FOCUS closes first so camera OnEnable cannot discard the requested destination
+PASS All six production-speed crew accept complete real routes for the compact-map budget scenario
+PASS Expanded All view retains six actual routes before compact-map transition
+PASS Collapsing immediately caps real routes at three and prioritizes an unselected tracked member
+PASS Compact route Off removes snapshots without replacing crew orders
+PASS Compact routes add actual rendered UGUI mesh geometry without a map-order hitbox
+PASS Compact All still shows only selected and tracked crew, excluding other moving groups
+PASS Compact Tracked mode keeps only the actual pinned member's path
+PASS Route display modes preserve all six live orders and command selection
+PASS Crew finder scenario places six watched actors on actual distant NavMesh points
+PASS Crew finder shows three-to-five bounded buttons with actual member names
+PASS Finder buttons never overlap one another or the visible individual tracking bar
+PASS Actual world tracking records/rendered route count stay within the 24-route production budget
+PASS World crew labels retain the six-label bound while finder UI is active
+PASS Tracking/finder checks finish with unchanged roster speed and restored baseline time scale
+RESULT 42 passed, 1 failed
+Native isolated fixture: six durable crew retain production Data.Speed 2.5. Pace/boost checks run at time scale 1; only travel/follow observation uses time scale 3. NavMesh Warp arranges split/offscreen scenarios, never supplies asserted movement. Unrelated pressure suppressed. Preferences/save override restored. No device/performance/natural campaign validation.
+UTC 2026-11-03T04:03:32.7918085Z

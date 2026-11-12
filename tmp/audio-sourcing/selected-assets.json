@@ -1,0 +1,120 @@
+[
+  {
+    "file": "click_001.ogg",
+    "pack": "interface-sounds",
+    "original": "Audio/click_001.ogg",
+    "sha256": "ccfb7fa0cccdd9faec0eb16033c732b1e308d139d80f799161495d58f7adcdb9"
+  },
+  {
+    "file": "open_001.ogg",
+    "pack": "interface-sounds",
+    "original": "Audio/open_001.ogg",
+    "sha256": "a27c6bb0df7da1e6af5dd5937593c98bc58b6e513f42fe6a3254cd6a6949c648"
+  },
+  {
+    "file": "close_001.ogg",
+    "pack": "interface-sounds",
+    "original": "Audio/close_001.ogg",
+    "sha256": "44af8249b933e0fd35ec957a638bb1a0b01f85b53fbe9674bf77bd3ca3168ef4"
+  },
+  {
+    "file": "select_001.ogg",
+    "pack": "interface-sounds",
+    "original": "Audio/select_001.ogg",
+    "sha256": "aec0c31ea934a35936ae0d2ab8fac8123c93aa5647f935853a58dbaf90278b7a"
+  },
+  {
+    "file": "confirmation_001.ogg",
+    "pack": "interface-sounds",
+    "original": "Audio/confirmation_001.ogg",
+    "sha256": "063564703b6094d70718a3e787a55cc9141611e4ecd6b6637f8828f79b4a8c3a"
+  },
+  {
+    "file": "error_004.ogg",
+    "pack": "interface-sounds",
+    "original": "Audio/error_004.ogg",
+    "sha256": "0b574cea597d96507e782ae9764f88482ce49f46e931e57054bf7150047f2d69"
+  },
+  {
+    "file": "confirmation_003.ogg",
+    "pack": "interface-sounds",
+    "original": "Audio/confirmation_003.ogg",
+    "sha256": "3091bf0be0497f825769ee0733ca7bdc3bcd59bd6c6e8f2ba8f93d580ff38022"
+  },
+  {
+    "file": "error_003.ogg",
+    "pack": "interface-sounds",
+    "original": "Audio/error_003.ogg",
+    "sha256": "885b28175c7b511118bcffab95675b48bbac9005cf6514656ebdad979276b3ab"
+  },
+  {
+    "file": "footstep00.ogg",
+    "pack": "50-rpg-sound-effects",
+    "original": "OGG/footstep00.ogg",
+    "sha256": "6fe61ef1fc3bcf0e253bf2eb64759db6cb69e2fe452f4d88cc597ecf78a3d601"
+  },
+  {
+    "file": "metalClick.ogg",
+    "pack": "50-rpg-sound-effects",
+    "original": "OGG/metalClick.ogg",
+    "sha256": "9851a69d0c613e13bceef08060ecc4148f098ef487927cbebe270d642398a3b3"
+  },
+  {
+    "file": "chop.ogg",
+    "pack": "50-rpg-sound-effects",
+    "original": "OGG/chop.ogg",
+    "sha256": "d00c2b3c9fff07e376145c8c8c45c90e5084ec192f6ce0387db233f7b86f1486"
+  },
+  {
+    "file": "handleCoins.ogg",
+    "pack": "50-rpg-sound-effects",
+    "original": "OGG/handleCoins.ogg",
+    "sha256": "8a91f969e932df709df80ee124d86a51389eed9b67f22e5e716bc2bbf60d8dab"
+  },
+  {
+    "file": "metalLatch.ogg",
+    "pack": "50-rpg-sound-effects",
+    "original": "OGG/metalLatch.ogg",
+    "sha256": "ba9ba60b172b3ebc131a940f25793cd2e207aca7af73dc80d637277f060f1708"
+  },
+  {
+    "file": "jingles_STEEL00.ogg",
+    "pack": "85-short-music-jingles",
+    "original": "OGG/jingles_STEEL/jingles_STEEL00.ogg",
+    "sha256": "8799eb726d784ae0aa1a9df80648a873ac60015bc00aea12c8e2dd1431a2bd7d"
+  },
+  {
+    "file": "jingles_STEEL14.ogg",
+    "pack": "85-short-music-jingles",
+    "original": "OGG/jingles_STEEL/jingles_STEEL14.ogg",
+    "sha256": "a24f6f6f76063d8e0442b15e660896ec4dd11a7be45d19f71088408e002c99f8"
+  },
+  {
+    "file": "jingles_STEEL01.ogg",
+    "pack": "85-short-music-jingles",
+    "original": "OGG/jingles_STEEL/jingles_STEEL01.ogg",
+    "sha256": "099b192f120f7eb7c24613be277428628b9ec9c81e1f8420254abce336fbe7e5"
+  },
+  {
+    "file": "UrbanTheme.ogg",
+    "original": "urban_theme_bpm115_0.ogg",
+    "sha256": "564fe32a9421a771e10de249a38362789e7a116140ad8d74d8d9ebcb398d99cc"
+  },
+  {
+    "file": "Espionage.ogg",
+    "original": "espionage.ogg",
+    "sha256": "1b267502fd678b9e74c01947339797ce76d6270978422c641bd1a8b277ac9d4c"
+  },
+  {
+    "file": "confirmation_002.ogg",
+    "pack": "interface-sounds",
+    "original": "Audio/confirmation_002.ogg",
+    "sha256": "33b17a9a9a2397c62b285c52c33a907fdffb476909c99e42dde603f6a7a8b12c"
+  },
+  {
+    "file": "footstep01.ogg",
+    "pack": "50-rpg-sound-effects",
+    "original": "OGG/footstep01.ogg",
+    "sha256": "313472dba31fd0c855376069fa368bb5a198c27251cc8398ef464578b7047a4c"
+  }
+]

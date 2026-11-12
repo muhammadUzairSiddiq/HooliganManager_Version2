@@ -1,0 +1,34 @@
+[
+  {
+    "Path": "Assets/Scripts/ModalPresentation.cs",
+    "SHA256": "76BCA1361AE41F0FE69AC3EC209F5E1129294A585A757CF89E446F7DAC168BAD"
+  },
+  {
+    "Path": "Assets/Scripts/UI/Landscape/TutorialSpotlight.cs",
+    "SHA256": "D441D10DA3AD0F2A864509B217AD40EA9EA455D2A789F6E89E64FE7912843C69"
+  },
+  {
+    "Path": "Assets/Scripts/UI/Landscape/TutorialBackdropBlur.cs",
+    "SHA256": "B8F282C4B5DA7FDE71424D3F90AA83A71F7B0FC3E6BCECA4B474E9D39E030363"
+  },
+  {
+    "Path": "Assets/Resources/Presentation/TutorialBackdrop.shader",
+    "SHA256": "6DC21DD11811AC6A6FEAB9DDBD86A26AEE5475008BE7C5F603DC5C0E3E52E15A"
+  },
+  {
+    "Path": "Assets/Resources/Presentation/TutorialGaussian.shader",
+    "SHA256": "1188A7BE783AC13014537E59EC355C6482109B73EC0C54FEE7D008616F6BC5CF"
+  },
+  {
+    "Path": "Assets/Scripts/Editor/Landscape/GuidedTutorialPlaytest.cs",
+    "SHA256": "E26E62DD6FBDC463F68BFDF206DA24337DECDC8C5D001D4F0F7CE7AF905CDF50"
+  },
+  {
+    "Path": "Docs/AI_SCOPE_GUARDRAILS.txt",
+    "SHA256": "4A75F42FE9EF2F1306836F9DB02F61C76972E9FC17AFEEC3DE270A09D543786C"
+  },
+  {
+    "Path": "Docs/Recovery/Implementation_Status.md",
+    "SHA256": "685E428FF5773CB08805ED4FEEED09BAB2C24DDAAC04E682247486E307DD4640"
+  }
+]

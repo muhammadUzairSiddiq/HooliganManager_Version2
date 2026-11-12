@@ -1,0 +1,198 @@
+PASS Fresh first-use guide pauses the simulation before selection
+PASS Wrong world and screen taps cannot select, move or advance through the blackout
+PASS Input shield covers the complete display beyond the safe area
+PASS Every tutorial graphic has a CanvasRenderer, including the shield and hand
+PASS Tutorial uses a floating top heading with no extra lesson panel
+PASS Minimap and news stay hidden before their own introduction
+PASS NEXT advances without executing a gameplay action and BACK receives its real click
+PASS Navigation restores the prior lesson without awarding learning, selection or money
+PASS Tutorial navigation stays within the display at 2400x1080
+PASS Circular spotlight exposes the actual exclusive target at 2400x1080
+PASS Tutorial navigation stays within the display at 1024x768
+PASS Circular spotlight exposes the actual exclusive target at 1024x768
+PASS Tutorial navigation stays within the display at 1280x720
+PASS Circular spotlight exposes the actual exclusive target at 1280x720
+PASS Instruction owns a paused clock: YOUR CREW
+PASS Approved target receives its real gesture or EventSystem click: YOUR CREW
+PASS Instruction owns a paused clock: SELECT A MEMBER
+PASS Approved target receives its real gesture or EventSystem click: SELECT A MEMBER
+PASS Instruction owns a paused clock: FIND YOUR MEMBER
+PASS One tap cannot finish the double-tap lesson
+PASS Approved target receives its real gesture or EventSystem click: FIND YOUR MEMBER
+PASS Instruction owns a paused clock: LOOK AROUND
+PASS Approved target receives its real gesture or EventSystem click: LOOK AROUND
+PASS Instruction owns a paused clock: ZOOM IN
+PASS Two InputSystem contacts really change camera zoom: ZOOM IN
+PASS Approved target receives its real gesture or EventSystem click: ZOOM IN
+PASS Instruction owns a paused clock: ZOOM OUT
+PASS Two InputSystem contacts really change camera zoom: ZOOM OUT
+PASS Approved target receives its real gesture or EventSystem click: ZOOM OUT
+PASS Instruction owns a paused clock: MOVE
+PASS Approved target receives its real gesture or EventSystem click: MOVE
+PASS Actual work resumes simulation while retaining exclusive input
+PASS A movement click alone does not finish its lesson
+PASS Physical completion advances the waiting lesson: part 2
+PASS Instruction owns a paused clock: MOVE AGAIN
+PASS Approved target receives its real gesture or EventSystem click: MOVE AGAIN
+PASS Actual work resumes simulation while retaining exclusive input
+PASS A movement click alone does not finish its lesson
+PASS Physical completion advances the waiting lesson: part 2
+PASS Instruction owns a paused clock: MAKE A GROUP
+PASS Approved target receives its real gesture or EventSystem click: MAKE A GROUP
+PASS Instruction owns a paused clock: ADD A MEMBER
+PASS Approved target receives its real gesture or EventSystem click: ADD A MEMBER
+PASS Instruction owns a paused clock: REMOVE ONE MEMBER
+PASS Approved target receives its real gesture or EventSystem click: REMOVE ONE MEMBER
+PASS Instruction owns a paused clock: DESELECT ALL
+PASS Approved target receives its real gesture or EventSystem click: DESELECT ALL
+PASS Instruction owns a paused clock: TAKE CONTROL AGAIN
+PASS Approved target receives its real gesture or EventSystem click: TAKE CONTROL AGAIN
+PASS Instruction owns a paused clock: BUILD YOUR HOME
+PASS Approved target receives its real gesture or EventSystem click: BUILD YOUR HOME
+PASS Instruction owns a paused clock: FIRM HEADQUARTERS
+PASS Approved target receives its real gesture or EventSystem click: FIRM HEADQUARTERS
+PASS Actual work resumes simulation while retaining exclusive input
+PASS Physical completion advances the waiting lesson: part 5
+PASS Instruction owns a paused clock: BUILD YOUR HOME
+PASS Approved target receives its real gesture or EventSystem click: BUILD YOUR HOME
+PASS Instruction owns a paused clock: SUPPLY YARD
+PASS Approved target receives its real gesture or EventSystem click: SUPPLY YARD
+PASS Actual work resumes simulation while retaining exclusive input
+PASS Physical completion advances the waiting lesson: part 6
+PASS Instruction owns a paused clock: BUILD YOUR HOME
+PASS Approved target receives its real gesture or EventSystem click: BUILD YOUR HOME
+PASS Instruction owns a paused clock: TRAINING GROUND
+PASS Approved target receives its real gesture or EventSystem click: TRAINING GROUND
+PASS Actual work resumes simulation while retaining exclusive input
+PASS Physical completion advances the waiting lesson: part 7
+PASS Instruction owns a paused clock: MEMBER COMMANDS
+PASS Approved target receives its real gesture or EventSystem click: MEMBER COMMANDS
+PASS Instruction owns a paused clock: GUARD
+PASS Approved target receives its real gesture or EventSystem click: GUARD
+PASS Instruction owns a paused clock: PLACE YOUR GUARD
+PASS Approved target receives its real gesture or EventSystem click: PLACE YOUR GUARD
+PASS Instruction owns a paused clock: PATROL
+PASS Approved target receives its real gesture or EventSystem click: PATROL
+PASS Instruction owns a paused clock: PATROL
+PASS Approved target receives its real gesture or EventSystem click: PATROL
+PASS Instruction owns a paused clock: FIRST PATROL POINT
+PASS Approved target receives its real gesture or EventSystem click: FIRST PATROL POINT
+PASS Instruction owns a paused clock: SECOND PATROL POINT
+PASS Approved target receives its real gesture or EventSystem click: SECOND PATROL POINT
+PASS Instruction owns a paused clock: START PATROL
+PASS Approved target receives its real gesture or EventSystem click: START PATROL
+PASS Instruction owns a paused clock: STOP
+PASS Approved target receives its real gesture or EventSystem click: STOP
+PASS Instruction owns a paused clock: ATTACK
+PASS Approved target receives its real gesture or EventSystem click: ATTACK
+PASS Instruction owns a paused clock: CHOOSE YOUR RIVAL
+PASS Approved target receives its real gesture or EventSystem click: CHOOSE YOUR RIVAL
+PASS Instruction owns a paused clock: CANCEL AN ATTACK
+PASS Approved target receives its real gesture or EventSystem click: CANCEL AN ATTACK
+PASS Instruction owns a paused clock: SCOUT
+PASS Approved target receives its real gesture or EventSystem click: SCOUT
+PASS Instruction owns a paused clock: SCOUT THIS STREET
+PASS Approved target receives its real gesture or EventSystem click: SCOUT THIS STREET
+PASS Actual work resumes simulation while retaining exclusive input
+PASS Physical completion advances the waiting lesson: part 8
+PASS Instruction owns a paused clock: CAPTURE
+PASS Approved target receives its real gesture or EventSystem click: CAPTURE
+PASS Instruction owns a paused clock: CHECK THE COST FIRST
+PASS Approved target receives its real gesture or EventSystem click: CHECK THE COST FIRST
+PASS Instruction owns a paused clock: REGROUP
+PASS Approved target receives its real gesture or EventSystem click: REGROUP
+PASS Instruction owns a paused clock: MOVE
+PASS Approved target receives its real gesture or EventSystem click: MOVE
+PASS Instruction owns a paused clock: RETURN HOME
+PASS Approved target receives its real gesture or EventSystem click: RETURN HOME
+PASS Actual work resumes simulation while retaining exclusive input
+PASS Physical completion advances the waiting lesson: part 9
+PASS Instruction owns a paused clock: GROW YOUR ROSTER
+PASS Approved target receives its real gesture or EventSystem click: GROW YOUR ROSTER
+PASS Instruction owns a paused clock: RECRUIT ONE
+PASS Approved target receives its real gesture or EventSystem click: RECRUIT ONE
+PASS Instruction owns a paused clock: MATCHDAY
+PASS Approved target receives its real gesture or EventSystem click: MATCHDAY
+PASS Instruction owns a paused clock: CHOOSE YOUR PLAN
+PASS Approved target receives its real gesture or EventSystem click: CHOOSE YOUR PLAN
+PASS Instruction owns a paused clock: SEND YOUR TEAM
+PASS Approved target receives its real gesture or EventSystem click: SEND YOUR TEAM
+PASS Instruction owns a paused clock: PREPARE, THEN START
+PASS Approved target receives its real gesture or EventSystem click: PREPARE, THEN START
+PASS Instruction owns a paused clock: YOUR MINIMAP
+PASS Approved target receives its real gesture or EventSystem click: YOUR MINIMAP
+PASS Instruction owns a paused clock: CREW ON THE MAP
+PASS Approved target receives its real gesture or EventSystem click: CREW ON THE MAP
+PASS Instruction owns a paused clock: FOLLOW YOUR ROUTES
+PASS Approved target receives its real gesture or EventSystem click: FOLLOW YOUR ROUTES
+PASS Instruction owns a paused clock: CITY NEWS
+PASS Approved target receives its real gesture or EventSystem click: CITY NEWS
+PASS Instruction owns a paused clock: CITY UPDATES
+PASS Approved target receives its real gesture or EventSystem click: CITY UPDATES
+PASS Instruction owns a paused clock: HIDE THE FEED
+PASS Approved target receives its real gesture or EventSystem click: HIDE THE FEED
+PASS Instruction owns a paused clock: AWAY TRIPS
+PASS Approved target receives its real gesture or EventSystem click: AWAY TRIPS
+PASS Completing the guide releases its pause and input ownership
+PASS All seven Home parts plus RTS, recruitment, Matchday, news and Away were presented
+PASS Tutorial records genuine selection, repeated movement, split, Guard and Patrol commands
+PASS Real construction and one recruit produce exact durable results and declared cash costs
+PASS First-use completion saves once; actual Matchday-start teaching remains pending until genuine preparation
+PASS Tutorial completion/position survive native campaign serialization
+PASS Completed first-use tutorial does not reopen every update
+PASS SKIP PART receives a real EventSystem click
+PASS Skip affects only its tutorial part, preserving cash, buildings and actual learned actions
+PASS Skipping remaining parts releases all input and pause ownership
+PASS Legacy campaigns with missing tutorial fields remain opt-in
+PASS Separate fresh Police career starts its own paused first-use guide
+PASS Police instruction pauses and accepts only its target: YOU COMMAND THE POLICE
+PASS Police instruction pauses and accepts only its target: TAKE A TEAM
+PASS Police instruction pauses and accepts only its target: BOARD THE PATROL VAN
+PASS Police physical work resumes after accepted action: BOARD THE PATROL VAN
+PASS Police real action finishes: BOARD THE PATROL VAN
+PASS Police instruction pauses and accepts only its target: DRIVE ON ROADS
+PASS Police physical work resumes after accepted action: DRIVE ON ROADS
+PASS Police real action finishes: DRIVE ON ROADS
+PASS Police instruction pauses and accepts only its target: EXIT AT THE CURB
+PASS Police instruction pauses and accepts only its target: READ DISPATCH
+PASS Police instruction pauses and accepts only its target: ASSESS THIS CALL
+PASS Police physical work resumes after accepted action: ASSESS THIS CALL
+PASS Police real action finishes: ASSESS THIS CALL
+PASS Police instruction pauses and accepts only its target: DETAIN THE SUSPECT
+PASS Police physical work resumes after accepted action: DETAIN THE SUSPECT
+PASS Police real action finishes: DETAIN THE SUSPECT
+PASS Police instruction pauses and accepts only its target: LOAD INTO THE VAN
+PASS Police physical work resumes after accepted action: LOAD INTO THE VAN
+PASS Police real action finishes: LOAD INTO THE VAN
+PASS Police instruction pauses and accepts only its target: BOOK THE SUSPECT
+PASS Police physical work resumes after accepted action: BOOK THE SUSPECT
+PASS Police real action finishes: BOOK THE SUSPECT
+PASS Police instruction pauses and accepts only its target: CROWD CONTROL
+PASS Police instruction pauses and accepts only its target: A CROWD RESPONSE TEAM
+PASS Police instruction pauses and accepts only its target: WORK TOGETHER
+PASS Police instruction pauses and accepts only its target: SEPARATE THE GANGS
+PASS Police physical work resumes after accepted action: SEPARATE THE GANGS
+PASS Police real action finishes: SEPARATE THE GANGS
+PASS Police instruction pauses and accepts only its target: A BLOCKED ROAD
+PASS Police instruction pauses and accepts only its target: COVER THE RECOVERY WORK
+PASS Police physical work resumes after accepted action: COVER THE RECOVERY WORK
+PASS Police real action finishes: COVER THE RECOVERY WORK
+PASS Police instruction pauses and accepts only its target: DISPATCH THE CRANE
+PASS Police physical work resumes after accepted action: DISPATCH THE CRANE
+PASS Police real action finishes: DISPATCH THE CRANE
+PASS Police instruction pauses and accepts only its target: DRIVE THE TRUCK YOURSELF
+PASS Police physical work resumes after accepted action: DRIVE THE TRUCK YOURSELF
+PASS Police real action finishes: DRIVE THE TRUCK YOURSELF
+PASS Police instruction pauses and accepts only its target: BRIBE OR ARREST
+PASS Police instruction pauses and accepts only its target: YOUR SHIFT HAS CONSEQUENCES
+PASS Police instruction pauses and accepts only its target: KEEP TRACK
+PASS Police guide covers all six parts and releases exclusive input
+PASS Police first-use completion is saved separately from the firm
+PASS Police tutorial physically books the actual arrest call
+PASS Police tutorial controls a real rival crowd operation
+PASS Police tutorial clears a real obstruction and manually drives its recovery truck
+PASS Teaching the bribe consequences never forces a corrupt decision
+PASS No runtime exceptions or error logs during tutorial input: 
+RESULT 195 passed, 0 failed
+Isolated Unity editor fixture. Production 2.5 base-speed crew and normal simulation rate; durable actors/unrelated firm rival arrivals suppressed. UI taps go through EventSystem raycasts and the real tutorial proxy. Includes separate first-use Police tutorial with real custody/crowd/recovery work. No phone touch, client acceptance, natural-session or store validation.
+UTC 2026-11-05T02:21:13.0756812Z

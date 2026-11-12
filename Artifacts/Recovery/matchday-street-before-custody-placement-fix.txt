@@ -1,0 +1,60 @@
+PASS Three explicit modes are Home, Away and Police
+PASS Fresh Home/Police are available while Away is genuinely locked
+PASS Away has a visible lock and Home requirement
+PASS Tapping locked Away cannot create a new firm or leave the menu
+PASS Away launch guard also rejects a direct call before Home unlock
+PASS Mode choices fit 1280x720
+PASS Mode backdrop fills and choices centre in the viewport at 1280x720
+PASS Mode choices fit 2400x1080
+PASS Mode backdrop fills and choices centre in the viewport at 2400x1080
+PASS Mode choices fit 1024x768
+PASS Mode backdrop fills and choices centre in the viewport at 1024x768
+PASS Home mode receives its actual menu click
+PASS Home entry resumes the saved firm without replacing cash or roster
+PASS Stadium control stays in the world UI
+PASS Camera inside a real building hides only its building mesh
+PASS Camera exit restores building rendering and preserves road rendering/collision
+PASS A real rival raid creates a stock rescue opportunity
+PASS Stock rescue uses the real venue action and grants no instant supplies
+PASS Supplies are earned only after the stock carrier actually reaches Home
+PASS The same venue cannot pay stock rescue twice on one day
+PASS Matchday button is anchored beside the actual stadium apron
+PASS MATCHDAY uses the same native world UI as city pins
+PASS Actual Matchday button opens local actions
+PASS Pin opens local choices without beginning the event
+PASS Native approach choice is available before kickoff
+PASS Approach choice does not charge before kickoff
+PASS Actual START MATCHDAY action works with a viable crew
+PASS Live Matchday advances with a wave of real home and visiting supporters
+PASS Event commits the selected approach once
+PASS Rail, pub and stadium road closures run concurrently
+PASS Rail district closure stops traffic
+PASS Pub district closure stops traffic
+PASS Stadium district closure stops traffic
+STADIUM: pin (97.68, 0.01, -283.47); model (97.68, 7.97, -329.43); gate (78.88, 0.01, -216.90); rail (673.15, 0.01, -144.09); escort metres 70
+PASS Road list opens the selected district closure
+PASS Crew on site can ask police to clear a real closure
+PASS Police physically reopen the requested road and release traffic before objective credit
+PASS Pub mission consumes the chosen stock rather than completing on arrival
+PASS Actual unobstructed pub trade completes the resupply objective
+PASS Native rally action commits the supporter group
+PASS A real walking path leads the escort from pickup to its gate
+PASS Three or more real followers reach the gate before escort credit
+FAIL Police make contact and detain a fighting crew member without killing them
+PASS Police book fighting HomeSupporter after local contact
+PASS Police book fighting RivalSupporter after local contact
+PASS Aftermath grants one campaign result for two or more completed street objectives
+PASS Native save retains live crowd, cordon and objective state
+PASS Starting Matchday alone does not unlock Away
+PASS Earned Home completion unlocks Away and survives native serialization
+PASS Legacy campaigns keep their previously unlocked Away access
+PASS Unlocked Away mode receives its real menu click
+PASS Away enters destination/traveller preparation without creating a new campaign
+PASS Away has its own mode preparation screen
+PASS Police mode receives its actual menu click
+PASS Police opens its own career and suppresses the firm Matchday sign
+PASS Returning from Police preserves firm cash, Home progress and Away unlock
+PASS No runtime errors during mode/world checks: 
+RESULT 55 passed, 1 failed
+Isolated editor campaign. Readiness and earned Home unlock are seeded only in disposable data. Native Unity UI, camera/road visibility, actual Matchday traffic closures, timed police contact, objectives and mode isolation. Crew are positioned on the baked NavMesh for focused interactions. No natural chapter completion or device certification.
+UTC 2026-11-05T17:39:16.0413809Z

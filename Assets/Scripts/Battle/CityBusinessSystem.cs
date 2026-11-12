@@ -15,6 +15,10 @@ public sealed class CityBusinessState
     public float rivalPressureSeconds;
     public float accruedIncome;
     public int investmentLevel;
+    [System.Runtime.Serialization.OptionalField] public float rivalRaidCooldownSeconds;
+    [System.Runtime.Serialization.OptionalField] public int rivalRaidCount,rivalRaidLoot;
+    [System.Runtime.Serialization.OptionalField] public string lastRaidingFirm;
+    [System.Runtime.Serialization.OptionalField] public int lastStockRescueDay;
 }
 
 /// <summary>Idempotent, saved economy rules. UI and scene reloads never award income.</summary>
@@ -117,6 +121,16 @@ public static class CityBusinessLedger
         d.PoliceHeat=Mathf.Clamp(d.PoliceHeat+definition.heat,0,10);
         return true;
     }
+    public static bool CompleteRivalRaid(PlayerData d,string id,string firm)
+    {
+        var state=Find(d,id);
+        if(state==null||state.rivalRaidCooldownSeconds>0||!TryResolveDefinition(id,out var definition)||string.IsNullOrEmpty(firm))return false;
+        state.rivalRaidCooldownSeconds=240;state.disruptionSeconds=Mathf.Max(state.disruptionSeconds,120);
+        state.lootCooldownSeconds=Mathf.Max(state.lootCooldownSeconds,90);
+        state.rivalRaidCount++;state.rivalRaidLoot+=definition.loot;state.lastRaidingFirm=firm;
+        // This is an NPC's theft. The player's wallet and global heat are not rewards for it.
+        return true;
+    }
 
     public static int Tick(PlayerData d, float seconds, bool matchday,int activeAwayMission=0)
     {
@@ -137,6 +151,7 @@ public static class CityBusinessLedger
                 site.accruedIncome+=Yield(d,definition,matchday&&IsHomeId(definition.id))*(tradingSeconds/IncomeInterval);
                 site.disruptionSeconds=Mathf.Max(0,site.disruptionSeconds-slice);
                 site.lootCooldownSeconds=Mathf.Max(0,site.lootCooldownSeconds-slice);
+                site.rivalRaidCooldownSeconds=Mathf.Max(0,site.rivalRaidCooldownSeconds-slice);
             }
             d.BusinessEconomySeconds+=slice; seconds-=slice;
             if (d.BusinessEconomySeconds < IncomeInterval-.001f) continue;
@@ -299,6 +314,7 @@ public sealed class CityBusinessSystem : MonoBehaviour
             bool completed=assignment.invest?CityCommerceRules.Invest(d,site.Definition.id):assignment.loot?CityBusinessLedger.Loot(d,site.Definition.id):CityBusinessLedger.Control(d,site.Definition.id);
             finished.Add(site);
             if (!completed) continue;
+            GameFeedback.Emit(assignment.loot?GameFeedbackEvent.Loot:GameFeedbackEvent.TaskComplete,site.transform.position);
             site.RefreshStatus();
             Report(site.Definition.name+(assignment.invest?": INVESTMENT COMPLETE - visible trading expansion and higher income saved.":assignment.loot?$": +£{site.Definition.loot} / HEAT +{site.Definition.heat}; trade disrupted.":": CONTROL SECURED - income now active."));
             GameManager.Save(); CityGameplay.Instance?.CheckCampaignCompletion();
@@ -316,12 +332,12 @@ public sealed class CityBusinessSystem : MonoBehaviour
                 bool pressure=state.controlled && HostilesNear(site.transform.position,18f) && !DefendersNear(site.transform.position,12f);
                 if (pressure && state.rivalPressureSeconds<=0) Report(site.Definition.name+": RIVALS CONTESTING - SEND DEFENDERS.");
                 state.rivalPressureSeconds=pressure?state.rivalPressureSeconds+tick:0;
-                if (state.rivalPressureSeconds>=CityBusinessLedger.TakeoverSeconds)
+                if (state.rivalPressureSeconds>=CityBusinessLedger.TakeoverSeconds&&!LivingRivalDirector.HasShopRaid(site))
                 { state.controlled=false;state.rivalPressureSeconds=0;Report(site.Definition.name+": CONTROL LOST TO RIVAL PRESSURE.");GameManager.Save(); }
                 if (!work.ContainsKey(site)) site.RefreshStatus();
             }
             tick=0;
-            if (income>0) { Report($"BUSINESS INCOME +£{income:N0} - defend your trading venues."); GameManager.Save(); CityGameplay.Instance?.CheckCampaignCompletion(); }
+            if (income>0) { GameFeedback.Emit(GameFeedbackEvent.Reward);Report($"BUSINESS INCOME +£{income:N0} - defend your trading venues."); GameManager.Save(); CityGameplay.Instance?.CheckCampaignCompletion(); }
         }
         if (saveClock>=15f) { saveClock=0;GameManager.Save(); }
         if (IsOpen && Time.unscaledTime>=refresh) {refresh=Time.unscaledTime+1f;RefreshLedger();}
@@ -425,6 +441,9 @@ public sealed class CityBusiness : MonoBehaviour
     {
         var state=CityBusinessLedger.Find(GameManager.Data,Definition.id);
         if(state==null)return;
+        string raid=LivingRivalDirector.RaidStatus(this);
+        if(!string.IsNullOrEmpty(raid)){SetStatus(raid);if(label)label.GetComponent<ZoneLabelBillboard>().CommandPriority=true;return;}
+        if(label)label.GetComponent<ZoneLabelBillboard>().CommandPriority=false;
         SetStatus(state.rivalPressureSeconds>0?"CONTESTED":state.disruptionSeconds>0?"TRADE DISRUPTED":state.controlled?$"YOUR BUSINESS · LEVEL {state.investmentLevel+1}":"CONTROL / LOOT");
         RefreshExpansion(state.investmentLevel);
     }
@@ -440,7 +459,7 @@ public sealed class CityBusiness : MonoBehaviour
         expansion=new GameObject("BUSINESS EXPANSION LEVEL "+(level+1));expansion.transform.SetParent(transform,false);
         for(int i=0;i<level;i++)
         {
-            var prefab=Resources.Load<GameObject>("HomeFacilities/SupplyYard");
+            var prefab=Resources.Load<GameObject>("HomeFacilities/TradeStall");
             if(prefab)
             {
                 var table=Instantiate(prefab,expansion.transform);table.transform.localPosition=new Vector3(4+i*2.5f,0,3);

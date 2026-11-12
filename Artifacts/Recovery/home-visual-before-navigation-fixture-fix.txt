@@ -1,0 +1,37 @@
+PASS Fresh Home has one authoritative highlighted footprint and no prebuilt facilities
+PASS Headquarters uses a versioned real existing city-building mesh instead of a tiny stand-in prop
+PASS SupplyYard uses a versioned real existing city-building mesh instead of a tiny stand-in prop
+PASS TrainingGround uses a versioned real existing city-building mesh instead of a tiny stand-in prop
+PASS Selected crew accepts the free visible headquarters construction
+PASS Actual construction has a visible model and scaffold on its plot
+FAIL Actual on-site work grows the real model before its completion
+PASS Construction uses one bounded reusable working-dust emitter
+DETAIL HQ construction ended: status=Construction cancelled; no payment taken. Crew could not reach the plot. Other groups retain their orders.; active=False; site=-1; work=0.00; yardLevel=0; yardTarget=0; requested=False; cash=5000; supplies=0; builder=(118.03, 0.01, 86.27); builderState=MovingToPoint; orderRevision=1; distanceToYard=9.03; pending=False,status=PathComplete,remaining=Infinity,destination=(103.96, 0.01, 95.30)
+FAIL Completion changes the real saved headquarters level without changing its free first-level price
+FAIL Crew accepts visible SUPPLY YARD construction
+DETAIL SUPPLY YARD construction ended: status=Build headquarters first.; active=False; site=-1; work=0.00; yardLevel=0; yardTarget=0; requested=False; cash=5000; supplies=0; builder=(118.14, 0.01, 94.30); builderState=MovingToPoint; orderRevision=1; distanceToYard=1.00; pending=False,status=PathComplete,remaining=Infinity,destination=(103.96, 0.01, 95.30)
+FAIL Crew accepts visible TRAINING GROUND construction
+DETAIL TRAINING GROUND construction ended: status=Build headquarters first.; active=False; site=-1; work=0.00; yardLevel=0; yardTarget=0; requested=False; cash=5000; supplies=0; builder=(118.18, 0.01, 96.93); builderState=MovingToPoint; orderRevision=1; distanceToYard=1.63; pending=False,status=PathComplete,remaining=Infinity,destination=(103.96, 0.01, 95.30)
+FAIL Three earned facilities visibly expand the authoritative green Home area
+FAIL FIRM HEADQUARTERS has a substantial above-ground 3D footprint with its real mesh floor aligned to the site
+FAIL FIRM HEADQUARTERS has visible supported materials and adds no walking/road collider
+FAIL FIRM HEADQUARTERS is enclosed by the same Home footprint used by map and world UI
+FAIL SUPPLY YARD has a substantial above-ground 3D footprint with its real mesh floor aligned to the site
+FAIL SUPPLY YARD has visible supported materials and adds no walking/road collider
+FAIL SUPPLY YARD is enclosed by the same Home footprint used by map and world UI
+FAIL TRAINING GROUND has a substantial above-ground 3D footprint with its real mesh floor aligned to the site
+FAIL TRAINING GROUND has visible supported materials and adds no walking/road collider
+FAIL TRAINING GROUND is enclosed by the same Home footprint used by map and world UI
+PASS Home completion does not hide or alter any sampled road, railway or parking renderer
+FAIL The built production facility accepts its existing second-level upgrade
+DETAIL Upgrade assigned: status=Build headquarters first.; active=False; site=-1; work=0.00; yardLevel=0; yardTarget=0; requested=False; cash=5000; supplies=10; builder=(118.15, 0.01, 54.87); builderState=MovingToPoint; orderRevision=1; distanceToYard=40.43; pending=False,status=PathComplete,remaining=Infinity,destination=(103.96, 0.01, 95.30)
+DETAIL Supply level two ended: status=Build headquarters first.; active=False; site=-1; work=0.00; yardLevel=0; yardTarget=0; requested=False; cash=5000; supplies=10; builder=(118.17, 0.01, 53.65); builderState=MovingToPoint; orderRevision=1; distanceToYard=41.65; pending=False,status=PathComplete,remaining=Infinity,destination=(103.96, 0.01, 95.30)
+DETAIL upgrade geometry: before=Center: (0.00, 0.00, 0.00), Extents: (0.00, 0.00, 0.00); after=Center: (0.00, 0.00, 0.00), Extents: (0.00, 0.00, 0.00); districtBefore=Center: (117.96, 0.09, 89.30), Extents: (22.50, 0.50, 16.50); districtAfter=Center: (117.96, 0.09, 89.30), Extents: (22.50, 0.50, 16.50)
+FAIL An earned production upgrade adds a visible annex and expands the green district footprint
+PASS Finished work removes its scaffold and construction preview, keeping the completed building
+DETAIL reload levels: saved=0,0,0; actual=0,0,0; status=Select crew, open HOME, then BUILD your headquarters.
+FAIL Actual native reload reconstructs each earned facility level and its corresponding visible 3D models
+PASS Reload derives the same earned Home footprint from saved development rather than resetting the green area
+RESULT 10 passed, 17 failed
+Native disposable Home visual fixture: durable fast crew, accelerated build work, unrelated pressure suppressed. Actual meshes, renderer bounds, costs, save/reload and captures; not device touch/performance or natural campaign balance.
+UTC 2026-11-03T03:55:49.3512086Z

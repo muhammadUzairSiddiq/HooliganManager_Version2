@@ -1,0 +1,259 @@
+PASS First factory frame is dark with hidden unpositioned hands, preventing a white transition flash
+PASS Final navigation fits 2400x1080
+PASS Final circular cutout receives the approved pointer at 2400x1080
+PASS Final navigation fits 1024x768
+PASS Final circular cutout receives the approved pointer at 1024x768
+PASS Final navigation fits 1280x720
+PASS Final circular cutout receives the approved pointer at 1280x720
+PASS Map and news start hidden on final source
+PASS Final NEXT receives a native UI raycast
+PASS Final BACK receives a native UI raycast
+PASS Back/Next reconstruction does not teach selection
+PASS Final real gesture: SELECT A MEMBER
+PASS Final gesture advances only after success: Tap
+PASS Final real gesture: FIND YOUR MEMBER
+PASS Final gesture advances only after success: Tap
+PASS Final real gesture: LOOK AROUND
+PASS Final gesture advances only after success: DoubleTap
+PASS Final gesture advances only after success: Pan
+PASS Final gesture advances only after success: PinchOut
+PASS Final gesture advances only after success: PinchIn
+PASS Final SKIP receives a native UI raycast
+PASS Navigation cannot cover the taught target: MAKE A GROUP
+PASS Entire radial highlight stays inside the display: MAKE A GROUP
+PASS Hand fingertip stays on its actual target: MAKE A GROUP
+PASS NEXT navigates without performing: MAKE A GROUP
+PASS Navigation never stalls at MAKE A GROUP
+PASS Navigation cannot cover the taught target: ADD A MEMBER
+PASS Entire radial highlight stays inside the display: ADD A MEMBER
+PASS Hand fingertip stays on its actual target: ADD A MEMBER
+PASS NEXT navigates without performing: ADD A MEMBER
+PASS Navigation never stalls at ADD A MEMBER
+PASS Navigation cannot cover the taught target: REMOVE ONE MEMBER
+PASS Entire radial highlight stays inside the display: REMOVE ONE MEMBER
+PASS Hand fingertip stays on its actual target: REMOVE ONE MEMBER
+PASS NEXT navigates without performing: REMOVE ONE MEMBER
+PASS Navigation never stalls at REMOVE ONE MEMBER
+PASS Navigation cannot cover the taught target: DESELECT ALL
+PASS Entire radial highlight stays inside the display: DESELECT ALL
+PASS Hand fingertip stays on its actual target: DESELECT ALL
+PASS Tutorial DESELECT ALL is reached without touching Skip or Next
+PASS Navigation never stalls at DESELECT ALL
+PASS Navigation cannot cover the taught target: TAKE CONTROL AGAIN
+PASS Entire radial highlight stays inside the display: TAKE CONTROL AGAIN
+PASS Hand fingertip stays on its actual target: TAKE CONTROL AGAIN
+PASS NEXT navigates without performing: TAKE CONTROL AGAIN
+PASS Navigation never stalls at TAKE CONTROL AGAIN
+PASS Navigation cannot cover the taught target: BUILD YOUR HOME
+PASS Entire radial highlight stays inside the display: BUILD YOUR HOME
+PASS Hand fingertip stays on its actual target: BUILD YOUR HOME
+PASS NEXT navigates without performing: BUILD YOUR HOME
+PASS Navigation never stalls at BUILD YOUR HOME
+PASS Navigation cannot cover the taught target: FIRM HEADQUARTERS
+PASS Entire radial highlight stays inside the display: FIRM HEADQUARTERS
+PASS Hand fingertip stays on its actual target: FIRM HEADQUARTERS
+PASS NEXT navigates without performing: FIRM HEADQUARTERS
+PASS Navigation never stalls at FIRM HEADQUARTERS
+PASS Navigation cannot cover the taught target: BUILD YOUR HOME
+PASS Entire radial highlight stays inside the display: BUILD YOUR HOME
+PASS Hand fingertip stays on its actual target: BUILD YOUR HOME
+PASS NEXT navigates without performing: BUILD YOUR HOME
+PASS Navigation never stalls at BUILD YOUR HOME
+PASS Navigation cannot cover the taught target: SUPPLY YARD
+PASS Entire radial highlight stays inside the display: SUPPLY YARD
+PASS Hand fingertip stays on its actual target: SUPPLY YARD
+PASS NEXT navigates without performing: SUPPLY YARD
+PASS Navigation never stalls at SUPPLY YARD
+PASS Navigation cannot cover the taught target: BUILD YOUR HOME
+PASS Entire radial highlight stays inside the display: BUILD YOUR HOME
+PASS Hand fingertip stays on its actual target: BUILD YOUR HOME
+PASS NEXT navigates without performing: BUILD YOUR HOME
+PASS Navigation never stalls at BUILD YOUR HOME
+PASS Navigation cannot cover the taught target: TRAINING GROUND
+PASS Entire radial highlight stays inside the display: TRAINING GROUND
+PASS Hand fingertip stays on its actual target: TRAINING GROUND
+PASS NEXT navigates without performing: TRAINING GROUND
+PASS Navigation never stalls at TRAINING GROUND
+PASS Navigation cannot cover the taught target: MEMBER COMMANDS
+PASS Entire radial highlight stays inside the display: MEMBER COMMANDS
+PASS Hand fingertip stays on its actual target: MEMBER COMMANDS
+PASS NEXT navigates without performing: MEMBER COMMANDS
+PASS Navigation never stalls at MEMBER COMMANDS
+PASS Navigation cannot cover the taught target: GUARD
+PASS Entire radial highlight stays inside the display: GUARD
+PASS Hand fingertip stays on its actual target: GUARD
+PASS NEXT navigates without performing: GUARD
+PASS Navigation never stalls at GUARD
+PASS Navigation cannot cover the taught target: PLACE YOUR GUARD
+PASS Entire radial highlight stays inside the display: PLACE YOUR GUARD
+PASS Hand fingertip stays on its actual target: PLACE YOUR GUARD
+PASS NEXT navigates without performing: PLACE YOUR GUARD
+PASS Navigation never stalls at PLACE YOUR GUARD
+PASS Navigation cannot cover the taught target: PATROL
+PASS Entire radial highlight stays inside the display: PATROL
+PASS Hand fingertip stays on its actual target: PATROL
+PASS NEXT navigates without performing: PATROL
+PASS Navigation never stalls at PATROL
+PASS Navigation cannot cover the taught target: PATROL
+PASS Entire radial highlight stays inside the display: PATROL
+PASS Hand fingertip stays on its actual target: PATROL
+PASS NEXT navigates without performing: PATROL
+PASS Navigation never stalls at PATROL
+PASS Navigation cannot cover the taught target: FIRST PATROL POINT
+PASS Entire radial highlight stays inside the display: FIRST PATROL POINT
+PASS Hand fingertip stays on its actual target: FIRST PATROL POINT
+PASS NEXT navigates without performing: FIRST PATROL POINT
+PASS Navigation never stalls at FIRST PATROL POINT
+PASS Navigation cannot cover the taught target: SECOND PATROL POINT
+PASS Entire radial highlight stays inside the display: SECOND PATROL POINT
+PASS Hand fingertip stays on its actual target: SECOND PATROL POINT
+PASS NEXT navigates without performing: SECOND PATROL POINT
+PASS Navigation never stalls at SECOND PATROL POINT
+PASS NEXT navigates without performing: START PATROL
+PASS Navigation never stalls at START PATROL
+PASS Navigation cannot cover the taught target: STOP
+PASS Entire radial highlight stays inside the display: STOP
+PASS Hand fingertip stays on its actual target: STOP
+PASS NEXT navigates without performing: STOP
+PASS Navigation never stalls at STOP
+PASS Navigation cannot cover the taught target: ATTACK
+PASS Entire radial highlight stays inside the display: ATTACK
+PASS Hand fingertip stays on its actual target: ATTACK
+PASS NEXT navigates without performing: ATTACK
+PASS Navigation never stalls at ATTACK
+PASS Navigation cannot cover the taught target: CHOOSE YOUR RIVAL
+PASS Entire radial highlight stays inside the display: CHOOSE YOUR RIVAL
+PASS Hand fingertip stays on its actual target: CHOOSE YOUR RIVAL
+PASS NEXT navigates without performing: CHOOSE YOUR RIVAL
+PASS Navigation never stalls at CHOOSE YOUR RIVAL
+PASS Navigation cannot cover the taught target: CANCEL AN ATTACK
+PASS Entire radial highlight stays inside the display: CANCEL AN ATTACK
+PASS Hand fingertip stays on its actual target: CANCEL AN ATTACK
+PASS NEXT navigates without performing: CANCEL AN ATTACK
+PASS Navigation never stalls at CANCEL AN ATTACK
+PASS Navigation cannot cover the taught target: SCOUT
+PASS Entire radial highlight stays inside the display: SCOUT
+PASS Hand fingertip stays on its actual target: SCOUT
+PASS NEXT navigates without performing: SCOUT
+PASS Navigation never stalls at SCOUT
+PASS Navigation cannot cover the taught target: SCOUT THIS STREET
+PASS Entire radial highlight stays inside the display: SCOUT THIS STREET
+PASS Hand fingertip stays on its actual target: SCOUT THIS STREET
+PASS NEXT navigates without performing: SCOUT THIS STREET
+PASS Navigation never stalls at SCOUT THIS STREET
+PASS Navigation cannot cover the taught target: CAPTURE
+PASS Entire radial highlight stays inside the display: CAPTURE
+PASS Hand fingertip stays on its actual target: CAPTURE
+PASS NEXT navigates without performing: CAPTURE
+PASS Navigation never stalls at CAPTURE
+PASS NEXT navigates without performing: CHECK THE COST FIRST
+PASS Navigation never stalls at CHECK THE COST FIRST
+PASS Navigation cannot cover the taught target: REGROUP
+PASS Entire radial highlight stays inside the display: REGROUP
+PASS Hand fingertip stays on its actual target: REGROUP
+PASS NEXT navigates without performing: REGROUP
+PASS Navigation never stalls at REGROUP
+PASS Navigation cannot cover the taught target: MOVE
+PASS Entire radial highlight stays inside the display: MOVE
+PASS Hand fingertip stays on its actual target: MOVE
+PASS NEXT navigates without performing: MOVE
+PASS Navigation never stalls at MOVE
+PASS Navigation cannot cover the taught target: RETURN HOME
+PASS Entire radial highlight stays inside the display: RETURN HOME
+PASS Hand fingertip stays on its actual target: RETURN HOME
+PASS NEXT navigates without performing: RETURN HOME
+PASS Navigation never stalls at RETURN HOME
+PASS Navigation cannot cover the taught target: GROW YOUR ROSTER
+PASS Entire radial highlight stays inside the display: GROW YOUR ROSTER
+PASS Hand fingertip stays on its actual target: GROW YOUR ROSTER
+PASS NEXT navigates without performing: GROW YOUR ROSTER
+PASS Navigation never stalls at GROW YOUR ROSTER
+PASS NEXT navigates without performing: RECRUIT ONE
+PASS Navigation never stalls at RECRUIT ONE
+PASS Navigation cannot cover the taught target: STADIUM MATCHDAY
+PASS Entire radial highlight stays inside the display: STADIUM MATCHDAY
+PASS Hand fingertip stays on its actual target: STADIUM MATCHDAY
+PASS NEXT navigates without performing: STADIUM MATCHDAY
+PASS Navigation never stalls at STADIUM MATCHDAY
+PASS Navigation cannot cover the taught target: CHOOSE YOUR APPROACH
+PASS Entire radial highlight stays inside the display: CHOOSE YOUR APPROACH
+PASS Hand fingertip stays on its actual target: CHOOSE YOUR APPROACH
+PASS NEXT navigates without performing: CHOOSE YOUR APPROACH
+PASS Navigation never stalls at CHOOSE YOUR APPROACH
+PASS Navigation cannot cover the taught target: POST YOUR TEAM
+PASS Entire radial highlight stays inside the display: POST YOUR TEAM
+PASS Hand fingertip stays on its actual target: POST YOUR TEAM
+PASS NEXT navigates without performing: POST YOUR TEAM
+PASS Navigation never stalls at POST YOUR TEAM
+PASS Navigation cannot cover the taught target: MATCHDAY HAPPENS HERE
+PASS Entire radial highlight stays inside the display: MATCHDAY HAPPENS HERE
+PASS Hand fingertip stays on its actual target: MATCHDAY HAPPENS HERE
+PASS NEXT navigates without performing: MATCHDAY HAPPENS HERE
+PASS Navigation never stalls at MATCHDAY HAPPENS HERE
+PASS Navigation cannot cover the taught target: YOUR MINIMAP
+PASS Entire radial highlight stays inside the display: YOUR MINIMAP
+PASS Hand fingertip stays on its actual target: YOUR MINIMAP
+PASS Final firm map/news target: YOUR MINIMAP
+PASS Navigation never stalls at YOUR MINIMAP
+PASS Navigation cannot cover the taught target: CREW ON THE MAP
+PASS Entire radial highlight stays inside the display: CREW ON THE MAP
+PASS Hand fingertip stays on its actual target: CREW ON THE MAP
+PASS Final firm map/news target: CREW ON THE MAP
+PASS Navigation never stalls at CREW ON THE MAP
+PASS Navigation cannot cover the taught target: FOLLOW YOUR ROUTES
+PASS Entire radial highlight stays inside the display: FOLLOW YOUR ROUTES
+PASS Hand fingertip stays on its actual target: FOLLOW YOUR ROUTES
+PASS Final firm map/news target: FOLLOW YOUR ROUTES
+PASS Navigation never stalls at FOLLOW YOUR ROUTES
+PASS Navigation cannot cover the taught target: CITY NEWS
+PASS Entire radial highlight stays inside the display: CITY NEWS
+PASS Hand fingertip stays on its actual target: CITY NEWS
+PASS Final firm map/news target: CITY NEWS
+PASS Navigation never stalls at CITY NEWS
+PASS Navigation cannot cover the taught target: CITY UPDATES
+PASS Entire radial highlight stays inside the display: CITY UPDATES
+PASS Hand fingertip stays on its actual target: CITY UPDATES
+PASS Final firm map/news target: CITY UPDATES
+PASS Navigation never stalls at CITY UPDATES
+PASS Navigation cannot cover the taught target: HIDE THE FEED
+PASS Entire radial highlight stays inside the display: HIDE THE FEED
+PASS Hand fingertip stays on its actual target: HIDE THE FEED
+PASS Final firm map/news target: HIDE THE FEED
+PASS Navigation never stalls at HIDE THE FEED
+PASS Navigation cannot cover the taught target: UNLOCK AWAY MODE
+PASS Entire radial highlight stays inside the display: UNLOCK AWAY MODE
+PASS Hand fingertip stays on its actual target: UNLOCK AWAY MODE
+PASS Skip remains clickable over an underlying modal
+PASS Navigation never stalls at UNLOCK AWAY MODE
+PASS Final guide reveals map/news and clears every owned sheet, pause and input gate on exit
+PASS Navigation and skipped parts never grant money, buildings, recruits or unperformed orders
+PASS Real DESELECT ALL cancels pending targeting so camera input stays available
+PASS Deselect-all does not cancel the member's actual order
+PASS Normal world tap selects the highlighted member after tutorial exit
+PASS Normal world double-tap focuses/selects its member without dropping the other selection
+PASS A following single tap removes only its member
+PASS Final Police overlay starts on its actual first target
+PASS Police officer target receives a real raycast
+PASS Police officer target receives a real raycast
+PASS Police per-part skip is clickable without doing physical work
+PASS Police per-part skip is clickable without doing physical work
+PASS Police per-part skip is clickable without doing physical work
+PASS Police per-part skip is clickable without doing physical work
+PASS Final Police map/news target: YOUR MINIMAP
+PASS Police map/news action finishes: YOUR MINIMAP
+PASS Final Police map/news target: CREW ON THE MAP
+PASS Police map/news action finishes: CREW ON THE MAP
+PASS Final Police map/news target: FOLLOW YOUR ROUTES
+PASS Police map/news action finishes: FOLLOW YOUR ROUTES
+PASS Final Police map/news target: CITY NEWS
+PASS Police map/news action finishes: CITY NEWS
+PASS Final Police map/news target: CITY UPDATES
+PASS Police map/news action finishes: CITY UPDATES
+PASS Final Police map/news target: HIDE THE FEED
+PASS Police map/news action finishes: HIDE THE FEED
+PASS Final Police map/news guide completes and releases input
+PASS Skipping Police work invents no custody or bribe results
+PASS No runtime exceptions or error logs during tutorial input: 
+RESULT 256 passed, 0 failed
+Isolated presentation regression: real firm/Police UI raycasts, two-contact camera gestures, navigation without rewards, staged map/news, deselect targeting cleanup and normal world double-tap. Police physical jobs are skipped without rewards in this focused repeat; the separate full walkthrough records their physical evidence. No device validation.
+UTC 2026-11-05T03:11:27.9278830Z

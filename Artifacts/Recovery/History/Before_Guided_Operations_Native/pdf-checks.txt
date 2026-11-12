@@ -1,0 +1,76 @@
+PASS Final page count matches manifest
+PASS No blank generated main-report pages
+PASS No unresolved template tokens
+PASS PDF includes the current APK byte size
+PASS PDF includes the current APK SHA256 identity
+PASS Current Home source report passed
+PASS PDF includes current Home test counts
+PASS Current Police source report passed
+PASS PDF includes current Police test counts
+PASS Current RTS source report passed
+PASS PDF includes current RTS test counts
+PASS Current Ads source report passed
+PASS PDF includes current Ads test counts
+PASS Current Strategy source report passed
+PASS PDF includes current Strategy test counts
+PASS Current Vehicle source report passed
+PASS PDF includes current Vehicle test counts
+PASS Current Commerce source report passed
+PASS PDF includes current Commerce test counts
+PASS Current Purchases source report passed
+PASS PDF includes current Purchases test counts
+PASS All thirty expanded acceptance cases included
+PASS Inherited source caption correction included
+PASS All 30 issue IDs appear
+PASS All 28 acceptance IDs appear
+PASS Appendix A page 1: source text preserved
+PASS Appendix A page 1: all source images preserved
+PASS Appendix A page 2: source text preserved
+PASS Appendix A page 2: all source images preserved
+PASS Appendix A page 3: source text preserved
+PASS Appendix A page 3: all source images preserved
+PASS Appendix A page 4: source text preserved
+PASS Appendix A page 4: all source images preserved
+PASS Appendix A page 5: source text preserved
+PASS Appendix A page 5: all source images preserved
+PASS Appendix A page 6: source text preserved
+PASS Appendix A page 6: all source images preserved
+PASS Appendix A page 7: source text preserved
+PASS Appendix A page 7: all source images preserved
+PASS Appendix A page 8: source text preserved
+PASS Appendix A page 8: all source images preserved
+PASS Appendix B page 1: source text preserved
+PASS Appendix B page 1: all source images preserved
+PASS Appendix B page 2: source text preserved
+PASS Appendix B page 2: all source images preserved
+PASS Appendix B page 3: source text preserved
+PASS Appendix B page 3: all source images preserved
+PASS Appendix B page 4: source text preserved
+PASS Appendix B page 4: all source images preserved
+PASS Appendix B page 5: source text preserved
+PASS Appendix B page 5: all source images preserved
+PASS Appendix B page 6: source text preserved
+PASS Appendix B page 6: all source images preserved
+PASS Appendix B page 7: source text preserved
+PASS Appendix B page 7: all source images preserved
+PASS Appendix B page 8: source text preserved
+PASS Appendix B page 8: all source images preserved
+PASS Appendix B page 9: source text preserved
+PASS Appendix B page 9: all source images preserved
+PASS Appendix B page 10: source text preserved
+PASS Appendix B page 10: all source images preserved
+PASS Appendix B page 11: source text preserved
+PASS Appendix B page 11: all source images preserved
+PASS Appendix B page 12: source text preserved
+PASS Appendix B page 12: all source images preserved
+PASS Appendix B page 13: source text preserved
+PASS Appendix B page 13: all source images preserved
+PASS Appendix B page 14: source text preserved
+PASS Appendix B page 14: all source images preserved
+PASS All nine embedded source image objects preserved
+PASS Portable source copy matches original SHA256: Phase_2_Cross_Platform_Development_Proposal.pdf
+PASS Portable source copy matches original SHA256: Hooligan_Manager_RTS_Recovery_Master_Specification.pdf
+PASS Portable source copy matches original SHA256: Client_Messages_September.txt
+PASS Complete supplied transcript content preserved in Appendix C with declared typography normalization
+PASS Appendix C page count matches manifest
+PASS Main-report text stays within page bounds

@@ -9,6 +9,21 @@ using TMPro;
 public static class SimpleShellLayout
 {
     static GameObject modePanel;
+    static Button awayMode;
+    static TextMeshProUGUI awayRequirement;
+    static bool openWhenReady;
+
+    public static void ReturnToModes()
+    {openWhenReady=true;GameManager.instance?.OnReturnToMainMenu();}
+    public static void RefreshModes()
+    {
+        if(!modePanel||!awayMode)return;
+        bool unlocked=CampaignMissions.HomeCleared(GameManager.Data);
+        awayMode.interactable=unlocked;
+        awayMode.GetComponentInChildren<TextMeshProUGUI>().text=unlocked?"AWAY · RIVAL DISTRICTS":"AWAY · LOCKED";
+        var progress=CampaignMissions.Progress(GameManager.Data,1);
+        if(awayRequirement)awayRequirement.text=unlocked?"Choose travellers. Your Home territory stays saved.":!GameManager.HasSaveData()?"Start in Home territory to unlock Away.":$"Secure Home territory to unlock · {progress.complete}/{progress.total} goals";
+    }
 
     public static void Apply(LandscapeFrontEnd shell)
     {
@@ -21,6 +36,7 @@ public static class SimpleShellLayout
     public static bool ShowModes()
     {
         if (!modePanel) return false;
+        RefreshModes();
         modePanel.SetActive(true);
         modePanel.transform.SetAsLastSibling();
         return true;
@@ -38,7 +54,7 @@ public static class SimpleShellLayout
         var away = shell.transform.Find("LoadGame");
         if (away) away.gameObject.SetActive(false);
         var playLabel = shell.transform.Find("NewGame")?.GetComponentInChildren<TMPro.TextMeshProUGUI>(true);
-        if (playLabel) playLabel.text = "PLAY · CHOOSE ROLE";
+        if (playLabel) playLabel.text = "PLAY · CHOOSE MODE";
         PrepareContinue(shell.transform);
         AlignMenuColumn(shell.transform);
 
@@ -48,19 +64,34 @@ public static class SimpleShellLayout
         modePanel.SetActive(false);
         var dim = LandscapeUI.Image("Dim", modes, 0, 0, 1600, 900, null, new Color(0.02f, 0.04f, 0.06f, 0.92f));
         dim.raycastTarget = true;
-        LandscapeUI.Text("ModeTitle", modes, "CHOOSE YOUR ROLE", 200, 180, 1200, 60, 36, LandscapeUI.White, true, TextAlignmentOptions.Center);
-
-        var awayBtn = LandscapeUI.Button("AwayTrip", modes, "HOOLIGAN · BUILD YOUR FIRM", 500, 300, 600, 88, "red");
-        var homeBtn = LandscapeUI.Button("HomeTerritory", modes, "CONTINUE HOOLIGAN CAMPAIGN", 500, 410, 600, 88);
-        var police = LandscapeUI.Button("PlayPolice", modes, "POLICE · PATROL & PROTECT", 500, 520, 600, 88);
+        LandscapeUI.Text("ModeTitle", modes, "CHOOSE YOUR MODE", 200, 154, 1200, 60, 36, LandscapeUI.White, true, TextAlignmentOptions.Center);
+        var homeBtn = LandscapeUI.Button("HomeTerritory", modes, "HOME · BUILD YOUR TERRITORY", 500, 260, 600, 78, "red");
+        LandscapeUI.Text("HomeModeHint",modes,"Build and defend your permanent base.",500,344,600,30,19,LandscapeUI.Muted,false,TextAlignmentOptions.Center);
+        awayMode = LandscapeUI.Button("AwayTrip", modes, "AWAY · LOCKED", 500, 394, 600, 78);
+        awayRequirement=LandscapeUI.Text("AwayModeRequirement",modes,"",410,478,780,32,19,LandscapeUI.Muted,false,TextAlignmentOptions.Center);
+        var police = LandscapeUI.Button("PlayPolice", modes, "POLICE · PATROL & PROTECT", 500, 528, 600, 78);
+        LandscapeUI.Text("PoliceModeHint",modes,"Your separate Police career.",500,612,600,30,19,LandscapeUI.Muted,false,TextAlignmentOptions.Center);
         police.interactable = true;
         police.onClick.AddListener(()=>PoliceCityMode.Launch());
-        var back = LandscapeUI.Button("BackToTitle", modes, "BACK", 500, 680, 600, 64, "outline");
+        var newFirm=LandscapeUI.Button("NewFirm",modes,"NEW HOME CAMPAIGN",500,702,290,58,"outline");
+        newFirm.onClick.AddListener(()=>Object.FindFirstObjectByType<MainMenuController>()?.ConfirmNewFirm());
+        var back = LandscapeUI.Button("BackToTitle", modes, "BACK", 810, 702, 290, 58, "outline");
 
         back.onClick.AddListener(() => modePanel.SetActive(false));
-        awayBtn.onClick.AddListener(() => Object.FindFirstObjectByType<MainMenuController>()?.ConfirmNewFirm());
-        homeBtn.onClick.AddListener(() => GameManager.instance?.ContinueIntoGameplay());
-        homeBtn.interactable=GameManager.HasSaveData();
+        awayMode.onClick.AddListener(() => GameManager.instance?.EnterAwayMode());
+        homeBtn.onClick.AddListener(() => GameManager.instance?.EnterHomeTerritoryOrStartNew(shell.clubs));
+        // Fill the whole safe viewport; keep the authored choice column centred
+        // automatically on wide phones and taller tablets.
+        foreach(Transform child in modes)
+        {
+            var rt=child as RectTransform;if(!rt||rt==dim.rectTransform)continue;
+            var centre=new Vector2(rt.anchoredPosition.x+rt.sizeDelta.x*.5f,-rt.anchoredPosition.y);
+            rt.anchorMin=rt.anchorMax=new Vector2(.5f,.5f);rt.pivot=new Vector2(.5f,1);
+            rt.anchoredPosition=new Vector2(centre.x-800,450-centre.y);
+        }
+        LandscapeUI.Stretch(modes);LandscapeUI.Stretch(dim.rectTransform);
+        RefreshModes();
+        if(openWhenReady){openWhenReady=false;ShowModes();}
     }
 
     static void AlignMenuColumn(Transform root)
@@ -125,7 +156,7 @@ public static class SimpleShellLayout
             if (page) page.SetActive(false);
         if (shell.trips) shell.trips.SetActive(true);
         shell.currentPage = "trips";
-        if (shell.screenTitle) shell.screenTitle.text = "AWAY TRIP";
+        if (shell.screenTitle) shell.screenTitle.text = "AWAY MODE";
         HideNamed(shell.transform, "Navigation");
         HideNamed(shell.transform, "EndMatchday");
         HideNamed(shell.transform, "Home");
@@ -144,8 +175,8 @@ public static class SimpleShellLayout
                 if (child.name.StartsWith("Tab_") || child.name == "SideNote") child.gameObject.SetActive(false);
         }
         if (shell.transform.Find("AwayBack")) return;
-        var back = LandscapeUI.Button("AwayBack", shell.transform, "BACK", 28, 20, 150, 54, "outline");
-        back.onClick.AddListener(() => GameManager.instance?.EnterHomeTerritory());
+        var back = LandscapeUI.Button("AwayBack", shell.transform, "MODES", 28, 20, 150, 54, "outline");
+        back.onClick.AddListener(ReturnToModes);
     }
 
     static void HideNamed(Transform root, string name)

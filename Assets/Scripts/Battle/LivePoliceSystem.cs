@@ -151,7 +151,7 @@ public class LivePoliceSystem : MonoBehaviour
 
     private void TryStartPoliceArrival()
     {
-        if (_state != PoliceState.Idle || _heat < maxHeat) return;
+        if (_state != PoliceState.Idle || _heat < maxHeat || MatchdayStreetOperations.Active) return;
         _pendingArrival = false;
         StartCoroutine(ArrivalRoutine());
     }
@@ -188,6 +188,7 @@ public class LivePoliceSystem : MonoBehaviour
 
     void Update()
     {
+        if(GuidedCityTutorial.CombatSuppressed)return;
         SyncHeatFromCampaign();
 
         if (_state != PoliceState.Idle) return;

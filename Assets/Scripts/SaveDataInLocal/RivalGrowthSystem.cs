@@ -108,6 +108,23 @@ public static class RivalGrowthSystem
         }
     }
 
+    public static string ReinforceFromMatchday(PlayerData data)
+    {
+        Ensure(data);
+        RivalStreetState chosen=null;
+        foreach(var street in data.RivalStreets)
+            if(street!=null&&!street.wiped&&street.members>0&&(chosen==null||street.members>chosen.members))chosen=street;
+        if(chosen==null)return null;
+        chosen.members=Mathf.Min(MaxPerFirm,chosen.members+3);
+        chosen.supporters=Mathf.Min(240,chosen.supporters+4);
+        chosen.cityGrowthTicks=Mathf.Min(5,chosen.cityGrowthTicks+1);
+        if(chosen.cityGrowthTicks>=2)chosen.secondPocket=true;
+        foreach(var area in UnityEngine.Object.FindObjectsByType<GangArea>(FindObjectsSortMode.None))
+            if(area&&string.Equals(BaseName(area.GangName),BaseName(chosen.firmName),StringComparison.OrdinalIgnoreCase))
+                area.SetGrowth(chosen.cityGrowthTicks);
+        return chosen.firmName;
+    }
+
     public static void AdvanceLivingCity(PlayerData d)
     {
         Ensure(d);if(d?.RivalStreets==null)return;

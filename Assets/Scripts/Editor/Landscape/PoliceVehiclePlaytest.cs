@@ -8,6 +8,8 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using TMPro;
 
 /// <summary>Actual patrol transport and Continue with disposable firm/police saves.</summary>
 [InitializeOnLoad]
@@ -70,6 +72,16 @@ public static class PoliceVehiclePlaytest
         }
         return from;
     }
+    static Transform CrewRow(AgentController member)
+    {
+        foreach(var button in UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None))
+        {
+            if(button.name!="ToggleSelection")continue;
+            var caption=button.GetComponentInChildren<TextMeshProUGUI>();
+            if(caption&&(caption.text==member.Data.AgentName||caption.text.StartsWith(member.Data.AgentName+" ·",StringComparison.Ordinal)))return button.transform.parent;
+        }
+        return null;
+    }
     static IEnumerator Run()
     {
         yield return new WaitForSecondsRealtime(1);var firm=GameData.instance.PlayerData;string original=File.ReadAllText(Save);
@@ -80,6 +92,8 @@ public static class PoliceVehiclePlaytest
         Check(!van.DriveTo(ConnectedDestination(van.transform.position,20)),"An empty patrol van cannot drive without an officer aboard");
         foreach(var actor in BattleManager.instance.PlayerAgents)actor.Data.Speed=15;
         var a=BattleManager.instance.PlayerAgents[0];var b=BattleManager.instance.PlayerAgents[1];var reserve=BattleManager.instance.PlayerAgents[2];
+        bool guarded=reserve.CommandGuard(new Bounds(reserve.transform.position,new Vector3(12,4,12)),reserve.GetComponent<NavMeshAgent>().nextPosition);
+        Check(guarded&&reserve.CurrentOrder==AgentController.StandingOrder.Guard,"Reserve officer accepts an independent real Guard duty before the transport/map checks");
         int reserveRevision=reserve.OrderRevision;select.DeselectAll();select.Select(a);select.Select(b);Time.timeScale=3;
         van.Select();Check(select.SelectedAgents.Contains(a)&&select.SelectedAgents.Contains(b),"Selecting an empty van retains the chosen officers for the boarding action");
         Check(van.BoardSelected()&&van.BoardingCount==2&&van.PassengerCount==0,"Two selected officers receive walking boarding orders without instant collection");
@@ -87,12 +101,35 @@ public static class PoliceVehiclePlaytest
         Check(van.PassengerCount==2&&PolicePatrolVehicle.IsMounted(a)&&PolicePatrolVehicle.IsMounted(b),"Both officers physically reach and board the parked van");
         Check(a.IsActivityLocked&&b.IsActivityLocked&&!a.GetComponent<NavMeshAgent>().enabled&&!b.GetComponent<NavMeshAgent>().enabled,"Seated officers leave foot navigation and task assessment while remaining saved crew");
         Check(reserve.OrderRevision==reserveRevision&&!PolicePatrolVehicle.IsMounted(reserve),"The unselected third officer keeps their independent assignment");
+        int aRevision=a.OrderRevision,bRevision=b.OrderRevision;var beforeMapSelection=select.SelectedAgents.ToArray();
+        var map=LiveMiniMap.Instance;var camera=CameraPanTouchOnly.Instance;
+        camera.FocusOn(van.transform.position+Vector3.right*70);yield return new WaitForSecondsRealtime(.4f);
+        map.OpenTacticalMap();yield return new WaitForSecondsRealtime(.25f);map.TacticalControls.RefreshCrew();
+        var aRow=CrewRow(a);var bRow=CrewRow(b);var reserveRow=CrewRow(reserve);
+        Check(aRow&&bRow&&!aRow.Find("ToggleSelection").GetComponent<Button>().interactable&&!bRow.Find("ToggleSelection").GetComponent<Button>().interactable&&
+            aRow.Find("ToggleSelection").GetComponentInChildren<TextMeshProUGUI>().text.Contains(" · IN VAN")&&aRow.Find("Duty").GetComponent<TextMeshProUGUI>().text.Contains("IN PATROL VAN"),"Actual boarded officers have explicit IN VAN map rows with disabled foot-selection controls");
+        Check(reserveRow&&reserveRow.Find("ToggleSelection").GetComponent<Button>().interactable,"Mounted-row clarity keeps the independent on-foot officer selectable");
+        if(!aRow)throw new InvalidOperationException("Mounted officer map row was not created.");
+        aRow.Find("FocusMember").GetComponent<Button>().onClick.Invoke();yield return new WaitForSecondsRealtime(.7f);
+        Check(!LiveMiniMap.IsExpanded&&!camera.IsFollowingMember&&CityBusinessSystem.HorizontalDistance(CityActivityStreaming.GroundFocus(Camera.main),van.transform.position)<25&&
+            select.SelectedAgents.SequenceEqual(beforeMapSelection)&&a.OrderRevision==aRevision&&b.OrderRevision==bRevision&&reserve.OrderRevision==reserveRevision&&reserve.CurrentOrder==AgentController.StandingOrder.Guard,
+            "Actual mounted-member FOCUS closes the map and centers the van without altering crew selection or the reserve Guard duty");
+        map.OpenTacticalMap();yield return new WaitForSecondsRealtime(.2f);map.TacticalControls.RefreshCrew();aRow=CrewRow(a);
+        aRow.Find("TrackMember").GetComponent<Button>().onClick.Invoke();
+        Check(LiveMiniMap.IsExpanded&&CrewTrackingSystem.TrackedMember==a&&camera.FollowedMember==a,"Actual mounted-member TRACK pins that officer while the expanded map remains open");
+        map.CloseTacticalMap();var followOrigin=CityActivityStreaming.GroundFocus(Camera.main);
         var destination=ConnectedDestination(van.transform.position,30);var start=van.transform.position;
         Check(Vector3.Distance(start,destination)>=30&&van.DriveTo(destination),"Selected patrol team accepts a complete road-only driving route");
         var accepted=van.Destination;
         Check(!van.DriveTo(new Vector3(100000,0,100000))&&van.IsDriving&&van.Destination==accepted,"An invalid off-map drive target preserves the accepted road order");
         until=Time.realtimeSinceStartup+20;while(Vector3.Distance(start,van.transform.position)<5&&Time.realtimeSinceStartup<until)yield return null;
         Check(Vector3.Distance(start,van.transform.position)>=5&&Vector3.Distance(a.transform.position,van.transform.position)<1,"Van travels visibly and carries the boarded team with it");
+        yield return new WaitForSecondsRealtime(.15f);
+        Check(camera.IsFollowingMember&&camera.FollowedMember==a&&Vector3.Distance(CrewTrackingSystem.WorldPosition(a),van.transform.position)<.01f&&
+            CityBusinessSystem.HorizontalDistance(CityActivityStreaming.GroundFocus(Camera.main),followOrigin)>1&&CityBusinessSystem.HorizontalDistance(CityActivityStreaming.GroundFocus(Camera.main),van.transform.position)<25&&
+            reserve.OrderRevision==reserveRevision&&reserve.CurrentOrder==AgentController.StandingOrder.Guard,
+            "Tracking the mounted officer follows the actual road-driven van while another officer's Guard duty remains unchanged");
+        CrewTrackingSystem.StopTracking();
         Time.timeScale=0;var paused=van.transform.position;yield return new WaitForSecondsRealtime(.3f);
         Check(Vector3.Distance(paused,van.transform.position)<.01f,"Paused simulation does not move the patrol vehicle");Time.timeScale=1;
         GameManager.Save();var loaded=PoliceCampaignStore.LoadOrCreate();var saved=loaded.vehicle;

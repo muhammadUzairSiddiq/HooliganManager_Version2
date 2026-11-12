@@ -1,0 +1,34 @@
+PASS Expanded tactical map blocks accidental world taps while the live city continues
+PASS 1280x720 expanded map has an opaque solid backdrop over the full display, including safe-area gutters
+PASS 1280x720 map covers the actual Home/selection HUD while leaving settings and popups above it
+PASS Expanded crew sheet names all three real living crew members
+PASS Actual roster names appear instead of invented or generic player labels
+PASS Map/world projection roundtrips the same city coordinate (-40.00, 0.00, -25.00)
+PASS Map/world projection roundtrips the same city coordinate (35.00, 0.00, 50.00)
+PASS Map/world projection roundtrips the same city coordinate (0.00, 0.00, 0.00)
+PASS Map pointer conversion includes the real canvas scale and rectangular viewport
+PASS Tactical Home footprint uses the actual world Home bounds
+PASS Actual clickable map marker invokes the real additive selection handler
+PASS Map member taps add individuals without closing the map
+PASS Tapping Brick again removes only Brick without changing his duty
+PASS Ordinary map exploration cannot silently issue a movement order
+PASS Reroute explicitly clears prior Attack/Guard targeting before street movement
+PASS An actual armed map surface click uses the real validated selection command and reports acceptance
+PASS Accepted map move is one-shot and preserves selection plus another group's guard duty
+PASS Map route uses the member's actual remaining NavMesh corners and actual endpoint
+PASS Route overlay can be turned off without changing live orders
+PASS Optional all-crew routes remain bounded and draw existing live paths
+PASS Individual tracking is separate from the selected command group
+PASS Show Home centers the same authoritative Home footprint on the map
+PASS Terrain projection and pooled labels follow the same map drag without duplicate label objects
+PASS 2400x1080 preserves accurate map pointer/world coordinates
+PASS 2400x1080 expanded map has an opaque solid backdrop over the full display, including safe-area gutters
+PASS 2400x1080 map covers the actual Home/selection HUD while leaving settings and popups above it
+PASS 1024x768 preserves accurate map pointer/world coordinates
+PASS 1024x768 expanded map has an opaque solid backdrop over the full display, including safe-area gutters
+PASS 1024x768 map covers the actual Home/selection HUD while leaving settings and popups above it
+PASS Empty-selection reroute rejects cleanly without borrowing another squad
+PASS Focusing one member returns to the world and restores the pre-map camera/input components
+RESULT 31 passed, 0 failed
+Native isolated tactical-map fixture: real city/navigation/selection, durable fast crew and unrelated pressure suppressed. No device touch, frame-rate, natural campaign or real save used.
+UTC 2026-11-03T04:17:05.7174709Z

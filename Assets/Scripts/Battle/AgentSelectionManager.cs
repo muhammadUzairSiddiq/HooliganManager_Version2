@@ -34,6 +34,8 @@ public class AgentSelectionManager : MonoBehaviour
     private Camera _cam;
     private Vector2 _mouseDown;
     private bool _mouseTap, _mouseDragged;
+    AgentController lastTappedMember;
+    float lastMemberTap=-10;
 
     [Header("Tap vs Drag")]
     [Tooltip("Max finger travel (px) still counted as a tap. Beyond this it's a camera drag and is ignored.")]
@@ -51,6 +53,8 @@ public class AgentSelectionManager : MonoBehaviour
     public bool IsMoveCommandArmed => PendingCommand == TargetCommand.Move;
     readonly List<RaycastResult> _uiHits = new List<RaycastResult>();
     bool automaticSelection;
+    static Material markerMaterial;
+    static MaterialPropertyBlock markerColor;
     PointerEventData _pointerData;
     EventSystem _pointerEventSystem;
 
@@ -61,6 +65,8 @@ public class AgentSelectionManager : MonoBehaviour
 
     public static bool BlocksWorldTap()
     {
+        if(GuidedCityTutorial.BlocksInput)return true;
+        if(GameFeedback.SettingsInputBlocked)return true;
         if (instance && Time.frameCount == instance._ignoreWorldTapFrame) return true;
         if (Time.timeScale == 0f || LiveMiniMap.IsExpanded) return true;
         if(PoliceCityMode.Instance&&PoliceCityMode.Instance.IsDispatchOpen)return true;
@@ -83,6 +89,7 @@ public class AgentSelectionManager : MonoBehaviour
         if (instance != null && instance != this) { Destroy(gameObject); return; }
         instance = this;
         _cam = Camera.main;
+        if(gameObject.scene.name=="Gameplay")CrewTrackingSystem.Ensure();
         if (gameObject.scene.name == "Gameplay" && !GetComponent<RtsGestureController>()) gameObject.AddComponent<RtsGestureController>();
     }
 
@@ -168,6 +175,7 @@ public class AgentSelectionManager : MonoBehaviour
     public void HandleTap(Vector2 screenPos)
     {
         if (!_cam || BlocksWorldTap() || IsPointerOverUI(screenPos)) return;
+        if(PoliceRecoveryVehicle.TryHandleTap(screenPos))return;
         if(PolicePatrolVehicle.TryHandleTap(screenPos))return;
 
         // 3D raycast from camera through tap point
@@ -177,7 +185,7 @@ public class AgentSelectionManager : MonoBehaviour
         if (Physics.Raycast(ray, out var crewHit, 2500f, LayerMask.GetMask("Agent")))
         {
             var member = crewHit.collider.GetComponentInParent<AgentController>();
-            if (member && member.IsAlive) { ToggleSelect(member); return; }
+            if (member && member.IsAlive) { TapMember(member); return; }
         }
 
         // Explicit attack targeting takes precedence over a group's interaction pad.
@@ -229,7 +237,7 @@ public class AgentSelectionManager : MonoBehaviour
 
             if (agent != null && agent.IsAlive)
             {
-                ToggleSelect(agent);
+                TapMember(agent);
                 return;
             }
 
@@ -322,6 +330,18 @@ public class AgentSelectionManager : MonoBehaviour
         else
             Select(agent);
     }
+    void TapMember(AgentController agent)
+    {
+        if(lastTappedMember==agent&&Time.unscaledTime-lastMemberTap<=.32f)
+        {lastTappedMember=null;lastMemberTap=-10;SelectAndFocus(agent);return;}
+        lastTappedMember=agent;lastMemberTap=Time.unscaledTime;ToggleSelect(agent);
+    }
+    public void SelectAndFocus(AgentController agent)
+    {
+        if(!agent||!agent.IsAlive)return;
+        Select(agent);CrewTrackingSystem.FocusMember(agent);
+        if(GuidedCityTutorial.BlocksInput)CameraPanTouchOnly.Instance?.TutorialFocus(agent.transform.position);
+    }
 
     public void Select(AgentController agent)
     {
@@ -330,6 +350,7 @@ public class AgentSelectionManager : MonoBehaviour
         {
             _selected.Add(agent);
             agent.SetSelected(true);
+            if(!automaticSelection)GameFeedback.Emit(GameFeedbackEvent.UnitSelected,agent.transform.position);
         }
         LastPicked = agent;
         if (!automaticSelection&&RecoveryProgression.RecordSelection(GameManager.Data, _selected.Count)) GameManager.Save();
@@ -340,7 +361,8 @@ public class AgentSelectionManager : MonoBehaviour
     {
         if (!_selected.Remove(agent)) return;
         if (agent) agent.SetSelected(false);
-        if (_selected.Count == 0) PendingCommand = TargetCommand.Move;
+        if(agent&&!automaticSelection)GameFeedback.Emit(GameFeedbackEvent.UnitSelected,agent.transform.position);
+        if (_selected.Count == 0) {PendingCommand = TargetCommand.Move;RtsGestureController.Instance?.Cancel();}
         if (RecoveryProgression.RecordSelection(GameManager.Data, _selected.Count, true)) GameManager.Save();
         NotifyUI();
     }
@@ -350,6 +372,7 @@ public class AgentSelectionManager : MonoBehaviour
         foreach (var a in _selected) if(a)a.SetSelected(false);
         _selected.Clear();
         PendingCommand = TargetCommand.Move;
+        RtsGestureController.Instance?.Cancel();
         NotifyUI();
     }
 
@@ -481,10 +504,11 @@ public class AgentSelectionManager : MonoBehaviour
 
     public static void CreateCommandMarker(Vector3 point, Color color, string label)
     {
-        var marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        var marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
         marker.name = label + "OrderFeedback";
         marker.transform.position = point + Vector3.up * 0.08f;
         marker.transform.localScale = new Vector3(1.4f, 0.025f, 1.4f);
+        marker.transform.rotation=Quaternion.Euler(0,45,0);
         var collider = marker.GetComponent<Collider>();
         if (collider != null) Destroy(collider);
         var renderer = marker.GetComponent<Renderer>();
@@ -493,8 +517,11 @@ public class AgentSelectionManager : MonoBehaviour
             var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
             if (shader != null)
             {
-                var material = new Material(shader) { color = color };
-                renderer.material = material;
+                if(!markerMaterial)markerMaterial=new Material(shader){color=Color.white};
+                // Native Unity objects must be created by a main-thread action,
+                // never while the scripting domain initializes static fields.
+                if(markerColor==null)markerColor=new MaterialPropertyBlock();
+                renderer.sharedMaterial=markerMaterial;markerColor.SetColor("_BaseColor",color);markerColor.SetColor("_Color",color);renderer.SetPropertyBlock(markerColor);
             }
         }
         var text = ZoneLabelUtil.Create(marker.transform, label, 2.2f, 2.2f);
@@ -504,6 +531,9 @@ public class AgentSelectionManager : MonoBehaviour
 
     private static void NotifyCommand(string message)
     {
+        if(message.Contains("BLOCKED")||message.StartsWith("SELECT ")||message.StartsWith("NO AVAILABLE"))GameFeedback.Emit(GameFeedbackEvent.CommandBlocked);
+        else if(message.Contains("CONFIRMED")||message.StartsWith("REGROUPING")||message.StartsWith("SAFE TRANSPORT"))
+            GameFeedback.Emit(message.StartsWith("MOVE ")?GameFeedbackEvent.MoveAccepted:GameFeedbackEvent.CommandAccepted);
         BattleUIController.instance?.ShowAlert(message, 1.6f);
         CityGameplay.Instance?.PostEvent(message);
     }

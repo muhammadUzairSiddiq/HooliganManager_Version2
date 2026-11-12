@@ -123,7 +123,16 @@ public class GameManager : MonoBehaviour
         OpenAwayPlanner();
     }
 
-    /// <summary>Away mode from the title: the trip planner, not a new fight.</summary>
+    /// <summary>Explicit Away mode entry shares the earned Home unlock with every launch path.</summary>
+    public bool EnterAwayMode()
+    {
+        if(!CampaignMissions.HomeCleared(Data)){TryOpenAwayTrip(null);return false;}
+        if(!RequireLivingCrewOrPrompt())return false;
+        if(Data.LastSessionMode=="Away"&&Data.BattleSessionActive)ResumeAwayCity();
+        else OpenAwayPlanner();
+        return true;
+    }
+    /// <summary>Away mode opens its traveller/destination preparation.</summary>
     public void OpenAwayPlanner()
     {
         if (!CampaignMissions.HomeCleared(Data))

@@ -27,7 +27,6 @@ public class MainMenuController : MonoBehaviour
     void Awake()
     {
         // Explicit MainMenu hook: first-install wipe (also runs via BeforeSceneLoad).
-        GameCacheBootstrap.ClearAllGameCacheForFirstInstall();
     }
 
     void Start()
@@ -37,7 +36,7 @@ public class MainMenuController : MonoBehaviour
 
         ApplyContinueState();
 
-        SetButtonLabel(newGameBtn ? newGameBtn.gameObject : null, "PLAY · CHOOSE ROLE");
+        SetButtonLabel(newGameBtn ? newGameBtn.gameObject : null, "PLAY · CHOOSE MODE");
         var headquarters = GameObject.Find("LoadGame");
         if (headquarters) headquarters.SetActive(false);
 

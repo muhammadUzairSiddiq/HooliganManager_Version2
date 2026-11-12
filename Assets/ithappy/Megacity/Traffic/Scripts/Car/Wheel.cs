@@ -14,12 +14,18 @@ namespace ITHappy
         private bool m_RenderToggle;
 
         private void Awake() {
+            CacheRenderer();
+        }
+        private void OnEnable() => CacheRenderer();
+        bool CacheRenderer() {
             m_Renderer = GetComponent<MeshRenderer>();
-            m_RenderToggle = m_Renderer.enabled;
+            if(!m_Renderer)return false;
+            m_RenderToggle = m_Renderer.enabled;return true;
         }
 
         public void Move(float delta, bool isRender)
         {
+            if(!isActiveAndEnabled||!gameObject.activeInHierarchy||(!m_Renderer&&!CacheRenderer()))return;
             if(m_RenderToggle != isRender) {
                 m_Renderer.enabled = isRender;
                 m_RenderToggle = isRender;
@@ -29,7 +35,7 @@ namespace ITHappy
                 return;
             }
 
-            var angularDelta = delta / m_Radius * Mathf.Rad2Deg;
+            var angularDelta = delta / Mathf.Max(.001f,m_Radius) * Mathf.Rad2Deg;
             var euler = Vector3.right * angularDelta;
 
             if(m_Inverse)

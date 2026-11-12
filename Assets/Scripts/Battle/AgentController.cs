@@ -53,6 +53,7 @@ public class AgentController : MonoBehaviour
     static readonly Color SelectedRing = new Color(.12f, 1f, .36f, 1f);
     static readonly Color BusyRing = new Color(1f, .78f, .12f, 1f);
     public Vector3 CommandDestination => _moveTarget;
+    public float CurrentTravelSpeed=>Data==null?0:Data.Speed*CrewMovementPreference.SpeedMultiplier*_speedMultiplier;
     public bool IsTargetingFirm(string firm)=>_target&&_target.firmName==firm;
 
     // ── Inspector ─────────────────────────────────────────────────────────
@@ -75,11 +76,15 @@ public class AgentController : MonoBehaviour
     private NavMeshAgent      _nav;
     private AgentAnimController _anim;      // ← code-driven animation helper
     private EnemyController   _target;
+    bool defendingWithoutOrder;
+    Vector3 defenceOrigin;
+    int defenceTargetLife;
     private Vector3           _moveTarget;
     private Vector3           _retreatPoint;
     private float             _attackTimer;
     int _hitsTaken;
     private float             _scanTimer;
+    float _nextFootstep;
     private UnitAffiliationMarker _affiliationMarker;
 
     private const float SCAN_INTERVAL = 0.5f;
@@ -98,6 +103,7 @@ public class AgentController : MonoBehaviour
     public void Initialise(AgentData data, Vector3 retreatPoint, CharacterPortraitRegistry visualRegistry = null)
     {
         Data = data;
+        _speedMultiplier=1;
         setup(visualRegistry);
         
         Data          = data;
@@ -106,10 +112,10 @@ public class AgentController : MonoBehaviour
 
         // Nav agent
         _nav                  = GetComponent<NavMeshAgent>();
-        _nav.speed            = data.Speed;
+        _nav.speed            = CurrentTravelSpeed;
         _nav.stoppingDistance = data.AttackRange * 0.9f;
-        _nav.angularSpeed     = 360f;
-        _nav.acceleration     = 12f;
+        _nav.angularSpeed     = GameplayTuning.Current.turnSpeed;
+        _nav.acceleration     = 20f;
 
         // Animator — auto-find if not assigned in Inspector
         if (animator == null)
@@ -439,8 +445,11 @@ public class AgentController : MonoBehaviour
         if (nearest) EngageForDefence(nearest);
     }
 
-    void EngageForDefence(EnemyController enemy)
+    internal void EngageForDefence(EnemyController enemy)
     {
+        defendingWithoutOrder=CurrentOrder==StandingOrder.None;
+        defenceOrigin=transform.position;
+        defenceTargetLife=enemy.LifeRevision;
         _target = enemy;
         BeginAssignment();
         SetState(State.AutoAttacking);
@@ -464,6 +473,7 @@ public class AgentController : MonoBehaviour
         if (_activityLocked) return;
         OrderRevision++;
         CurrentOrder = StandingOrder.None;
+        defendingWithoutOrder=false;
         BeginAssignment();
         SetState(State.AutoAttacking);
     }
@@ -476,6 +486,7 @@ public class AgentController : MonoBehaviour
         if (_activityLocked) return;
         OrderRevision++;
         CurrentOrder = StandingOrder.None;
+        defendingWithoutOrder=false;
         _target = target;
         BeginAssignment();
         SetState(State.AutoAttacking);
@@ -502,6 +513,7 @@ public class AgentController : MonoBehaviour
 
     public void TakeDamage(float amount, EnemyController attacker = null)
     {
+        if(GuidedCityTutorial.CombatSuppressed||MatchdayStreetOperations.IsDetained(this))return;
         if (!IsAlive) return;
         float guard = Data != null ? Mathf.Clamp(Data.Intelligence, 0, 8) * 0.03f : 0f;
         if (amount > 0) StreetCombatPresentation.Hit(transform.position);
@@ -524,11 +536,9 @@ public class AgentController : MonoBehaviour
         if (!manualMovement && !_activityLocked && !_cinematicIdle && CurrentState != State.AutoAttacking && CurrentState != State.Dead)
         {
             var nearest = attacker && attacker.IsAlive ? attacker : FindNearestEnemy();
-            if (nearest != null)
-                EngageForDefence(nearest);
-            else
-                CommandAttack();
-            BattleManager.instance?.AlertNearbyCrew(this);
+            if(!nearest||Vector3.Distance(transform.position,nearest.transform.position)>DefenceRadius)return;
+            EngageForDefence(nearest);
+            BattleManager.instance?.AlertNearbyCrew(this,nearest);
         }
     }
 
@@ -559,6 +569,12 @@ public class AgentController : MonoBehaviour
     void Update()
     {
         if (!IsAlive) return;
+        if(GuidedCityTutorial.CombatSuppressed&&CurrentState==State.AutoAttacking)
+        {
+            _target=null;_pendingTarget=null;_impactPending=false;
+            if(CurrentOrder!=StandingOrder.None)ResumeDuty();
+            else{if(_nav&&_nav.enabled&&_nav.isOnNavMesh)_nav.ResetPath();SetState(State.Idle);}
+        }
 
         // During the pre-battle cinematic intro agents stand still in idle.
         // Drive animation only — skip all combat and navigation logic.
@@ -573,20 +589,25 @@ public class AgentController : MonoBehaviour
 
         // Periodic enemy scan — only refresh target when the current one is gone.
         // Overwriting every tick cleared CommandAttackTarget and dropped agents to Idle.
-        if (_scanTimer >= SCAN_INTERVAL)
+        if (_scanTimer >= SCAN_INTERVAL&&!GuidedCityTutorial.CombatSuppressed)
         {
             _scanTimer = 0;
             if (CurrentOrder != StandingOrder.None && (!_target || !_target.IsAlive))
                 ScanDutyThreats();
-            else if (CurrentState == State.AutoAttacking && (_target == null || !_target.IsAlive))
+            else if (CurrentState == State.AutoAttacking && !defendingWithoutOrder && (_target == null || !_target.IsAlive))
                 _target = FindNearestEnemy();
         }
 
         // Drive animation — AgentAnimController handles idle vs run crossfade.
-        if(_nav&&CurrentState==State.MovingToPoint)_nav.speed=Data.Speed*(CrewMovementPreference.RunOnTap?1f:.52f);
-        else if(_nav&&CurrentState==State.AutoAttacking)_nav.speed=Data.Speed;
+        if(_nav&&(CurrentState==State.MovingToPoint||CurrentState==State.Retreating))_nav.speed=CurrentTravelSpeed*(CrewMovementPreference.RunOnTap?1f:.52f);
+        else if(_nav&&CurrentState==State.AutoAttacking)_nav.speed=CurrentTravelSpeed;
         float speed = _nav.enabled ? _nav.velocity.magnitude : 0f;
-        _anim?.Tick(speed / Mathf.Max(.1f, Data.Speed), CurrentState == State.AutoAttacking);
+        _anim?.Tick(speed / Mathf.Max(.1f, Data.Speed*CrewMovementPreference.SpeedMultiplier), CurrentState == State.AutoAttacking);
+        if(speed>.4f&&Time.time>=_nextFootstep&&CityActivityStreaming.InView(transform.position,.02f))
+        {
+            _nextFootstep=Time.time+(CrewMovementPreference.RunOnTap?.34f:.5f);
+            GameFeedback.Emit(GameFeedbackEvent.UnitFootstep,transform.position);
+        }
 
         switch (CurrentState)
         {
@@ -618,6 +639,15 @@ public class AgentController : MonoBehaviour
                 break;
 
             case State.AutoAttacking:
+                if(defendingWithoutOrder&&(!_target||!_target.IsAlive||!_target.gameObject.activeInHierarchy||
+                    _target.LifeRevision!=defenceTargetLife||Vector3.Distance(defenceOrigin,_target.transform.position)>DefenceRadius))
+                {
+                    _target=null;
+                    _nav.ResetPath();
+                    SetState(State.Idle);
+                    EndAssignment();
+                    break;
+                }
                 if (CurrentOrder != StandingOrder.None && !IsDutyThreat(_target))
                 {
                     ResumeDuty();
@@ -647,6 +677,7 @@ public class AgentController : MonoBehaviour
     // ── Attack ────────────────────────────────────────────────────────────
     private void TryAttack()
     {
+        if(GuidedCityTutorial.CombatSuppressed)return;
         if (_attackTimer < attackInterval) return;
         _attackTimer = 0;
 
@@ -655,10 +686,12 @@ public class AgentController : MonoBehaviour
         _anim?.PlayAttack();
 
         _pendingTarget = _target;
+        _pendingTargetLife = _pendingTarget ? _pendingTarget.LifeRevision : 0;
         _impactPending = true;
         StartCoroutine(ImpactAfterDelay());
     }
     EnemyController _pendingTarget;
+    int _pendingTargetLife;
     bool _impactPending;
     IEnumerator ImpactAfterDelay()
     {
@@ -667,9 +700,11 @@ public class AgentController : MonoBehaviour
     }
     public void AnimEvent_DealDamage()
     {
+        if(GuidedCityTutorial.CombatSuppressed){_impactPending=false;return;}
         if (!_impactPending) return;
         _impactPending = false;
         if (!IsAlive || _cinematicIdle || CurrentState != State.AutoAttacking || !_pendingTarget || !_pendingTarget.IsAlive) return;
+        if(!_pendingTarget.gameObject.activeInHierarchy||_pendingTarget.LifeRevision!=_pendingTargetLife)return;
         if (DistanceTo(_pendingTarget.transform) > Data.AttackRange + .35f) return;
         float staminaCap = Data != null && Data.MaxStamina > 1f ? Data.MaxStamina : 100f;
         float tired = Data != null && Data.Stamina / staminaCap < 0.35f ? 0.75f : 1f;
@@ -684,7 +719,7 @@ public class AgentController : MonoBehaviour
     public void RestoreFromData(AgentData data)
     {
         if (data != null) Data = data;
-        StopAllCoroutines(); _injuryReported = false; _activeBoosts.Clear(); _strengthMultiplier = 1; _impactPending = false;
+        StopAllCoroutines(); _injuryReported = false; _activeBoosts.Clear(); _strengthMultiplier = 1; _speedMultiplier=1; _impactPending = false;
         gameObject.SetActive(true); CurrentHp = Data.CurrentHp;
         _nav.enabled = true; if (_nav.isOnNavMesh) _nav.ResetPath();
         ApplyRosterStats(); _nav.isStopped = false; _target = null; _cinematicIdle = false; _activityLocked = false;
@@ -749,7 +784,7 @@ public class AgentController : MonoBehaviour
         if (Data == null) return;
         if (Data.MaxStamina < 1f) Data.MaxStamina = 100f;
         CurrentHp = Mathf.Clamp(Data.CurrentHp, 0f, Data.MaxHp);
-        if (_nav) _nav.speed = Data.Speed;
+        if (_nav) _nav.speed = CurrentTravelSpeed;
         RefreshHealthBar();
     }
 
@@ -758,7 +793,7 @@ public class AgentController : MonoBehaviour
         if (Data == null) return;
         CurrentHp = Mathf.Min(Data.MaxHp, CurrentHp + 8f);
         SyncHpToData();
-        if (_nav) _nav.speed = Data.Speed;
+        if (_nav) _nav.speed = CurrentTravelSpeed;
         RefreshHealthBar();
     }
 
@@ -790,6 +825,7 @@ public class AgentController : MonoBehaviour
     // a new boost of the same type is applied before the old one expires.
     private bool _injuryReported;
     private float _strengthMultiplier = 1;
+    private float _speedMultiplier = 1;
     private Dictionary<BoostType, Coroutine> _activeBoosts = new Dictionary<BoostType, Coroutine>();
 
     /// <summary>
@@ -816,7 +852,8 @@ public class AgentController : MonoBehaviour
         switch (type)
         {
             case BoostType.Speed:
-                if (_nav != null) _nav.speed = Data.Speed * (1 + amount);
+                _speedMultiplier=Mathf.Max(.1f,1+amount);
+                if (_nav != null) _nav.speed = CurrentTravelSpeed;
                 Debug.Log($"[AgentController] {Data.AgentName} speed boosted +{amount * 100f:F0}% for {duration}s");
                 break;
             case BoostType.Strength:
@@ -832,7 +869,8 @@ public class AgentController : MonoBehaviour
         switch (type)
         {
             case BoostType.Speed:
-                if (_nav != null) _nav.speed = Data.Speed;
+                _speedMultiplier=1;
+                if (_nav != null) _nav.speed = CurrentTravelSpeed;
                 break;
             case BoostType.Strength:
                 _strengthMultiplier = 1;

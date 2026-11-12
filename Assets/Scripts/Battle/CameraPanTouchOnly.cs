@@ -75,9 +75,12 @@ public class CameraPanTouchOnly : MonoBehaviour
     private bool _movedThisGesture;
     private Vector2 _gestureStartPos;
     private bool _followSelection;
+    private AgentController _followedMember;
     private bool _mouseGesture, _mouseDragged;
     private Vector2 _mouseStart;
-    public bool IsFollowingSelection => _followSelection;
+    public bool IsFollowingSelection => _followSelection || IsFollowingMember;
+    public bool IsFollowingMember => _followedMember&&_followedMember.IsAlive;
+    public AgentController FollowedMember => IsFollowingMember?_followedMember:null;
     public bool CollisionAvoidanceEnabled => true;
     public float LastCollisionLift { get; private set; }
 
@@ -123,6 +126,7 @@ public class CameraPanTouchOnly : MonoBehaviour
         if (_camera != null && _camera.orthographic)
             _targetOrthoSize = _camera.orthographicSize;
         UpdateBoundsFromMap();
+        if(IsFollowingMember)MoveFocus(CrewTrackingSystem.WorldPosition(_followedMember));
     }
 
     private void Start()
@@ -171,7 +175,8 @@ public class CameraPanTouchOnly : MonoBehaviour
 
         HandleTouch();
         HandleEditorInput();
-        if (_followSelection && TryGetSelectionCentroid(out var followed)) MoveFocus(followed);
+        if(IsFollowingMember)MoveFocus(CrewTrackingSystem.WorldPosition(_followedMember));
+        else if (_followSelection && TryGetSelectionCentroid(out var followed)) MoveFocus(followed);
         // Keep the preferred camera low, then lift only while a building blocks
         // the line between the tactical focus and the camera.
         Vector3 desired = _targetPosition;
@@ -353,7 +358,7 @@ public class CameraPanTouchOnly : MonoBehaviour
 
     private void PanBy(Vector3 worldDelta)
     {
-        _followSelection = false;
+        ClearFollow();
         _targetPosition += worldDelta;
         ClampXZ();
     }
@@ -395,7 +400,7 @@ public class CameraPanTouchOnly : MonoBehaviour
     {
         if (Mathf.Approximately(degrees, 0f)) return;
 
-        _followSelection = false;
+        ClearFollow();
         Vector3 focus = FocusFromTarget();
         float height = Mathf.Clamp(_targetPosition.y - groundY, camMinHeight, camMaxHeight);
 
@@ -419,9 +424,40 @@ public class CameraPanTouchOnly : MonoBehaviour
 
     public void FocusOn(Vector3 worldPoint)
     {
-        _followSelection = false;
+        ClearFollow();
         _smoothTime = recenterSmoothTime;
         MoveFocus(worldPoint);
+    }
+
+    // Only the explicitly requested first-run lesson owns this camera jump.
+    // Ordinary objectives, news and incidents continue to leave the camera alone.
+    public void TutorialFocus(Vector3 worldPoint)
+    {
+        ClearFollow();MoveFocus(worldPoint);_velocity=Vector3.zero;
+        transform.position=_targetPosition;
+    }
+    public void TutorialFrame(Bounds bounds)
+    {
+        ClearFollow();
+        var ext=bounds.extents;
+        float width=Vector3.Dot(new Vector3(Mathf.Abs(transform.right.x),Mathf.Abs(transform.right.y),Mathf.Abs(transform.right.z)),ext);
+        float height=Vector3.Dot(new Vector3(Mathf.Abs(transform.up.x),Mathf.Abs(transform.up.y),Mathf.Abs(transform.up.z)),ext);
+        float depth=Vector3.Dot(new Vector3(Mathf.Abs(transform.forward.x),Mathf.Abs(transform.forward.y),Mathf.Abs(transform.forward.z)),ext);
+        float tangent=Mathf.Tan(_camera.fieldOfView*.5f*Mathf.Deg2Rad);
+        float distance=Mathf.Max(width/(tangent*_camera.aspect*.72f),height/(tangent*.62f))+depth;
+        float lift=Mathf.Clamp(distance*-transform.forward.y,camMinHeight,camMaxHeight);
+        _targetPosition=bounds.center-transform.forward*(lift/Mathf.Max(.1f,-transform.forward.y));
+        _velocity=Vector3.zero;ClampXZ();transform.position=_targetPosition;
+    }
+    // Only the tutorial's exclusive gesture surface calls these while time is paused.
+    // They use the normal camera bounds and projection, with no world order path.
+    public float TutorialZoomValue=>_camera&&_camera.orthographic?_camera.orthographicSize:transform.position.y;
+    public void TutorialPan(Vector2 from,Vector2 to)
+    {DragPan(from,to);_velocity=Vector3.zero;transform.position=_targetPosition;}
+    public void TutorialZoom(float amount)
+    {
+        Zoom(amount);_velocity=Vector3.zero;transform.position=_targetPosition;
+        if(_camera&&_camera.orthographic)_camera.orthographicSize=_targetOrthoSize;
     }
 
     private void MoveFocus(Vector3 worldPoint)
@@ -435,12 +471,31 @@ public class CameraPanTouchOnly : MonoBehaviour
 
     public void CenterOnSelection()
     {
-        if (TryGetSelectionCentroid(out Vector3 centroid))
-            FocusOn(centroid);
-        _followSelection = true;
+        if(!TryGetSelectionCentroid(out var centroid))return;
+        var selection=AgentSelectionManager.instance?.SelectedAgents;
+        AgentController first=null;bool spread=false;
+        if(selection!=null)foreach(var member in selection)
+        {
+            if(!member||!member.IsAlive)continue;if(!first)first=member;
+            var delta=CrewTrackingSystem.WorldPosition(member)-centroid;delta.y=0;if(delta.sqrMagnitude>45f*45f)spread=true;
+        }
+        if(spread)
+        {
+            var picked=AgentSelectionManager.LastPicked;
+            bool selected=false;if(selection!=null)foreach(var member in selection)if(member==picked){selected=true;break;}
+            CrewTrackingSystem.TrackMember(selected&&picked&&picked.IsAlive?picked:first);return;
+        }
+        FocusOn(centroid);_followSelection=true;
     }
 
-    public void FollowSelection() { _followSelection = true; }
+    public void FollowSelection() { _followedMember=null;_followSelection = true; }
+    public void FollowMember(AgentController member)
+    {
+        if(!member||!member.IsAlive)return;
+        _followSelection=false;_followedMember=member;_smoothTime=recenterSmoothTime;
+        MoveFocus(CrewTrackingSystem.WorldPosition(member));
+    }
+    public void ClearFollow(){_followSelection=false;_followedMember=null;}
 
     private bool TryGetSelectionCentroid(out Vector3 centroid)
     {
@@ -451,13 +506,13 @@ public class CameraPanTouchOnly : MonoBehaviour
         if (sel != null)
         {
             foreach (var a in sel)
-                if (a != null && a.IsAlive) { centroid += a.transform.position; count++; }
+                if (a != null && a.IsAlive) { centroid += CrewTrackingSystem.WorldPosition(a); count++; }
         }
 
         if (count == 0 && BattleManager.instance != null)
         {
             foreach (var a in BattleManager.instance.PlayerAgents)
-                if (a != null && a.IsAlive) { centroid += a.transform.position; count++; }
+                if (a != null && a.IsAlive) { centroid += CrewTrackingSystem.WorldPosition(a); count++; }
         }
 
         if (count == 0) return false;

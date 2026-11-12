@@ -1,0 +1,14 @@
+Result: APK packaged and verified by the normal Unity Android build pipeline
+Source: Unity Android non-development player, build 7
+APK: Artifacts/Builds/Hooligan-Client.apk
+Bytes: 257533088
+APK SHA-256: D6D6C7762444E272B6A32C0AD982BF73CFD01CC5F1AFEADD0EBF4E8D4AF6A9A5
+Package: com.hooliganstudio.manager.v3
+Version: 0.3.4
+Android version code: 7
+APK Signature Scheme v2: verified
+Certificate SHA-256: 20eb6c082971a62025f8b90f0c0542f8a38ed5bab1a7e5497fa5a946d897a078
+Upgrade metadata: same package ID and signer as the prior 0.3.2 client APK (build 5)
+ZIP integrity and ARM64 IL2CPP library: verified
+Packaging repair: quarantined the unreadable dependency cache folder. The normal Unity build recreated the descriptor under the default Gradle cache and produced the verified APK without a cache override.
+Physical device validation: not performed

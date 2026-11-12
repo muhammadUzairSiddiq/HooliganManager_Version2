@@ -1,14 +1,20 @@
 PASS Police career creates the actual player patrol van at a road
 PASS Vehicle spawn is on the road-only navigation area
 PASS An empty patrol van cannot drive without an officer aboard
+PASS Reserve officer accepts an independent real Guard duty before the transport/map checks
 PASS Selecting an empty van retains the chosen officers for the boarding action
 PASS Two selected officers receive walking boarding orders without instant collection
 PASS Both officers physically reach and board the parked van
 PASS Seated officers leave foot navigation and task assessment while remaining saved crew
 PASS The unselected third officer keeps their independent assignment
+PASS Actual boarded officers have explicit IN VAN map rows with disabled foot-selection controls
+PASS Mounted-row clarity keeps the independent on-foot officer selectable
+PASS Actual mounted-member FOCUS closes the map and centers the van without altering crew selection or the reserve Guard duty
+PASS Actual mounted-member TRACK pins that officer while the expanded map remains open
 PASS Selected patrol team accepts a complete road-only driving route
 PASS An invalid off-map drive target preserves the accepted road order
 PASS Van travels visibly and carries the boarded team with it
+PASS Tracking the mounted officer follows the actual road-driven van while another officer's Guard duty remains unchanged
 PASS Paused simulation does not move the patrol vehicle
 PASS Native police save stores the van and exact boarded officer IDs
 PASS Actual Police Continue restores the same boarded team
@@ -19,6 +25,6 @@ PASS Disembarkation uses nearby walkable curb positions rather than distant tele
 PASS The disembarked team is selected for immediate independent RTS orders
 PASS Patrol vehicle and Continue saves leave the firm campaign byte-identical
 PASS Leaving vehicle patrol restores the original firm campaign object
-RESULT 21 passed, 0 failed
+RESULT 27 passed, 0 failed
 Native editor fixture: real roads, actors, boarding, drive, exit and Continue. Accelerated travel. No device touch or real save used.
-UTC 2026-11-02T19:17:03.6922746Z
+UTC 2026-11-03T04:56:33.3197841Z

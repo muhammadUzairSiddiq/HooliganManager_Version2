@@ -10,3 +10,10 @@ PASS Native save preserves actual travellers, matchday deadlines and penalty-onc
 PASS Native group serialization preserves casualties, injuries and destinations
 PASS Retry preserves a valid zero-heat snapshot
 PASS Legacy migration preserves earned heat, cash and unlocked Home/Away progress
+PASS An existing firm gets a fresh tutorial after an app update
+PASS Same version preserves tutorial progress, purchase entitlement and the saved firm
+PASS The next release refreshes the tutorial again
+PASS A Police update removes the stale tutorial target
+PASS Police upgrade receipt and bookings survive the real serializer
+PASS Temporary cache cleanup removes nested files and leaves adjacent data alone
+PASS Consecutive release reservations advance even when an isolated build has older project settings

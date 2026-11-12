@@ -1,0 +1,35 @@
+PASS Home has a named highlighted world area and three construction plots
+PASS Fresh Home starts unbuilt and waits for deliberate control
+PASS The opening explains which button selects the first crew
+PASS Move is absent from a permanent command row
+PASS Attack is absent from a permanent command row
+PASS Guard is absent from a permanent command row
+PASS Patrol is absent from a permanent command row
+PASS Retreat is absent from a permanent command row
+PASS City opens with optional map annotations hidden
+PASS Construction requires the player's selected crew
+PASS Real selection and repeated orders complete orientation
+PASS One explained Orders menu retains selection and blocks orders through the sheet
+PASS Choosing Move replaces a pending guard gesture without changing selection
+PASS Choosing Attack replaces a pending patrol gesture
+PASS Choosing Guard clears the previous attack target mode
+PASS Cancelling targeting restores ordinary ground movement
+PASS Choosing Patrol clears the previous attack target mode
+PASS Regroup clears gesture and attack targeting while retaining selection
+PASS Free headquarters starts as an on-map crew assignment
+PASS Construction accepts an actual route endpoint inside the plot work radius
+PASS Construction waits for arrival instead of starting as crew pass through the plot
+PASS Crew arrival and timed work establish headquarters once without cost
+PASS A completed headquarters cannot rebuild or replay its outcome
+PASS Supply yard can be built after establishing headquarters
+PASS Manual movement cancels construction without payment
+PASS A cancelled supply-yard assignment can be restarted by the selected crew
+PASS Supply yard charges once after physical construction
+PASS Built supply yard activates the real supply economy
+PASS Training ground adds permanent crew development
+PASS Construction leaves a different group's guard duty intact
+PASS All three Home facilities survive the native save roundtrip
+PASS Completed facilities have visible reused world models
+PASS One deliberate HQ recruitment charges once and adds a usable crew member
+RESULT 33 passed, 0 failed
+Isolated native fixture: accelerated time and crew speed; ambient pressure suppressed for construction; not a complete natural campaign or device test.

@@ -1,0 +1,16 @@
+PASS Reproduced defeated saved campaign
+PASS Main action introduces role selection
+PASS Role menu is available before entering a campaign
+PASS New game requests overwrite instead of resuming defeated campaign
+PASS New game entered home gameplay with living crew
+PASS Starter cash available without ads
+PASS Actual New Game entry preserves quiet starting police heat
+PASS New Game waits for the player's selection lesson instead of completing it automatically
+PASS Crew spawned alive on navigation mesh
+PASS Landscape HUD, touch camera and unit selection loaded
+PASS 1280x720 gameplay retains complete logical layout
+PASS 1280x720 cash and compact heat visible, extended statistics hidden
+PASS 2400x1080 gameplay retains complete logical layout
+PASS 2400x1080 cash and compact heat visible, extended statistics hidden
+PASS 1024x768 gameplay retains complete logical layout
+PASS 1024x768 cash and compact heat visible, extended statistics hidden

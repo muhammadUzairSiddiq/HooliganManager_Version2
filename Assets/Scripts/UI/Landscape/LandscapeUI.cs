@@ -108,6 +108,7 @@ public static class LandscapeUI
         var shine = Image("Shine", i.transform, -w * .35f, 9, Mathf.Max(30, w * .12f), h - 18, null, new Color(1, 1, 1, .06f));
         shine.rectTransform.localEulerAngles = new Vector3(0, 0, -12);
         var glow = Image("SelectedGlow", i.transform, 18, h - 7, w - 36, 3, null, new Color(.95f, .15f, .18f, 0));
+        var rim = Image("ResponseRim", i.transform, 2, 2, w - 4, 2, null, new Color(.4f, .89f, .83f, 0));
         var labelText = Text("Label", i.transform, label, 16, 4, w - 32, h - 8, Mathf.Clamp(h * .36f, 16, 22), null, true, TextAlignmentOptions.Center);
         i.gameObject.AddComponent<ConciseButtonCaption>();
         labelText.enableWordWrapping = false;
@@ -124,6 +125,8 @@ public static class LandscapeUI
         polish.shine = shine;
         polish.selectedGlow = glow;
         polish.label = i.transform.Find("Label")?.GetComponent<TextMeshProUGUI>();
+        polish.responseRim = i.transform.Find("ResponseRim")?.GetComponent<Graphic>();
+        polish.Configure();
     }
     public static void Colors(Selectable b)
     {

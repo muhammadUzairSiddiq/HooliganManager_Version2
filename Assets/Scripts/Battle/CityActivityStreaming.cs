@@ -39,7 +39,7 @@ public sealed class CityActivityStreaming : MonoBehaviour
         footprint=Mathf.Min(footprint,300f);
         if(Time.unscaledTime<nextAudit)return;
         nextAudit=Time.unscaledTime+.5f;
-        LiveAmbientBodies=FindObjectsByType<PedestrianController>(FindObjectsSortMode.None).Length;
+        LiveAmbientBodies=PedestrianController.ActiveCount;
         var bm=BattleManager.instance;
         if(bm)foreach(var e in bm.EnemyAgents)if(e&&e.IsAlive&&e.IsAmbientMatchdayUnit)LiveAmbientBodies++;
     }
@@ -62,12 +62,13 @@ public sealed class CityActivityStreaming : MonoBehaviour
             if(a&&a.IsAlive&&(a.transform.position-position).sqrMagnitude<32f*32f)return true;
         return false;
     }
-    public static bool TryReserveBody(Vector3 position)
+    public static bool TryReserveBody(Vector3 position,bool essential=false)
     {
         if(!Interested(position))return false;
         var self=Instance;
         if(self.spawnFrame!=Time.frameCount){self.spawnFrame=Time.frameCount;self.spawnedThisFrame=0;}
-        if(self.LiveAmbientBodies>=BodyBudget||self.spawnedThisFrame>=(Application.isMobilePlatform?8:16))return false;
+        int limit=essential?BodyBudget:BodyBudget-8;
+        if(self.LiveAmbientBodies>=limit||self.spawnedThisFrame>=(Application.isMobilePlatform?8:16))return false;
         self.spawnedThisFrame++;self.LiveAmbientBodies++;
         return true;
     }
